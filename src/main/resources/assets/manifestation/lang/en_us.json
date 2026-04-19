@@ -33,5 +33,6 @@
   "hexcasting.page.manifestation.intents.intent_section": "Creates a non-interactive section from a label, acting as a sub heading.",
   "hexcasting.page.manifestation.intents.intent_dropdown": "Creates a dropdown from a list of options and a label. The selected option is pushed to the stack of an executed action.",
 
-  "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will."
+  "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will.",
+  "hexcasting.mishap.manifestation.menu_open_loop": "Manifestation backlash: this menu is being reopened too quickly."
 }

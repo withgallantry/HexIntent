@@ -8,6 +8,7 @@ import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.server.ManifestationServer
+import com.bluup.manifestation.server.mishap.MishapMenuOpenLoop
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerPlayer
 
@@ -47,6 +48,9 @@ object OpCreateListMenu : Action {
             1, // unused for LIST; carry a sentinel so the payload is valid
             env.castingHand
         )
+        if (MenuOpenLoopGuard.shouldMishap(caster, payload)) {
+            throw MishapMenuOpenLoop()
+        }
         ManifestationServer.sendMenuTo(caster, payload)
 
         val image2 = image.withUsedOp().copy(stack = stack)
