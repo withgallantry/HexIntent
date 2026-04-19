@@ -88,7 +88,7 @@ object ManifestationServer : ModInitializer {
 
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("ui_button"),
+            Manifestation.id("intent_button"),
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_BUTTON_SIG, UI_BUTTON_DIR),
                 OpUiButton
@@ -96,7 +96,7 @@ object ManifestationServer : ModInitializer {
         )
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("ui_input"),
+            Manifestation.id("intent_input"),
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_INPUT_SIG, UI_INPUT_DIR),
                 OpUiInput
@@ -104,7 +104,7 @@ object ManifestationServer : ModInitializer {
         )
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("ui_slider"),
+            Manifestation.id("intent_slider"),
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_SLIDER_SIG, UI_SLIDER_DIR),
                 OpUiSlider
@@ -112,7 +112,7 @@ object ManifestationServer : ModInitializer {
         )
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("ui_section"),
+            Manifestation.id("intent_section"),
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_SECTION_SIG, UI_SECTION_DIR),
                 OpUiSection
@@ -120,7 +120,7 @@ object ManifestationServer : ModInitializer {
         )
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("ui_dropdown"),
+            Manifestation.id("intent_dropdown"),
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_DROPDOWN_SIG, UI_DROPDOWN_DIR),
                 OpUiDropdown

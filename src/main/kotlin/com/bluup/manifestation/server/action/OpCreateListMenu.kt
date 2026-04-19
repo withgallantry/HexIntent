@@ -8,6 +8,7 @@ import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.server.ManifestationServer
+import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -34,19 +35,19 @@ object OpCreateListMenu : Action {
         val menu = MenuReader.readMenu(stack)
 
         val caster = env.castingEntity as? ServerPlayer
-        if (caster != null) {
-            val payload = MenuPayload(
-                menu.title,
-                menu.entries,
-                MenuPayload.Layout.LIST,
-                MenuPayload.Theme.RITUAL,
-                1, // unused for LIST; carry a sentinel so the payload is valid
-                env.castingHand
-            )
-            ManifestationServer.sendMenuTo(caster, payload)
+        if (caster == null) {
+            throw MishapRequiresCasterWill()
         }
-        // If there's no player caster (e.g. spell circles), we just no-op.
-        // There's nobody to render a menu for.
+
+        val payload = MenuPayload(
+            menu.title,
+            menu.entries,
+            MenuPayload.Layout.LIST,
+            MenuPayload.Theme.RITUAL,
+            1, // unused for LIST; carry a sentinel so the payload is valid
+            env.castingHand
+        )
+        ManifestationServer.sendMenuTo(caster, payload)
 
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)

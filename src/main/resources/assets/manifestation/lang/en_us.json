@@ -1,17 +1,33 @@
 {
   "hexcasting.action.manifestation:create_list_menu": "Create List Menu [entries, title]",
   "hexcasting.action.manifestation:create_grid_menu": "Create Grid Menu [entries, title, columns]",
-  "hexcasting.action.manifestation:ui_button": "UI Button [actions, label]",
-  "hexcasting.action.manifestation:ui_input": "UI Input [label]",
-  "hexcasting.action.manifestation:ui_slider": "UI Slider [min, max, current, label]",
-  "hexcasting.action.manifestation:ui_section": "UI Section [label]",
-  "hexcasting.action.manifestation:ui_dropdown": "UI Dropdown [options, label]",
+  "hexcasting.action.manifestation:intent_button": "Intent Button [actions, label]",
+  "hexcasting.action.manifestation:intent_input": "Intent Input [label]",
+  "hexcasting.action.manifestation:intent_slider": "Intent Slider [min, max, current, label]",
+  "hexcasting.action.manifestation:intent_section": "Intent Section [label]",
+  "hexcasting.action.manifestation:intent_dropdown": "Intent Dropdown [options, label]",
 
-  "hexcasting.action.book.manifestation:create_list_menu": "Create a ritual list menu from [entries, title]",
-  "hexcasting.action.book.manifestation:create_grid_menu": "Create a ritual grid menu from [entries, title, columns]",
-  "hexcasting.action.book.manifestation:ui_button": "Build a button entry from [actions, label]",
-  "hexcasting.action.book.manifestation:ui_input": "Build an input entry from [label]",
-  "hexcasting.action.book.manifestation:ui_slider": "Build a slider entry from [min, max, current, label]",
-  "hexcasting.action.book.manifestation:ui_section": "Build a section header entry from [label]",
-  "hexcasting.action.book.manifestation:ui_dropdown": "Build a dropdown entry from [options, label]"
+  "hexcasting.action.book.manifestation:intent_button": "Intent Button",
+  "hexcasting.action.book.manifestation:intent_input": "Intent Input",
+  "hexcasting.action.book.manifestation:intent_slider": "Intent Slider",
+  "hexcasting.action.book.manifestation:intent_section": "Intent Section",
+  "hexcasting.action.book.manifestation:intent_dropdown": "Intent Dropdown",
+
+  "hexcasting.category.manifestation": "Manifestations",
+  "hexcasting.category.manifestation.desc": "A practical study in giving shape to intent: menus, choices, and spoken will made visible.",
+
+  "hexcasting.entry.manifestation_menus": "Manifestations",
+  "hexcasting.action.book.manifestation:create_list_menu": "Manifest List",
+  "hexcasting.action.book.manifestation:create_grid_menu": "Manifest Grid",
+  "hexcasting.page.manifestation.intro": "I've long suspected a link between media and the mind, but only recently have I begun to understand its true depths. When constrained into deliberate patterns the media manifests, forming structures that can be perceived.$(br2)More curious still, these constructs seem capable of accepting intent. By imposing order upon them, I can compel them to carry thought forward, translating decision into action, and action into hex.",
+  "hexcasting.page.manifestation.menus.create_list_menu": "Takes a list of intentions, a menu title and manifests a list menu.",
+  "hexcasting.page.manifestation.menus.create_grid_menu": "Takes a list of intentions, a menu title, and a number of columns to manifest a grid menu. Columns are limited to 1-10.",
+  "hexcasting.page.manifestation.intents_intro": "$(bold)$(#000000)Intents$()$(br2)An Intent is an imposition of will on the media, shaping it into a vessel awaiting a spark of interaction to awaken it.$(br2)By themselves, intents are inert. A button waits for a press, an input for text, a slider for a nudge, and a dropdown for a selection. But once roused, they execute their patterns with the fervor of a cast hex.",
+  "hexcasting.page.manifestation.intents.intent_button": "Creates a button from a list of patterns and a label. When clicked, the button casts the patterns.",
+  "hexcasting.page.manifestation.intents.intent_input": "Creates an input field from a label. Entered text is pushed to the stack of an executed action, like from a button.",
+  "hexcasting.page.manifestation.intents.intent_slider": "Creates a slider from min, max, current values, and a label. The chosen value is pushed to the stack of an executed action.",
+  "hexcasting.page.manifestation.intents.intent_section": "Creates a non-interactive section from a label, acting as a sub heading.",
+  "hexcasting.page.manifestation.intents.intent_dropdown": "Creates a dropdown from a list of options and a label. The selected option is pushed to the stack of an executed action.",
+
+  "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will."
 }

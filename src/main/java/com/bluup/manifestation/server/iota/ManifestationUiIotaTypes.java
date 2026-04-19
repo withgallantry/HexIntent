@@ -13,6 +13,7 @@ import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +21,22 @@ import java.util.ArrayList;
 
 public final class ManifestationUiIotaTypes {
     private ManifestationUiIotaTypes() {
+    }
+
+    private static MutableComponent displayWithQuotedLabel(String name, Tag labelTag, ChatFormatting color) {
+        String labelText = IotaType.getDisplay(HexUtils.downcast(labelTag, CompoundTag.TYPE)).getString();
+        return Component.literal(name + "(\"")
+            .append(Component.literal(labelText).withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("\"").withStyle(ChatFormatting.GRAY))
+            .withStyle(color);
+    }
+
+    private static String formatDouble(double value) {
+        long asLong = (long) value;
+        if (Math.abs(value - asLong) < 0.0000001) {
+            return Long.toString(asLong);
+        }
+        return Double.toString(value);
     }
 
     public static final IotaType<UiButtonIota> UI_BUTTON = new IotaType<>() {
@@ -43,10 +60,8 @@ public final class ManifestationUiIotaTypes {
         public Component display(Tag tag) {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
-            return Component.literal("ui_button(")
-                .append(IotaType.getDisplay(labelTag))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
-                .withStyle(ChatFormatting.GOLD);
+            return displayWithQuotedLabel("IntentButton", labelTag, ChatFormatting.GOLD)
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -69,10 +84,8 @@ public final class ManifestationUiIotaTypes {
         public Component display(Tag tag) {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
-            return Component.literal("ui_input(")
-                .append(IotaType.getDisplay(labelTag))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
-                .withStyle(ChatFormatting.YELLOW);
+            return displayWithQuotedLabel("IntentInput", labelTag, ChatFormatting.YELLOW)
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -99,10 +112,20 @@ public final class ManifestationUiIotaTypes {
         public Component display(Tag tag) {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
-            return Component.literal("ui_slider(")
-                .append(IotaType.getDisplay(labelTag))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
-                .withStyle(ChatFormatting.AQUA);
+            double min = DoubleIota.deserialize(ctag.get("min")).getDouble();
+            double max = DoubleIota.deserialize(ctag.get("max")).getDouble();
+            boolean hasCurrent = ctag.getBoolean("has_current");
+
+            var out = displayWithQuotedLabel("IntentSlider", labelTag, ChatFormatting.AQUA)
+                .append(Component.literal(", " + formatDouble(min) + ", " + formatDouble(max)).withStyle(ChatFormatting.GRAY));
+
+            if (hasCurrent) {
+                double current = DoubleIota.deserialize(ctag.get("current")).getDouble();
+                out.append(Component.literal(", " + formatDouble(current)).withStyle(ChatFormatting.GRAY));
+            }
+
+            return out
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -125,10 +148,8 @@ public final class ManifestationUiIotaTypes {
         public Component display(Tag tag) {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
-            return Component.literal("ui_section(")
-                .append(IotaType.getDisplay(labelTag))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
-                .withStyle(ChatFormatting.LIGHT_PURPLE);
+            return displayWithQuotedLabel("IntentSection", labelTag, ChatFormatting.LIGHT_PURPLE)
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -159,10 +180,11 @@ public final class ManifestationUiIotaTypes {
         public Component display(Tag tag) {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
-            return Component.literal("ui_dropdown(")
-                .append(IotaType.getDisplay(labelTag))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
-                .withStyle(ChatFormatting.BLUE);
+            var optionsTag = HexUtils.downcast(ctag.get("options"), ListTag.TYPE);
+            int selected = HexUtils.downcast(ctag.get("selected"), IntTag.TYPE).getAsInt();
+            return displayWithQuotedLabel("IntentDropdown", labelTag, ChatFormatting.BLUE)
+                .append(Component.literal(", options=" + optionsTag.size() + ", selected=" + selected).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -172,10 +194,10 @@ public final class ManifestationUiIotaTypes {
     };
 
     public static void register() {
-        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("ui_button"), UI_BUTTON);
-        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("ui_input"), UI_INPUT);
-        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("ui_slider"), UI_SLIDER);
-        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("ui_section"), UI_SECTION);
-        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("ui_dropdown"), UI_DROPDOWN);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_button"), UI_BUTTON);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_input"), UI_INPUT);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_slider"), UI_SLIDER);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_section"), UI_SECTION);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
     }
 }
