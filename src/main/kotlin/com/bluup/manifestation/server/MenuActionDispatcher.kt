@@ -33,8 +33,8 @@ import java.lang.reflect.Constructor
  */
 object MenuActionDispatcher {
 
-    private const val MAX_INPUTS = 32
-    private const val MAX_ACTION_IOTAS = 256
+    private const val MAX_INPUTS = 80
+    private const val MAX_ACTION_IOTAS = 1024
 
     data class InputDatum(
         val order: Int,

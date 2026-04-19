@@ -31,8 +31,8 @@ import net.minecraft.world.InteractionHand
  */
 object ManifestationServer : ModInitializer {
 
-    private const val MAX_INPUTS = 32
-    private const val MAX_ACTION_IOTAS = 256
+    private const val MAX_INPUTS = 80
+    private const val MAX_ACTION_IOTAS = 1024
     private const val MAX_INPUT_STRING_CHARS = 256
 
     private const val LIST_MENU_SIG = "awwaqwedwwd"
