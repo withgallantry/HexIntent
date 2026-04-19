@@ -77,6 +77,28 @@
       font-size: 0.92rem;
       line-height: 1.6;
     }
+    .example {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(16, 28, 45, 0.55);
+    }
+    .example .title {
+      margin-bottom: 10px;
+    }
+    .example img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      display: block;
+    }
+    .example .caption {
+      margin: 10px 2px 2px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
   </style>
 </head>
 <body>
@@ -96,6 +118,12 @@
         into hex.
       </p>
     </div>
+
+    <section class="example" aria-label="Example menu">
+      <div class="title">Example</div>
+      <img src="assets/ExampleTeleportMenu.png" alt="Example teleport menu" />
+      <p class="caption">Example menu built using inputs, sections and buttons. Executes a teleport to a predetermined destination or allows for custom X,Y,Z co-ordinates.</p>
+    </section>
 
     <div class="grid">
       <a class="tile" href="patterns.html">
