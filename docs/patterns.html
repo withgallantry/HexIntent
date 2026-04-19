@@ -100,6 +100,22 @@
       font-size: 0.95rem;
       overflow-wrap: anywhere;
     }
+    .sig-glyph {
+      display: block;
+      width: 168px;
+      max-width: 100%;
+      border: 1px solid rgba(42, 58, 87, 0.9);
+      border-radius: 10px;
+      background: radial-gradient(220px 120px at 50% -20%, rgba(96, 165, 250, 0.12) 0%, transparent 70%), rgba(6, 11, 20, 0.88);
+      box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.08);
+    }
+    .sig-fallback {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      opacity: 0.9;
+    }
     .pill {
       color: var(--accent-3);
       border: 1px solid rgba(245, 158, 11, 0.35);
@@ -257,7 +273,7 @@
             <h2>UI_BUTTON</h2>
             <div class="sig">{ne,awwaqwedwwdaa}</div>
           </div>
-          <div class="pill">Entry constructor</div>
+          <div class="pill">Intent constructor</div>
         </div>
         <p class="summary">Builds a typed button entry for a menu list. Clicking it dispatches stored action iotas in order.</p>
         <div class="meta">
@@ -268,7 +284,7 @@
           </div>
           <div class="meta-block">
             <div class="meta-title">Returns</div>
-            <p class="returns">Pushes a <code>UiButtonIota(label, actions)</code> onto the stack.</p>
+            <p class="returns">Pushes an <code>IntentButton(label, actions)</code> onto the stack.</p>
           </div>
           <div class="meta-block">
             <div class="meta-title">Notes</div>
@@ -286,7 +302,7 @@
             <h2>UI_INPUT</h2>
             <div class="sig">{ne,awwaqwedwwdad}</div>
           </div>
-          <div class="pill">Entry constructor</div>
+          <div class="pill">Intent constructor</div>
         </div>
         <p class="summary">Builds a typed text input entry. The menu renders an input field with the label as prompt.</p>
         <div class="meta">
@@ -296,7 +312,7 @@
           </div>
           <div class="meta-block">
             <div class="meta-title">Returns</div>
-            <p class="returns">Pushes a <code>UiInputIota(label)</code> onto the stack.</p>
+            <p class="returns">Pushes an <code>IntentInput(label)</code> onto the stack.</p>
           </div>
           <div class="meta-block">
             <div class="meta-title">Notes</div>
@@ -314,7 +330,7 @@
             <h2>UI_SLIDER</h2>
             <div class="sig">{ne,awwaqwedwwdaw}</div>
           </div>
-          <div class="pill">Entry constructor</div>
+          <div class="pill">Intent constructor</div>
         </div>
         <p class="summary">Builds a numeric slider entry with explicit bounds and a current value. The rendered menu exposes a bounded numeric control to the player.</p>
         <div class="meta">
@@ -327,7 +343,7 @@
           </div>
           <div class="meta-block">
             <div class="meta-title">Returns</div>
-            <p class="returns">Pushes a <code>UiSliderIota(label, min, max, current)</code> onto the stack.</p>
+            <p class="returns">Pushes an <code>IntentSlider(label, min, max, current)</code> onto the stack.</p>
           </div>
           <div class="meta-block">
             <div class="meta-title">Notes</div>
@@ -345,7 +361,7 @@
             <h2>UI_SECTION</h2>
             <div class="sig">{ne,awwaqwedwwdawde}</div>
           </div>
-          <div class="pill">Entry constructor</div>
+          <div class="pill">Intent constructor</div>
         </div>
         <p class="summary">Builds a non-interactive section header entry. This is useful for grouping related controls inside a larger menu.</p>
         <div class="meta">
@@ -355,7 +371,7 @@
           </div>
           <div class="meta-block">
             <div class="meta-title">Returns</div>
-            <p class="returns">Pushes a <code>UiSectionIota(label)</code> onto the stack.</p>
+            <p class="returns">Pushes an <code>IntentSection(label)</code> onto the stack.</p>
           </div>
           <div class="meta-block">
             <div class="meta-title">Notes</div>
@@ -373,7 +389,7 @@
             <h2>UI_DROPDOWN</h2>
             <div class="sig">{ne,awwaqwedwwdawaq}</div>
           </div>
-          <div class="pill">Entry constructor</div>
+          <div class="pill">Intent constructor</div>
         </div>
         <p class="summary">Builds a dropdown selector entry with a fixed list of options. The constructor stores the options and initializes the selected index to the first item.</p>
         <div class="meta">
@@ -384,7 +400,7 @@
           </div>
           <div class="meta-block">
             <div class="meta-title">Returns</div>
-            <p class="returns">Pushes a <code>UiDropdownIota(label, options, 0)</code> onto the stack.</p>
+            <p class="returns">Pushes an <code>IntentDropdown(label, options, 0)</code> onto the stack.</p>
           </div>
           <div class="meta-block">
             <div class="meta-title">Notes</div>
@@ -397,5 +413,132 @@
       </article>
     </section>
   </main>
+
+  <script>
+    const HEX_DIRS = [
+      { q: 1, r: 0 },
+      { q: 1, r: -1 },
+      { q: 0, r: -1 },
+      { q: -1, r: 0 },
+      { q: -1, r: 1 },
+      { q: 0, r: 1 },
+    ];
+
+    const TURN_MAP = { w: 0, e: -1, d: -2, s: 3, a: 2, q: 1 };
+
+    const START_FACING = {
+      e: 0,
+      ne: 1,
+      nw: 2,
+      w: 3,
+      sw: 4,
+      se: 5,
+    };
+
+    function toPixel(q, r, size) {
+      return {
+        x: size * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r),
+        y: size * (1.5 * r),
+      };
+    }
+
+    function parsePattern(strokes, startFacing) {
+      const chars = Array.from((strokes || "").toLowerCase()).filter(c => c in TURN_MAP);
+      let q = 0;
+      let r = 0;
+      let facing = startFacing;
+      const points = [{ q, r }];
+
+      q += HEX_DIRS[facing].q;
+      r += HEX_DIRS[facing].r;
+      points.push({ q, r });
+
+      for (let i = 0; i < chars.length; i++) {
+        facing = ((facing + TURN_MAP[chars[i]]) % 6 + 6) % 6;
+        q += HEX_DIRS[facing].q;
+        r += HEX_DIRS[facing].r;
+        points.push({ q, r });
+      }
+
+      return points;
+    }
+
+    function parseBraceSignature(raw) {
+      const match = String(raw || "").trim().match(/^\{\s*([^,{}]+)\s*,\s*([^{}]*)\s*\}$/);
+      if (!match) return null;
+      const dir = match[1].trim().toLowerCase();
+      const strokes = match[2].trim().toLowerCase();
+      if (!(dir in START_FACING)) return null;
+      return { dir, strokes };
+    }
+
+    function drawGlyph(signatureText) {
+      const parsed = parseBraceSignature(signatureText);
+      if (!parsed) return null;
+
+      const size = 8;
+      const points = parsePattern(parsed.strokes, START_FACING[parsed.dir]);
+      const pixels = points.map(p => toPixel(p.q, p.r, size));
+      const pad = 20;
+      const xs = pixels.map(p => p.x);
+      const ys = pixels.map(p => p.y);
+      const minX = Math.min(...xs) - pad;
+      const maxX = Math.max(...xs) + pad;
+      const minY = Math.min(...ys) - pad;
+      const maxY = Math.max(...ys) + pad;
+      const width = Math.max(maxX - minX, 120);
+      const height = Math.max(maxY - minY, 72);
+      const ox = -minX;
+      const oy = -minY;
+
+      const lines = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = pixels[i];
+        const p2 = pixels[i + 1];
+        lines.push({ x1: p1.x + ox, y1: p1.y + oy, x2: p2.x + ox, y2: p2.y + oy, t: i / Math.max(points.length - 2, 1) });
+      }
+
+      let svg = "";
+      svg += '<svg class="sig-glyph" viewBox="0 0 ' + Math.ceil(width) + ' ' + Math.ceil(height) + '" role="img" aria-label="Pattern glyph">';
+      svg += '<defs><linearGradient id="sigGrad" x1="0" y1="0" x2="1" y2="0">';
+      svg += '<stop offset="0%" stop-color="#60a5fa" /><stop offset="100%" stop-color="#22d3ee" />';
+      svg += '</linearGradient></defs>';
+      svg += '<rect width="100%" height="100%" rx="8" fill="rgba(6,11,20,0.92)" />';
+
+      for (let i = 0; i < lines.length; i++) {
+        const s = lines[i];
+        svg += '<line x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 + '" y2="' + s.y2 + '" stroke="rgba(96,165,250,0.25)" stroke-width="6" stroke-linecap="round" />';
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const s = lines[i];
+        svg += '<line x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 + '" y2="' + s.y2 + '" stroke="url(#sigGrad)" stroke-width="2.4" stroke-opacity="' + (0.75 + 0.25 * s.t) + '" stroke-linecap="round" />';
+      }
+
+      for (let i = 0; i < pixels.length; i++) {
+        const p = pixels[i];
+        const isStart = i === 0;
+        const isEnd = i === pixels.length - 1;
+        const radius = isStart ? 3.3 : (isEnd ? 3 : 2.1);
+        const fill = isStart ? '#22d3ee' : (isEnd ? '#60a5fa' : '#93c5fd');
+        svg += '<circle cx="' + (p.x + ox) + '" cy="' + (p.y + oy) + '" r="' + radius + '" fill="' + fill + '" fill-opacity="0.95" />';
+      }
+
+      svg += '</svg>';
+      return svg;
+    }
+
+    function renderPatternGlyphs() {
+      const sigElements = document.querySelectorAll('.sig');
+      sigElements.forEach(el => {
+        const raw = el.textContent.trim();
+        const glyph = drawGlyph(raw);
+        if (!glyph) return;
+        el.innerHTML = glyph + '<div class="sig-fallback">' + raw + '</div>';
+      });
+    }
+
+    renderPatternGlyphs();
+  </script>
 </body>
 </html>
