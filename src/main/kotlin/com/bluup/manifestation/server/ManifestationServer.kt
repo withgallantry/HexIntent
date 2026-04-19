@@ -13,7 +13,9 @@ import com.bluup.manifestation.client.menu.execution.MenuActionSender
 import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpUiButton
+import com.bluup.manifestation.server.action.OpUiDropdown
 import com.bluup.manifestation.server.action.OpUiInput
+import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import net.fabricmc.api.ModInitializer
@@ -54,6 +56,12 @@ object ManifestationServer : ModInitializer {
 
     private const val UI_SLIDER_SIG = "aqwwewqwewa"
     private val UI_SLIDER_DIR = HexDir.EAST
+
+    private const val UI_SECTION_SIG = "aqwwewqwewaw"
+    private val UI_SECTION_DIR = HexDir.EAST
+
+    private const val UI_DROPDOWN_SIG = "aqwwewqwewawa"
+    private val UI_DROPDOWN_DIR = HexDir.EAST
 
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
@@ -111,6 +119,22 @@ object ManifestationServer : ModInitializer {
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_SLIDER_SIG, UI_SLIDER_DIR),
                 OpUiSlider
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("ui_section"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(UI_SECTION_SIG, UI_SECTION_DIR),
+                OpUiSection
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("ui_dropdown"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(UI_DROPDOWN_SIG, UI_DROPDOWN_DIR),
+                OpUiDropdown
             )
         )
     }

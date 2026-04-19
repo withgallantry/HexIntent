@@ -9,7 +9,9 @@ import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.menu.MenuEntry
 import com.bluup.manifestation.common.menu.StoredIota
 import com.bluup.manifestation.server.iota.UiButtonIota
+import com.bluup.manifestation.server.iota.UiDropdownIota
 import com.bluup.manifestation.server.iota.UiInputIota
+import com.bluup.manifestation.server.iota.UiSectionIota
 import com.bluup.manifestation.server.iota.UiSliderIota
 import net.minecraft.network.chat.Component
 
@@ -25,6 +27,8 @@ import net.minecraft.network.chat.Component
  *   * UiButtonIota(label, actions)
  *   * UiInputIota(label)
  *   * UiSliderIota(label, min, max, current?)
+ *   * UiDropdownIota(label, options)
+ *   * UiSectionIota(label)
  *
  * This parser is intentionally strict and only accepts those typed iotas.
  * Legacy shape inference is removed.
@@ -141,6 +145,14 @@ internal object MenuReader {
                 } else {
                     MenuEntry.button(entryIota.label.display(), stored)
                 }
+            }
+
+            is UiSectionIota -> {
+                MenuEntry.section(entryIota.label.display())
+            }
+
+            is UiDropdownIota -> {
+                MenuEntry.dropdown(entryIota.label.display(), entryIota.options, entryIota.selectedIndex)
             }
 
             else -> {

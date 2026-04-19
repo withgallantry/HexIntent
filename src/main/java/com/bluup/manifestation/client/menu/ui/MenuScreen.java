@@ -40,6 +40,7 @@ public final class MenuScreen extends Screen {
 
     // Shared layout constants.
     private static final int BUTTON_HEIGHT = 20;
+    private static final int SECTION_HEIGHT = 26;
     private static final int BUTTON_SPACING = 4;
     private static final int TITLE_MARGIN = 8;
     private static final int PANEL_PADDING = 8;
@@ -59,6 +60,7 @@ public final class MenuScreen extends Screen {
     private final InteractionHand hand;
     private final Map<Integer, EditBox> inputBoxes = new LinkedHashMap<>();
     private final Map<Integer, MenuSlider> sliderBoxes = new LinkedHashMap<>();
+    private final Map<Integer, MenuDropdown> dropdownBoxes = new LinkedHashMap<>();
     private final Map<Integer, EntryBounds> entryBounds = new LinkedHashMap<>();
     private int animTick;
     private int currentPage;
@@ -81,6 +83,18 @@ public final class MenuScreen extends Screen {
 
         boolean contains(int px, int py) {
             return px >= x && px < x + w && py >= y && py < y + h;
+        }
+    }
+
+    private static final class PositionedEntry {
+        final int index;
+        final MenuEntry entry;
+        final EntryBounds bounds;
+
+        PositionedEntry(int index, MenuEntry entry, EntryBounds bounds) {
+            this.index = index;
+            this.entry = entry;
+            this.bounds = bounds;
         }
     }
 
@@ -112,6 +126,39 @@ public final class MenuScreen extends Screen {
         }
     }
 
+    private final class MenuDropdown {
+        private final Component label;
+        private final List<String> options;
+        private int selected;
+        private final Button button;
+
+        MenuDropdown(int x, int y, int width, int height, Component label, List<String> options, int selected) {
+            this.label = label;
+            this.options = List.copyOf(options);
+            this.selected = this.options.isEmpty() ? 0 : Math.max(0, Math.min(selected, this.options.size() - 1));
+            this.button = Button.builder(Component.empty(), btn -> {
+                if (!this.options.isEmpty()) {
+                    this.selected = (this.selected + 1) % this.options.size();
+                }
+                updateMessage();
+            }).bounds(x, y, width, height).build();
+            updateMessage();
+        }
+
+        private void updateMessage() {
+            String selectedText = options.isEmpty() ? "-" : options.get(selected);
+            this.button.setMessage(Component.literal(label.getString() + ": " + selectedText));
+        }
+
+        String selectedValue() {
+            return options.isEmpty() ? "" : options.get(selected);
+        }
+
+        Button button() {
+            return button;
+        }
+    }
+
     public MenuScreen(MenuPayload menu, InteractionHand hand) {
         super(menu.title());
         this.menu = menu;
@@ -122,6 +169,7 @@ public final class MenuScreen extends Screen {
     protected void init() {
         inputBoxes.clear();
         sliderBoxes.clear();
+        dropdownBoxes.clear();
         entryBounds.clear();
         effectiveColumns = menu.layout() == MenuPayload.Layout.GRID
             ? computeEffectiveGridColumns(menu.columns())
@@ -141,53 +189,51 @@ public final class MenuScreen extends Screen {
         }
 
         if (totalPages > 1) {
-            addPageControls(pageEntries.size(), effectiveColumns);
+            addPageControls(pageEntries, effectiveColumns);
         }
     }
 
     private void layoutList(List<MenuEntry> entries) {
         int panelWidth = panelWidthForColumns(1);
-        int panelHeight = panelHeightFor(rowsFor(entries.size(), 1), totalPages > 1);
+        int panelHeight = panelHeightForContent(contentHeightForLayout(entries, 1), totalPages > 1);
 
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
-        int buttonX = panelX + PANEL_PADDING;
-        int buttonY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
-
-        for (int i = 0; i < entries.size(); i++) {
-            addEntryWidget(i, entries.get(i), buttonX, buttonY, LIST_BUTTON_WIDTH);
-            buttonY += BUTTON_HEIGHT + BUTTON_SPACING;
+        for (PositionedEntry placement : computeListPlacements(entries, panelX, panelY)) {
+            addEntryWidget(
+                placement.index,
+                placement.entry,
+                placement.bounds.x,
+                placement.bounds.y,
+                placement.bounds.w
+            );
         }
     }
 
     private void layoutGrid(List<MenuEntry> entries, int columns) {
-        int rows = (entries.size() + columns - 1) / columns;
-
         int panelWidth = panelWidthForColumns(columns);
-        int panelHeight = panelHeightFor(rows, totalPages > 1);
+        int panelHeight = panelHeightForContent(contentHeightForLayout(entries, columns), totalPages > 1);
 
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
-        int rowStartY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
-
-        for (int i = 0; i < entries.size(); i++) {
-            int row = i / columns;
-            int col = i % columns;
-            int bx = panelX + PANEL_PADDING + col * (GRID_BUTTON_WIDTH + BUTTON_SPACING);
-            int by = rowStartY + row * (BUTTON_HEIGHT + BUTTON_SPACING);
-            addEntryWidget(i, entries.get(i), bx, by, GRID_BUTTON_WIDTH);
+        for (PositionedEntry placement : computeGridPlacements(entries, panelX, panelY, columns)) {
+            addEntryWidget(
+                placement.index,
+                placement.entry,
+                placement.bounds.x,
+                placement.bounds.y,
+                placement.bounds.w
+            );
         }
     }
 
     /**
-     * Panel height calculation shared between layouts. Takes row count, not
-     * entry count, so GRID can account for wrapping.
+     * Panel height calculation shared between layouts.
      */
-    private int panelHeightFor(int rows, boolean includePager) {
-        int buttonsHeight = rows * BUTTON_HEIGHT + Math.max(0, rows - 1) * BUTTON_SPACING;
-        int panelHeight = PANEL_PADDING * 2 + this.font.lineHeight + TITLE_MARGIN + buttonsHeight;
+    private int panelHeightForContent(int contentHeight, boolean includePager) {
+        int panelHeight = PANEL_PADDING * 2 + this.font.lineHeight + TITLE_MARGIN + Math.max(BUTTON_HEIGHT, contentHeight);
         if (includePager) {
             panelHeight += PAGE_CONTROLS_MARGIN + PAGE_CONTROLS_HEIGHT;
         }
@@ -233,10 +279,9 @@ public final class MenuScreen extends Screen {
         return allEntries.subList(start, end);
     }
 
-    private void addPageControls(int visibleEntryCount, int columns) {
-        int rows = rowsFor(visibleEntryCount, columns);
+    private void addPageControls(List<MenuEntry> visibleEntries, int columns) {
         int panelWidth = panelWidthForColumns(columns);
-        int panelHeight = panelHeightFor(rows, true);
+        int panelHeight = panelHeightForContent(contentHeightForLayout(visibleEntries, columns), true);
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
 
@@ -264,6 +309,10 @@ public final class MenuScreen extends Screen {
     }
 
     private void addEntryWidget(int index, MenuEntry entry, int x, int y, int width) {
+        if (entry.isSection()) {
+            return;
+        }
+
         entryBounds.put(index, new EntryBounds(x, y, width, BUTTON_HEIGHT));
 
         if (entry.isInput()) {
@@ -287,6 +336,21 @@ public final class MenuScreen extends Screen {
             );
             sliderBoxes.put(index, slider);
             this.addRenderableWidget(slider);
+            return;
+        }
+
+        if (entry.isDropdown()) {
+            MenuDropdown dropdown = new MenuDropdown(
+                x,
+                y,
+                width,
+                BUTTON_HEIGHT,
+                entry.label(),
+                entry.dropdownOptions(),
+                entry.dropdownSelected()
+            );
+            dropdownBoxes.put(index, dropdown);
+            this.addRenderableWidget(dropdown.button());
             return;
         }
 
@@ -331,6 +395,15 @@ public final class MenuScreen extends Screen {
             .forEach(entry -> values.add(
                 MenuActionSender.InputDatum.number(entry.getKey(), entry.getValue().getActualValue())
             ));
+
+        dropdownBoxes.entrySet().stream()
+            .sorted(Comparator.comparingInt(Map.Entry::getKey))
+            .forEach(entry -> {
+                String value = entry.getValue().selectedValue();
+                if (!value.isEmpty()) {
+                    values.add(MenuActionSender.InputDatum.string(entry.getKey(), value));
+                }
+            });
 
         values.sort(Comparator.comparingInt(MenuActionSender.InputDatum::order));
         return values;
@@ -401,10 +474,8 @@ public final class MenuScreen extends Screen {
         // mid-life (resize).
         List<MenuEntry> entries = getPageEntries(menu.entries());
         int columns = menu.layout() == MenuPayload.Layout.GRID ? effectiveColumns : 1;
-        int rows = rowsFor(entries.size(), columns);
-
         int panelWidth = panelWidthForColumns(columns);
-        int panelHeight = panelHeightFor(rows, totalPages > 1);
+        int panelHeight = panelHeightForContent(contentHeightForLayout(entries, columns), totalPages > 1);
 
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
@@ -415,6 +486,7 @@ public final class MenuScreen extends Screen {
         drawArcanePanel(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
         drawOpeningTrace(graphics, panelX, panelY, panelWidth, panelHeight, introProgress, pulse);
         drawEntryBackplates(graphics, panelX, panelY, entries, columns);
+        drawSectionLabels(graphics, panelX, panelY, entries, columns);
         drawHoverShimmer(graphics, mouseX, mouseY, pulse);
         drawSigils(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
 
@@ -535,44 +607,81 @@ public final class MenuScreen extends Screen {
     }
 
     private void drawEntryBackplates(GuiGraphics graphics, int panelX, int panelY, List<MenuEntry> entries, int columns) {
-        int rowStartY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
-        for (int i = 0; i < entries.size(); i++) {
-            MenuEntry entry = entries.get(i);
-            int x;
-            int y;
-            int w;
+        List<PositionedEntry> placements = columns == 1
+            ? computeListPlacements(entries, panelX, panelY)
+            : computeGridPlacements(entries, panelX, panelY, columns);
 
-            if (columns == 1) {
-                x = panelX + PANEL_PADDING;
-                y = rowStartY + i * (BUTTON_HEIGHT + BUTTON_SPACING);
-                w = LIST_BUTTON_WIDTH;
+        for (PositionedEntry placement : placements) {
+            MenuEntry entry = placement.entry;
+            int x = placement.bounds.x;
+            int y = placement.bounds.y;
+            int w = placement.bounds.w;
+
+            int base = entry.isSection()
+                ? themed(0x442A1A49, 0x44162F45)
+                : entry.isDropdown()
+                    ? themed(0x6630405F, 0x66223F63)
+                : entry.isInput()
+                    ? themed(0x663A2A57, 0x66233C57)
+                    : themed(0x55331752, 0x55274E66);
+            int frame = entry.isSection()
+                ? themed(0xFFD8B2FF, 0xFFB7EAFF)
+                : entry.isDropdown()
+                    ? themed(0xFF92BFFF, 0xFF89DAFF)
+                : entry.isInput()
+                    ? themed(0xFF7FB8FF, 0xFF94E4FF)
+                    : themed(0xFFC59BFF, 0xFF8FCFFF);
+            int rune = entry.isSection()
+                ? themed(0xAAA97BFF, 0xAA8EDCFF)
+                : entry.isDropdown()
+                    ? themed(0xAA9CC5FF, 0xAA9BE7FF)
+                : entry.isInput()
+                    ? themed(0xAA9BD3FF, 0xAACAF1FF)
+                    : themed(0xAADDCCFF, 0xAA9AE8FF);
+
+            graphics.fill(x - 1, y - 1, x + w + 1, y + placement.bounds.h + 1, base);
+            graphics.fill(x - 1, y - 1, x + w + 1, y, frame);
+            graphics.fill(x - 1, y + placement.bounds.h, x + w + 1, y + placement.bounds.h + 1, frame);
+            graphics.fill(x - 1, y - 1, x, y + placement.bounds.h + 1, frame);
+            graphics.fill(x + w, y - 1, x + w + 1, y + placement.bounds.h + 1, frame);
+
+            int midY = y + placement.bounds.h / 2;
+            if (entry.isSection()) {
+                graphics.fill(x + 4, midY, x + w - 4, midY + 1, rune);
             } else {
-                int row = i / columns;
-                int col = i % columns;
-                x = panelX + PANEL_PADDING + col * (GRID_BUTTON_WIDTH + BUTTON_SPACING);
-                y = rowStartY + row * (BUTTON_HEIGHT + BUTTON_SPACING);
-                w = GRID_BUTTON_WIDTH;
+                graphics.fill(x + 4, midY, x + 8, midY + 1, rune);
+                graphics.fill(x + w - 8, midY, x + w - 4, midY + 1, rune);
+            }
+        }
+    }
+
+    private void drawSectionLabels(GuiGraphics graphics, int panelX, int panelY, List<MenuEntry> entries, int columns) {
+        List<PositionedEntry> placements = columns == 1
+            ? computeListPlacements(entries, panelX, panelY)
+            : computeGridPlacements(entries, panelX, panelY, columns);
+
+        for (PositionedEntry placement : placements) {
+            MenuEntry entry = placement.entry;
+            if (!entry.isSection()) {
+                continue;
             }
 
-            int base = entry.isInput()
-                ? themed(0x663A2A57, 0x66233C57)
-                : themed(0x55331752, 0x55274E66);
-            int frame = entry.isInput()
-                ? themed(0xFF7FB8FF, 0xFF94E4FF)
-                : themed(0xFFC59BFF, 0xFF8FCFFF);
-            int rune = entry.isInput()
-                ? themed(0xAA9BD3FF, 0xAACAF1FF)
-                : themed(0xAADDCCFF, 0xAA9AE8FF);
+            int x = placement.bounds.x;
+            int y = placement.bounds.y;
+            int w = placement.bounds.w;
 
-            graphics.fill(x - 1, y - 1, x + w + 1, y + BUTTON_HEIGHT + 1, base);
-            graphics.fill(x - 1, y - 1, x + w + 1, y, frame);
-            graphics.fill(x - 1, y + BUTTON_HEIGHT, x + w + 1, y + BUTTON_HEIGHT + 1, frame);
-            graphics.fill(x - 1, y - 1, x, y + BUTTON_HEIGHT + 1, frame);
-            graphics.fill(x + w, y - 1, x + w + 1, y + BUTTON_HEIGHT + 1, frame);
+            String label = entry.label().getString();
+            int tx = x + 8;
+            int ty = y + (placement.bounds.h - this.font.lineHeight) / 2;
+            graphics.drawString(this.font, label, tx, ty, themed(0xFFE8D0FF, 0xFFD9F4FF), true);
 
-            int midY = y + BUTTON_HEIGHT / 2;
-            graphics.fill(x + 4, midY, x + 8, midY + 1, rune);
-            graphics.fill(x + w - 8, midY, x + w - 4, midY + 1, rune);
+            int lineY = y + placement.bounds.h / 2;
+            int lineStart = tx + Math.min(this.font.width(label) + 8, w - 16);
+            int lineEnd = x + w - 8;
+            if (lineEnd > lineStart) {
+                int lineColor = themed(0x88D8B8FF, 0x88A8E8FF);
+                graphics.fill(lineStart, lineY, lineEnd, lineY + 1, lineColor);
+            }
         }
     }
 
@@ -655,6 +764,119 @@ public final class MenuScreen extends Screen {
             int py = Math.round(Mth.lerp(t, y1, y2));
             graphics.fill(px - thickness, py - thickness, px + thickness + 1, py + thickness + 1, color);
         }
+    }
+
+    private int contentHeightForLayout(List<MenuEntry> entries, int columns) {
+        if (entries.isEmpty()) {
+            return BUTTON_HEIGHT;
+        }
+
+        if (columns <= 1) {
+            int height = 0;
+            for (int i = 0; i < entries.size(); i++) {
+                if (i > 0) {
+                    height += BUTTON_SPACING;
+                }
+                height += entryHeight(entries.get(i));
+            }
+            return Math.max(BUTTON_HEIGHT, height);
+        }
+
+        int height = 0;
+        int col = 0;
+        for (MenuEntry entry : entries) {
+            if (entry.isSection()) {
+                if (col > 0) {
+                    if (height > 0) {
+                        height += BUTTON_SPACING;
+                    }
+                    height += BUTTON_HEIGHT;
+                    col = 0;
+                }
+                if (height > 0) {
+                    height += BUTTON_SPACING;
+                }
+                height += SECTION_HEIGHT;
+                continue;
+            }
+
+            col++;
+            if (col >= columns) {
+                if (height > 0) {
+                    height += BUTTON_SPACING;
+                }
+                height += BUTTON_HEIGHT;
+                col = 0;
+            }
+        }
+
+        if (col > 0) {
+            if (height > 0) {
+                height += BUTTON_SPACING;
+            }
+            height += BUTTON_HEIGHT;
+        }
+
+        return Math.max(BUTTON_HEIGHT, height);
+    }
+
+    private List<PositionedEntry> computeListPlacements(List<MenuEntry> entries, int panelX, int panelY) {
+        List<PositionedEntry> placements = new ArrayList<>(entries.size());
+        int rowStartY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
+        int y = rowStartY;
+
+        for (int i = 0; i < entries.size(); i++) {
+            MenuEntry entry = entries.get(i);
+            int height = entryHeight(entry);
+            int x = panelX + PANEL_PADDING;
+            if (i > 0) {
+                y += BUTTON_SPACING;
+            }
+            placements.add(
+                new PositionedEntry(i, entry, new EntryBounds(x, y, LIST_BUTTON_WIDTH, height))
+            );
+            y += height;
+        }
+        return placements;
+    }
+
+    private List<PositionedEntry> computeGridPlacements(List<MenuEntry> entries, int panelX, int panelY, int columns) {
+        List<PositionedEntry> placements = new ArrayList<>(entries.size());
+        int rowStartY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
+        int fullWidth = columns * GRID_BUTTON_WIDTH + (columns - 1) * BUTTON_SPACING;
+
+        int y = rowStartY;
+        int col = 0;
+        for (int i = 0; i < entries.size(); i++) {
+            MenuEntry entry = entries.get(i);
+            if (entry.isSection()) {
+                if (col > 0) {
+                    y += BUTTON_HEIGHT + BUTTON_SPACING;
+                    col = 0;
+                }
+
+                placements.add(
+                    new PositionedEntry(i, entry, new EntryBounds(panelX + PANEL_PADDING, y, fullWidth, SECTION_HEIGHT))
+                );
+                y += SECTION_HEIGHT + BUTTON_SPACING;
+                continue;
+            }
+
+            int x = panelX + PANEL_PADDING + col * (GRID_BUTTON_WIDTH + BUTTON_SPACING);
+            placements.add(new PositionedEntry(i, entry, new EntryBounds(x, y, GRID_BUTTON_WIDTH, BUTTON_HEIGHT)));
+
+            col++;
+            if (col >= columns) {
+                col = 0;
+                y += BUTTON_HEIGHT + BUTTON_SPACING;
+            }
+        }
+
+        return placements;
+    }
+
+    private int entryHeight(MenuEntry entry) {
+        return entry.isSection() ? SECTION_HEIGHT : BUTTON_HEIGHT;
     }
 
     private int themed(int ritual, int scholar) {
