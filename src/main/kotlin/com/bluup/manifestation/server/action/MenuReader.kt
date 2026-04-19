@@ -30,8 +30,6 @@ import net.minecraft.network.chat.Component
  *   * UiDropdownIota(label, options)
  *   * UiSectionIota(label)
  *
- * This parser is intentionally strict and only accepts those typed iotas.
- * Legacy shape inference is removed.
  */
 internal object MenuReader {
 
