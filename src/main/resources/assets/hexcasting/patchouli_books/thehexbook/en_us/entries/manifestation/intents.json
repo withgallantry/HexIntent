@@ -48,6 +48,22 @@
       "input": "list, string | text",
       "output": "intent",
       "text": "hexcasting.page.manifestation.intents.intent_dropdown"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:link_intent_relay",
+      "anchor": "manifestation:link_intent_relay",
+      "input": "vec support, vec target, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.link_intent_relay"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:unlink_intent_relay",
+      "anchor": "manifestation:unlink_intent_relay",
+      "input": "vec",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.unlink_intent_relay"
     }
   ]
 }

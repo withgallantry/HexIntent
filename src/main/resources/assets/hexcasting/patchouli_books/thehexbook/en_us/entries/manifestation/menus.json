@@ -24,6 +24,14 @@
       "input": "list, string | text, num",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_grid_menu"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:create_radial_menu",
+      "anchor": "manifestation:create_radial_menu",
+      "input": "list, string | text",
+      "output": "",
+      "text": "hexcasting.page.manifestation.menus.create_radial_menu"
     }
   ]
 }

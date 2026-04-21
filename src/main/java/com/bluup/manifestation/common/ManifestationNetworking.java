@@ -20,6 +20,7 @@ public final class ManifestationNetworking {
 
     public static final ResourceLocation SHOW_MENU_S2C = Manifestation.id("show_menu");
     public static final ResourceLocation DISPATCH_ACTION_C2S = Manifestation.id("dispatch_action");
+    public static final ResourceLocation INTENT_SHIFTER_RUNES_S2C = Manifestation.id("intent_shifter_runes");
 
     private ManifestationNetworking() {
     }

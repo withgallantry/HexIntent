@@ -2,12 +2,17 @@ package com.bluup.manifestation.client;
 
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.client.menu.ui.MenuScreen;
+import com.bluup.manifestation.client.render.IntentRelayBlockEntityRenderer;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.menu.MenuPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.world.InteractionHand;
+import com.bluup.manifestation.server.block.ManifestationBlocks;
 
 /**
  * Client entrypoint. Runs on every client, both connected-to-dedicated-server
@@ -27,6 +32,17 @@ public final class ManifestationClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Manifestation.LOGGER.info("Manifestation client initializing.");
+
+        BlockRenderLayerMap.INSTANCE.putBlock(
+            ManifestationBlocks.INTENT_RELAY_BLOCK,
+            RenderType.cutout()
+        );
+        BlockEntityRenderers.register(
+            ManifestationBlocks.INTENT_RELAY_BLOCK_ENTITY,
+            IntentRelayBlockEntityRenderer::new
+        );
+        IntentShifterLensOverlay.register();
+        IntentShifterRuneEffects.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,

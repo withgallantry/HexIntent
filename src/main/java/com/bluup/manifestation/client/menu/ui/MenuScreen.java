@@ -22,7 +22,8 @@ import java.util.Map;
 
 /**
  * Renders a menu payload as a non-pausing modal screen.
- * LIST uses a single column and GRID uses a computed column count.
+ * LIST uses a single column, GRID uses a computed column count,
+ * and RADIAL arranges button entries as wedge sectors around a ring.
  */
 public final class MenuScreen extends Screen {
 
@@ -38,6 +39,14 @@ public final class MenuScreen extends Screen {
 
     // Grid layout constants.
     private static final int GRID_BUTTON_WIDTH = 120;
+
+    // Radial layout constants.
+    private static final int RADIAL_OUTER_RADIUS = 92;
+    private static final int RADIAL_INNER_RADIUS = 30;
+    private static final int RADIAL_LABEL_RADIUS = 61;
+    private static final int RADIAL_FILL_STEPS = 28;
+    private static final double RADIAL_GAP_RADIANS = Math.toRadians(4.0);
+
     private static final int INTRO_TRACE_TICKS = 12;
     private static final int INK_REVEAL_TICKS = 18;
     private static final int PAGE_BUTTON_WIDTH = 20;
@@ -52,6 +61,7 @@ public final class MenuScreen extends Screen {
     private final Map<Integer, MenuSlider> sliderBoxes = new LinkedHashMap<>();
     private final Map<Integer, MenuDropdown> dropdownBoxes = new LinkedHashMap<>();
     private final Map<Integer, EntryBounds> entryBounds = new LinkedHashMap<>();
+    private final Map<Integer, Component> radialTruncatedTooltips = new LinkedHashMap<>();
     private int animTick;
     private int currentPage;
     private int totalPages = 1;
@@ -86,6 +96,9 @@ public final class MenuScreen extends Screen {
             this.entry = entry;
             this.bounds = bounds;
         }
+    }
+
+    private record RadialGeometry(int centerX, int centerY, int outerRadius, int innerRadius) {
     }
 
     private final class MenuSlider extends AbstractSliderButton {
@@ -161,14 +174,17 @@ public final class MenuScreen extends Screen {
         sliderBoxes.clear();
         dropdownBoxes.clear();
         entryBounds.clear();
+        radialTruncatedTooltips.clear();
         effectiveColumns = menu.layout() == MenuPayload.Layout.GRID
             ? computeEffectiveGridColumns(menu.columns())
             : 1;
 
         int rowsPerPage = computeRowsPerPage();
-        entriesPerPage = Math.max(1, rowsPerPage * effectiveColumns);
+        entriesPerPage = menu.layout() == MenuPayload.Layout.RADIAL
+            ? 8
+            : Math.max(1, rowsPerPage * effectiveColumns);
 
-        List<MenuEntry> allEntries = menu.entries();
+        List<MenuEntry> allEntries = entriesForLayout(menu.entries());
         totalPages = Math.max(1, (allEntries.size() + entriesPerPage - 1) / entriesPerPage);
         currentPage = Mth.clamp(currentPage, 0, totalPages - 1);
 
@@ -176,10 +192,11 @@ public final class MenuScreen extends Screen {
         switch (menu.layout()) {
             case LIST -> layoutList(pageEntries);
             case GRID -> layoutGrid(pageEntries, effectiveColumns);
+            case RADIAL -> layoutRadial(pageEntries);
         }
 
         if (totalPages > 1) {
-            addPageControls(pageEntries, effectiveColumns);
+            addPageControls(pageEntries);
         }
     }
 
@@ -219,6 +236,10 @@ public final class MenuScreen extends Screen {
         }
     }
 
+    private void layoutRadial(List<MenuEntry> entries) {
+        // Radial entries are rendered and hit-tested as wedge sectors rather than widgets.
+    }
+
     /**
      * Reworked so panel height calculation shared between layouts.
      */
@@ -236,6 +257,27 @@ public final class MenuScreen extends Screen {
         }
         int innerWidth = columns * GRID_BUTTON_WIDTH + (columns - 1) * BUTTON_SPACING;
         return innerWidth + PANEL_PADDING * 2;
+    }
+
+    private int panelWidthForLayout(List<MenuEntry> entries, int columns) {
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            return Math.max((RADIAL_OUTER_RADIUS * 2) + PANEL_PADDING * 2 + 12, 188);
+        }
+        return panelWidthForColumns(columns);
+    }
+
+    private List<MenuEntry> entriesForLayout(List<MenuEntry> source) {
+        if (menu.layout() != MenuPayload.Layout.RADIAL) {
+            return source;
+        }
+
+        List<MenuEntry> out = new ArrayList<>();
+        for (MenuEntry entry : source) {
+            if (entry.isButton()) {
+                out.add(entry);
+            }
+        }
+        return out;
     }
 
     private int rowsFor(int entries, int columns) {
@@ -269,8 +311,9 @@ public final class MenuScreen extends Screen {
         return allEntries.subList(start, end);
     }
 
-    private void addPageControls(List<MenuEntry> visibleEntries, int columns) {
-        int panelWidth = panelWidthForColumns(columns);
+    private void addPageControls(List<MenuEntry> visibleEntries) {
+        int columns = menu.layout() == MenuPayload.Layout.GRID ? effectiveColumns : 1;
+        int panelWidth = panelWidthForLayout(visibleEntries, columns);
         int panelHeight = panelHeightForContent(contentHeightForLayout(visibleEntries, columns), true);
         int panelX = (this.width - panelWidth) / 2;
         int panelY = (this.height - panelHeight) / 2;
@@ -345,11 +388,29 @@ public final class MenuScreen extends Screen {
         }
 
         final MenuEntry captured = entry;
+        Component buttonLabel = entry.label();
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            return;
+        }
         this.addRenderableWidget(
-                Button.builder(entry.label(), btn -> selectEntry(captured))
+                Button.builder(buttonLabel, btn -> selectEntry(captured))
                         .bounds(x, y, width, BUTTON_HEIGHT)
                         .build()
         );
+    }
+
+    private Component fittedRadialLabel(Component label, int width) {
+        int maxTextWidth = Math.max(24, width - 14);
+        String raw = label.getString();
+        if (this.font.width(raw) <= maxTextWidth) {
+            return label;
+        }
+
+        String ellipsis = "...";
+        int ellipsisWidth = this.font.width(ellipsis);
+        int allowed = Math.max(8, maxTextWidth - ellipsisWidth);
+        String clipped = this.font.plainSubstrByWidth(raw, allowed);
+        return Component.literal(clipped + ellipsis);
     }
 
     private void selectEntry(MenuEntry entry) {
@@ -464,9 +525,9 @@ public final class MenuScreen extends Screen {
         this.renderBackground(graphics);
 
         // Recompute bounds here because the screen can resize after init().
-        List<MenuEntry> entries = getPageEntries(menu.entries());
+        List<MenuEntry> entries = getPageEntries(entriesForLayout(menu.entries()));
         int columns = menu.layout() == MenuPayload.Layout.GRID ? effectiveColumns : 1;
-        int panelWidth = panelWidthForColumns(columns);
+        int panelWidth = panelWidthForLayout(entries, columns);
         int panelHeight = panelHeightForContent(contentHeightForLayout(entries, columns), totalPages > 1);
 
         int panelX = (this.width - panelWidth) / 2;
@@ -478,10 +539,14 @@ public final class MenuScreen extends Screen {
         drawArcanePanel(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
         drawOpeningTrace(graphics, panelX, panelY, panelWidth, panelHeight, introProgress, pulse);
         drawLivingGlyphPerimeter(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
-        drawEntryBackplates(graphics, panelX, panelY, entries, columns);
-        drawSectionLabels(graphics, panelX, panelY, entries, columns);
-        drawRuneLinks(graphics, panelX, panelY, entries, columns, pulse);
-        drawHoverShimmer(graphics, mouseX, mouseY, pulse);
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            drawRadialSectors(graphics, panelX, panelY, panelWidth, entries, mouseX, mouseY, pulse);
+        } else {
+            drawEntryBackplates(graphics, panelX, panelY, entries, columns);
+            drawSectionLabels(graphics, panelX, panelY, entries, columns);
+            drawRuneLinks(graphics, panelX, panelY, entries, columns, pulse);
+            drawHoverShimmer(graphics, mouseX, mouseY, pulse);
+        }
         drawSigils(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
 
         String titleText = revealText(menu.title().getString(), animTick, 2);
@@ -520,6 +585,142 @@ public final class MenuScreen extends Screen {
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderRadialLabelTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderRadialLabelTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (menu.layout() != MenuPayload.Layout.RADIAL || radialTruncatedTooltips.isEmpty()) {
+            return;
+        }
+
+        int columns = menu.layout() == MenuPayload.Layout.GRID ? effectiveColumns : 1;
+        List<MenuEntry> entries = getPageEntries(entriesForLayout(menu.entries()));
+        int panelWidth = panelWidthForLayout(entries, columns);
+        int panelHeight = panelHeightForContent(contentHeightForLayout(entries, columns), totalPages > 1);
+        int panelX = (this.width - panelWidth) / 2;
+        int panelY = (this.height - panelHeight) / 2;
+
+        int hovered = radialIndexAt(mouseX, mouseY, entries, panelX, panelY, panelWidth);
+        if (hovered >= 0) {
+            Component tooltip = radialTruncatedTooltips.get(hovered);
+            if (tooltip != null) {
+                graphics.renderTooltip(this.font, tooltip, mouseX, mouseY);
+            }
+        }
+    }
+
+    private void drawRadialSectors(
+        GuiGraphics graphics,
+        int panelX,
+        int panelY,
+        int panelWidth,
+        List<MenuEntry> entries,
+        int mouseX,
+        int mouseY,
+        float pulse
+    ) {
+        radialTruncatedTooltips.clear();
+        if (entries.isEmpty()) {
+            return;
+        }
+
+        RadialGeometry geometry = radialGeometry(panelX, panelY, panelWidth, entries);
+        int hovered = radialIndexAt(mouseX, mouseY, entries, panelX, panelY, panelWidth);
+
+        for (int i = 0; i < entries.size(); i++) {
+            MenuEntry entry = entries.get(i);
+            double start = radialStartAngle(i, entries.size()) + RADIAL_GAP_RADIANS;
+            double end = radialEndAngle(i, entries.size()) - RADIAL_GAP_RADIANS;
+            boolean isHovered = i == hovered;
+
+            int fillAlpha = isHovered ? 92 + (int) (40 * pulse) : 62 + (int) (18 * pulse);
+            int frameAlpha = isHovered ? 180 + (int) (30 * pulse) : 118 + (int) (20 * pulse);
+            int fill = (fillAlpha << 24) | themed(0x43235D, 0x15394D);
+            int frame = (frameAlpha << 24) | themed(0xE1B7FF, 0x9DE8FF);
+            int glow = (((isHovered ? 86 : 46) + (int) (32 * pulse)) << 24) | themed(0xA872FF, 0x5FD3FF);
+
+            for (int step = 0; step <= RADIAL_FILL_STEPS; step++) {
+                double t = step / (double) RADIAL_FILL_STEPS;
+                double angle = Mth.lerp(t, start, end);
+                int x1 = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.innerRadius);
+                int y1 = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.innerRadius);
+                int x2 = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.outerRadius);
+                int y2 = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.outerRadius);
+                drawPixelLine(graphics, x1, y1, x2, y2, fill, 0);
+            }
+
+            drawPixelLine(
+                graphics,
+                geometry.centerX + (int) Math.round(Math.cos(start) * geometry.innerRadius),
+                geometry.centerY + (int) Math.round(Math.sin(start) * geometry.innerRadius),
+                geometry.centerX + (int) Math.round(Math.cos(start) * geometry.outerRadius),
+                geometry.centerY + (int) Math.round(Math.sin(start) * geometry.outerRadius),
+                frame,
+                0
+            );
+            drawPixelLine(
+                graphics,
+                geometry.centerX + (int) Math.round(Math.cos(end) * geometry.innerRadius),
+                geometry.centerY + (int) Math.round(Math.sin(end) * geometry.innerRadius),
+                geometry.centerX + (int) Math.round(Math.cos(end) * geometry.outerRadius),
+                geometry.centerY + (int) Math.round(Math.sin(end) * geometry.outerRadius),
+                frame,
+                0
+            );
+
+            for (int step = 0; step <= RADIAL_FILL_STEPS; step++) {
+                double t = step / (double) RADIAL_FILL_STEPS;
+                double angle = Mth.lerp(t, start, end);
+                int outerX = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.outerRadius);
+                int outerY = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.outerRadius);
+                graphics.fill(outerX, outerY, outerX + 1, outerY + 1, frame);
+                if (isHovered) {
+                    int glowX = geometry.centerX + (int) Math.round(Math.cos(angle) * (geometry.outerRadius + 1));
+                    int glowY = geometry.centerY + (int) Math.round(Math.sin(angle) * (geometry.outerRadius + 1));
+                    graphics.fill(glowX, glowY, glowX + 1, glowY + 1, glow);
+                }
+            }
+
+            double mid = (start + end) * 0.5;
+            int labelX = geometry.centerX + (int) Math.round(Math.cos(mid) * RADIAL_LABEL_RADIUS);
+            int labelY = geometry.centerY + (int) Math.round(Math.sin(mid) * RADIAL_LABEL_RADIUS);
+            int maxTextWidth = Math.max(36, sectorLabelWidth(geometry, entries.size(), mid));
+            Component fitted = fittedRadialLabel(entry.label(), maxTextWidth);
+            if (!fitted.getString().equals(entry.label().getString())) {
+                radialTruncatedTooltips.put(i, entry.label());
+            }
+
+            int textWidth = this.font.width(fitted);
+            int textColor = isHovered ? themed(0xFFF6EBFF, 0xFFF1FFFF) : themed(0xFFE3D0FF, 0xFFD7F4FF);
+            graphics.drawString(
+                this.font,
+                fitted,
+                labelX - (textWidth / 2),
+                labelY - (this.font.lineHeight / 2),
+                textColor,
+                true
+            );
+        }
+
+        int coreAlpha = 78 + (int) (28 * pulse);
+        int core = (coreAlpha << 24) | themed(0x25142E, 0x0F2B34);
+        graphics.fill(
+            geometry.centerX - geometry.innerRadius + 3,
+            geometry.centerY - geometry.innerRadius + 3,
+            geometry.centerX + geometry.innerRadius - 3,
+            geometry.centerY + geometry.innerRadius - 3,
+            core
+        );
+        graphics.drawCenteredString(this.font, menu.title(), geometry.centerX, geometry.centerY - 4, themed(0xFFE8D0FF, 0xFFD9F4FF));
+        if (totalPages > 1) {
+            graphics.drawCenteredString(
+                this.font,
+                Component.literal((currentPage + 1) + "/" + totalPages),
+                geometry.centerX,
+                geometry.centerY + 8,
+                themed(0xDAB8FF, 0xB7ECFF)
+            );
+        }
     }
 
     private void drawOpeningTrace(
@@ -653,9 +854,7 @@ public final class MenuScreen extends Screen {
     }
 
     private void drawEntryBackplates(GuiGraphics graphics, int panelX, int panelY, List<MenuEntry> entries, int columns) {
-        List<PositionedEntry> placements = columns == 1
-            ? computeListPlacements(entries, panelX, panelY)
-            : computeGridPlacements(entries, panelX, panelY, columns);
+        List<PositionedEntry> placements = computePlacements(entries, panelX, panelY, columns);
 
         for (PositionedEntry placement : placements) {
             MenuEntry entry = placement.entry;
@@ -702,9 +901,7 @@ public final class MenuScreen extends Screen {
     }
 
     private void drawSectionLabels(GuiGraphics graphics, int panelX, int panelY, List<MenuEntry> entries, int columns) {
-        List<PositionedEntry> placements = columns == 1
-            ? computeListPlacements(entries, panelX, panelY)
-            : computeGridPlacements(entries, panelX, panelY, columns);
+        List<PositionedEntry> placements = computePlacements(entries, panelX, panelY, columns);
 
         for (PositionedEntry placement : placements) {
             MenuEntry entry = placement.entry;
@@ -732,9 +929,7 @@ public final class MenuScreen extends Screen {
     }
 
     private void drawRuneLinks(GuiGraphics graphics, int panelX, int panelY, List<MenuEntry> entries, int columns, float pulse) {
-        List<PositionedEntry> placements = columns == 1
-            ? computeListPlacements(entries, panelX, panelY)
-            : computeGridPlacements(entries, panelX, panelY, columns);
+        List<PositionedEntry> placements = computePlacements(entries, panelX, panelY, columns);
 
         EntryBounds activeSection = null;
         int lineAlpha = 40 + (int) (50 * pulse);
@@ -777,6 +972,10 @@ public final class MenuScreen extends Screen {
     }
 
     private void drawHoverShimmer(GuiGraphics graphics, int mouseX, int mouseY, float pulse) {
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            return;
+        }
+
         for (EntryBounds bounds : entryBounds.values()) {
             if (!bounds.contains(mouseX, mouseY)) {
                 continue;
@@ -858,6 +1057,10 @@ public final class MenuScreen extends Screen {
     }
 
     private int contentHeightForLayout(List<MenuEntry> entries, int columns) {
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            return (RADIAL_OUTER_RADIUS * 2) + 12;
+        }
+
         if (entries.isEmpty()) {
             return BUTTON_HEIGHT;
         }
@@ -964,6 +1167,81 @@ public final class MenuScreen extends Screen {
         }
 
         return placements;
+    }
+
+    private List<PositionedEntry> computeRadialPlacements(List<MenuEntry> entries, int panelX, int panelY, int panelWidth) {
+        return List.of();
+    }
+
+    private RadialGeometry radialGeometry(int panelX, int panelY, int panelWidth, List<MenuEntry> entries) {
+        int contentTop = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
+        return new RadialGeometry(
+            panelX + (panelWidth / 2),
+            contentTop + (contentHeightForLayout(entries, 1) / 2),
+            RADIAL_OUTER_RADIUS,
+            RADIAL_INNER_RADIUS
+        );
+    }
+
+    private double radialStartAngle(int index, int count) {
+        return (-Math.PI / 2.0) + (Math.PI * 2.0 * index / count);
+    }
+
+    private double radialEndAngle(int index, int count) {
+        return (-Math.PI / 2.0) + (Math.PI * 2.0 * (index + 1) / count);
+    }
+
+    private int sectorLabelWidth(RadialGeometry geometry, int count, double angle) {
+        double halfSweep = Math.PI / count;
+        double arcHalfWidth = Math.sin(halfSweep) * RADIAL_LABEL_RADIUS;
+        int radialInset = geometry.outerRadius - geometry.innerRadius - 8;
+        return Math.max(42, Math.min((int) Math.floor(arcHalfWidth * 2.0), radialInset * 2));
+    }
+
+    private int radialIndexAt(int mouseX, int mouseY, List<MenuEntry> entries, int panelX, int panelY, int panelWidth) {
+        if (entries.isEmpty()) {
+            return -1;
+        }
+
+        RadialGeometry geometry = radialGeometry(panelX, panelY, panelWidth, entries);
+        double dx = mouseX - geometry.centerX;
+        double dy = mouseY - geometry.centerY;
+        double distanceSq = (dx * dx) + (dy * dy);
+        if (distanceSq < (geometry.innerRadius * geometry.innerRadius) || distanceSq > (geometry.outerRadius * geometry.outerRadius)) {
+            return -1;
+        }
+
+        double angle = Math.atan2(dy, dx) + (Math.PI / 2.0);
+        if (angle < 0.0) {
+            angle += Math.PI * 2.0;
+        }
+        int index = (int) Math.floor(angle / ((Math.PI * 2.0) / entries.size()));
+        return Mth.clamp(index, 0, entries.size() - 1);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (menu.layout() == MenuPayload.Layout.RADIAL && button == 0) {
+            List<MenuEntry> entries = getPageEntries(entriesForLayout(menu.entries()));
+            int panelWidth = panelWidthForLayout(entries, 1);
+            int panelHeight = panelHeightForContent(contentHeightForLayout(entries, 1), totalPages > 1);
+            int panelX = (this.width - panelWidth) / 2;
+            int panelY = (this.height - panelHeight) / 2;
+            int hovered = radialIndexAt((int) mouseX, (int) mouseY, entries, panelX, panelY, panelWidth);
+            if (hovered >= 0 && hovered < entries.size()) {
+                selectEntry(entries.get(hovered));
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private List<PositionedEntry> computePlacements(List<MenuEntry> entries, int panelX, int panelY, int columns) {
+        return switch (menu.layout()) {
+            case LIST -> computeListPlacements(entries, panelX, panelY);
+            case GRID -> computeGridPlacements(entries, panelX, panelY, columns);
+            case RADIAL -> computeRadialPlacements(entries, panelX, panelY, panelWidthForLayout(entries, columns));
+        };
     }
 
     private int entryHeight(MenuEntry entry) {

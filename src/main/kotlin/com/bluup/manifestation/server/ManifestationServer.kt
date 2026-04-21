@@ -12,16 +12,23 @@ import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.client.menu.execution.MenuActionSender
 import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
+import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiDropdown
 import com.bluup.manifestation.server.action.OpUiInput
+import com.bluup.manifestation.server.action.OpLinkIntentRelay
+import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
+import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.Registry
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 
@@ -41,6 +48,9 @@ object ManifestationServer : ModInitializer {
     private const val GRID_MENU_SIG = "awwaeawwaqwddad"
     private val GRID_MENU_DIR = HexDir.NORTH_EAST
 
+    private const val RADIAL_MENU_SIG = "awwaeawwaqwddade"
+    private val RADIAL_MENU_DIR = HexDir.NORTH_EAST
+
     private const val UI_BUTTON_SIG = "awwaqwedwwdaa"
     private val UI_BUTTON_DIR = HexDir.NORTH_EAST
 
@@ -56,10 +66,17 @@ object ManifestationServer : ModInitializer {
     private const val UI_DROPDOWN_SIG = "awwaqwedwwdawaq"
     private val UI_DROPDOWN_DIR = HexDir.NORTH_EAST
 
+    private const val LINK_INTENT_RELAY_SIG = "awwaqwedwwdawdw"
+    private val LINK_INTENT_RELAY_DIR = HexDir.NORTH_EAST
+
+    private const val UNLINK_INTENT_RELAY_SIG = "awwaqwedwwdawda"
+    private val UNLINK_INTENT_RELAY_DIR = HexDir.NORTH_EAST
+
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
 
         ManifestationConfig.load()
+        ManifestationBlocks.register()
 
         registerIotaTypes()
         registerActions()
@@ -89,6 +106,14 @@ object ManifestationServer : ModInitializer {
             ActionRegistryEntry(
                 HexPattern.fromAngles(GRID_MENU_SIG, GRID_MENU_DIR),
                 OpCreateGridMenu
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("create_radial_menu"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(RADIAL_MENU_SIG, RADIAL_MENU_DIR),
+                OpCreateRadialMenu
             )
         )
 
@@ -130,6 +155,22 @@ object ManifestationServer : ModInitializer {
             ActionRegistryEntry(
                 HexPattern.fromAngles(UI_DROPDOWN_SIG, UI_DROPDOWN_DIR),
                 OpUiDropdown
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("link_intent_relay"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(LINK_INTENT_RELAY_SIG, LINK_INTENT_RELAY_DIR),
+                OpLinkIntentRelay
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("unlink_intent_relay"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(UNLINK_INTENT_RELAY_SIG, UNLINK_INTENT_RELAY_DIR),
+                OpUnlinkIntentRelay
             )
         )
     }
@@ -206,5 +247,20 @@ object ManifestationServer : ModInitializer {
         val buf = PacketByteBufs.create()
         payload.write(buf)
         ServerPlayNetworking.send(player, ManifestationNetworking.SHOW_MENU_S2C, buf)
+    }
+
+    @JvmStatic
+    fun sendIntentShifterRunes(level: ServerLevel, pos: BlockPos, outward: Direction, durationTicks: Int) {
+        for (player in level.players()) {
+            if (player.blockPosition().distSqr(pos) > 64.0 * 64.0) {
+                continue
+            }
+
+            val buf = PacketByteBufs.create()
+            buf.writeBlockPos(pos)
+            buf.writeEnum(outward)
+            buf.writeVarInt(durationTicks)
+            ServerPlayNetworking.send(player, ManifestationNetworking.INTENT_SHIFTER_RUNES_S2C, buf)
+        }
     }
 }

@@ -1,20 +1,27 @@
 {
   "hexcasting.action.manifestation:create_list_menu": "Create List Menu [entries, title]",
   "hexcasting.action.manifestation:create_grid_menu": "Create Grid Menu [entries, title, columns]",
+  "hexcasting.action.manifestation:create_radial_menu": "Create Radial Menu [entries, title]",
   "hexcasting.action.manifestation:intent_button": "Intent Button [actions, label]",
   "hexcasting.action.manifestation:intent_input": "Intent Input [label]",
   "hexcasting.action.manifestation:intent_slider": "Intent Slider [min, max, current, label]",
   "hexcasting.action.manifestation:intent_section": "Intent Section [label]",
   "hexcasting.action.manifestation:intent_dropdown": "Intent Dropdown [options, label]",
+  "hexcasting.action.manifestation:link_intent_relay": "Link Intent Relay [relay, target, signal?]",
+  "hexcasting.action.manifestation:unlink_intent_relay": "Unlink Intent Relay [relay]",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",
   "hexcasting.action.book.manifestation:intent_slider": "Intent Slider",
   "hexcasting.action.book.manifestation:intent_section": "Intent Section",
   "hexcasting.action.book.manifestation:intent_dropdown": "Intent Dropdown",
+  "hexcasting.action.book.manifestation:link_intent_relay": "Link Intent Relay",
+  "hexcasting.action.book.manifestation:unlink_intent_relay": "Unlink Intent Relay",
+
+  "block.manifestation.intent_relay": "Intent Relay",
 
   "hexcasting.category.manifestation_menus": "Manifest",
-  "hexcasting.category.manifestation_menus.desc": "Pattern constructors for list and grid manifestations.",
+  "hexcasting.category.manifestation_menus.desc": "Pattern constructors for list, grid, and radial manifestations.",
   "hexcasting.category.manifestation_intents": "Intent",
   "hexcasting.category.manifestation_intents.desc": "Interactive intent primitives for manifested interfaces.",
 
@@ -23,16 +30,28 @@
   "hexcasting.entry.manifestation_intents": "Intent",
   "hexcasting.action.book.manifestation:create_list_menu": "Manifest List",
   "hexcasting.action.book.manifestation:create_grid_menu": "Manifest Grid",
+  "hexcasting.action.book.manifestation:create_radial_menu": "Manifest Radial",
   "hexcasting.page.manifestation.intro": "I've long suspected a link between media and the mind, but only recently have I begun to understand its depths. Constraining the media into patterns with intent makes it manifest, forming structures that can be perceived.$(br2)More curious still, these constructs seem capable of accepting intent. By imposing order upon them, I can compel them to carry thought forward, translating decision into action.",
   "hexcasting.page.manifestation.menus.create_list_menu": "Takes a list of intentions, a menu title and manifests a list menu.",
   "hexcasting.page.manifestation.menus.create_grid_menu": "Takes a list of intentions, a menu title, and a number of columns to manifest a grid menu. Columns are limited to 1-10.",
+  "hexcasting.page.manifestation.menus.create_radial_menu": "Takes a list of intentions and a menu title to manifest a radial button menu. Radial menus require button intents only; any non-button intent causes a mishap.",
   "hexcasting.page.manifestation.intents_intro": "An Intent is an imposition of will on the media, shaping it into a vessel awaiting a spark of interaction to awaken it.$(br2)By themselves, intents are inert. A button waits for a press, an input for text, a slider for a nudge, and a dropdown for a selection. But once roused, they execute their patterns with the fervor of a cast hex.",
   "hexcasting.page.manifestation.intents.intent_button": "Creates a button from a list of patterns and a label. When clicked, the button casts the patterns.",
   "hexcasting.page.manifestation.intents.intent_input": "Creates an input field from a label. Entered text is pushed to the stack of an executed action, like from a button.",
   "hexcasting.page.manifestation.intents.intent_slider": "Creates a slider from min, max, current values, and a label. The chosen value is pushed to the stack of an executed action.",
   "hexcasting.page.manifestation.intents.intent_section": "Creates a non-interactive section from a label, acting as a sub heading.",
   "hexcasting.page.manifestation.intents.intent_dropdown": "Creates a dropdown from a list of options and a label. The selected option is pushed to the stack of an executed action.",
+  "hexcasting.page.manifestation.intents.link_intent_relay": "Links an Intent Relay to a target position using two vectors: relay and target. The relay vector names the support block being looked at; the relay is manifested on that face toward the caster, or reused if one is already attached there. The cast mishaps only if that face is blocked or cannot support the relay. Optional third parameter: signal strength (0-15). If omitted, the relay forwards interaction intent to the linked target. If provided, the relay instead manifests transient redstone emitters around the linked target, causing the targeted block to output that strength as if powered from all sides; 0 is an explicit no-power redstone mode, distinct from pass-through.",
+  "hexcasting.page.manifestation.intents.unlink_intent_relay": "Clears an existing link from an Intent Relay block.",
+
+  "hexcasting.tooltip.manifestation.intent_shifter.unlinked": "Intent Relay: Unlinked",
+  "hexcasting.tooltip.manifestation.intent_shifter.linked": "Intent Relay: Linked",
+  "hexcasting.tooltip.manifestation.intent_shifter.coords": "Target: %s, %s, %s",
+  "hexcasting.tooltip.manifestation.intent_shifter.dimension": "Dimension: %s",
 
   "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will.",
-  "hexcasting.mishap.manifestation.menu_open_loop": "Manifestation backlash: this menu is being reopened too quickly."
+  "hexcasting.mishap.manifestation.menu_open_loop": "Manifestation backlash: this menu is being reopened too quickly.",
+  "hexcasting.mishap.manifestation.radial_menu_buttons_only": "Radial manifestation requires every entry to be an intent button.",
+  "hexcasting.mishap.manifestation.intent_relay_no_space": "Intent Relay cannot manifest on that face; the space is blocked or unsupported.",
+  "hexcasting.mishap.manifestation.intent_relay_signal_range": "Intent Relay signal strength must be between 0 and 15."
 }

@@ -24,3 +24,14 @@ Example menu built using inputs, sections and buttons. Executes a teleport to a 
 ```
 
 The built jar is written to `build/libs/`.
+
+## Config
+
+Runtime config is at `config/manifestation.json`.
+
+- `intentRelayMaxRangeBlocks`: max link distance in blocks (`-1` means unlimited).
+- `intentRelayCooldownTicks`: cooldown between successful trigger activations.
+- `intentRelayStepTriggerEnabled`: enables floor-mounted "step on" activation for players.
+
+For discoverability, this README is a good place for a short summary like this.
+Detailed behavior and examples can live in the docs site.

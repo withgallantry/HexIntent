@@ -18,7 +18,8 @@ public final class MenuPayload {
 
     public enum Layout {
         LIST,
-        GRID
+        GRID,
+        RADIAL
     }
 
     public enum Theme {
