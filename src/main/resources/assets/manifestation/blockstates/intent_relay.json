@@ -1,0 +1,34 @@
+{
+  "multipart": [
+    {"when": {"active": "false", "face": "floor", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay"}},
+    {"when": {"active": "false", "face": "floor", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay", "y": 90}},
+    {"when": {"active": "false", "face": "floor", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay", "y": 180}},
+    {"when": {"active": "false", "face": "floor", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay", "y": 270}},
+
+    {"when": {"active": "false", "face": "ceiling", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay", "x": 180}},
+    {"when": {"active": "false", "face": "ceiling", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay", "x": 180, "y": 90}},
+    {"when": {"active": "false", "face": "ceiling", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay", "x": 180, "y": 180}},
+    {"when": {"active": "false", "face": "ceiling", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay", "x": 180, "y": 270}},
+
+    {"when": {"active": "false", "face": "wall", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay", "x": 90}},
+    {"when": {"active": "false", "face": "wall", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay", "x": 90, "y": 90}},
+    {"when": {"active": "false", "face": "wall", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay", "x": 90, "y": 180}},
+    {"when": {"active": "false", "face": "wall", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay", "x": 90, "y": 270}},
+
+    {"when": {"active": "true", "face": "floor", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay_activated"}},
+    {"when": {"active": "true", "face": "floor", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay_activated", "y": 90}},
+    {"when": {"active": "true", "face": "floor", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay_activated", "y": 180}},
+    {"when": {"active": "true", "face": "floor", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay_activated", "y": 270}},
+
+    {"when": {"active": "true", "face": "ceiling", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 180}},
+    {"when": {"active": "true", "face": "ceiling", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 180, "y": 90}},
+    {"when": {"active": "true", "face": "ceiling", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 180, "y": 180}},
+    {"when": {"active": "true", "face": "ceiling", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 180, "y": 270}},
+
+    {"when": {"active": "true", "face": "wall", "facing": "north"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 90}},
+    {"when": {"active": "true", "face": "wall", "facing": "east"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 90, "y": 90}},
+    {"when": {"active": "true", "face": "wall", "facing": "south"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 90, "y": 180}},
+    {"when": {"active": "true", "face": "wall", "facing": "west"}, "apply": {"model": "manifestation:block/intent_relay_activated", "x": 90, "y": 270}}
+
+  ]
+}

@@ -10,7 +10,7 @@
   "hexcasting.action.manifestation:presence_intent": "Presence Intent [position, facing]",
   "hexcasting.action.manifestation:link_intent_relay": "Link Intent Relay [relay, target, signal?]",
   "hexcasting.action.manifestation:unlink_intent_relay": "Unlink Intent Relay [relay]",
-  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Presence [source, destination, media]",
+  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Presence [source, destination, media, scale?<=3]",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",

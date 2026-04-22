@@ -77,7 +77,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:open_corridor_portal",
       "anchor": "manifestation:open_corridor_portal",
-      "input": "vec, presenceIntent, num",
+      "input": "vec, presenceIntent, num, num?<=3",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
     }

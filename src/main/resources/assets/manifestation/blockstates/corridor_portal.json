@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "axis=x": {"model": "manifestation:block/corridor_portal", "y": 90},
+    "axis=z": {"model": "manifestation:block/corridor_portal"}
+  }
+}
