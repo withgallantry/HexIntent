@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.properties.AttachFace;
 
 public final class IntentRelayBlockEntityRenderer implements BlockEntityRenderer<IntentRelayBlockEntity> {
     private static final float ICON_SCALE = 0.42f;
+    private static final float REDSTONE_ICON_SCALE_MULTIPLIER = 0.8f;
     private static boolean renderErrorLogged;
 
     private final BlockEntityRendererProvider.Context context;
@@ -63,7 +64,11 @@ public final class IntentRelayBlockEntityRenderer implements BlockEntityRenderer
         poseStack.translate(0.0, -0.48, 0.0);
         poseStack.mulPose(Axis.XP.rotationDegrees(90.0f));
         poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
-        poseStack.scale(ICON_SCALE, ICON_SCALE, ICON_SCALE);
+        float scale = ICON_SCALE;
+        if (blockEntity.isRedstoneMode()) {
+            scale *= REDSTONE_ICON_SCALE_MULTIPLIER;
+        }
+        poseStack.scale(scale, scale, scale);
 
         try {
             context.getItemRenderer().renderStatic(

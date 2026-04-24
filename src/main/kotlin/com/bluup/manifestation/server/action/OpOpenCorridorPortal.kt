@@ -24,17 +24,18 @@ import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.atan2
 
 /**
  * Create a linked pair of corridor portals from two vectors.
  *
  * Stack shape on entry (top -> bottom):
- *   scale (optional, >0 and <=3; only if shape is provided)
- *   shape (optional; 0 = oval, 1 = square)
+ *   scale (optional, >0 and <=3)
  *   media budget
  *   destination presence intent
  *   source portal vector
@@ -50,46 +51,44 @@ object OpOpenCorridorPortal : Action {
             throw MishapNotEnoughArgs(3, stack.size)
         }
 
-        var portalShape = 0
         var scale = 1.0f
 
-        // Optional suffix arguments are positional: [shape], [shape, scale].
-        val hasShapeAndScale =
+        // Optional suffix arguments are positional: [scale].
+        // Accept the old [shape, scale] suffix for compatibility, but ignore shape.
+        val hasLegacyShapeAndScale =
             stack.size >= 5 &&
                 stack[stack.lastIndex] is DoubleIota &&
                 stack[stack.lastIndex - 1] is DoubleIota &&
                 stack[stack.lastIndex - 2] is DoubleIota &&
                 stack[stack.lastIndex - 3] is PresenceIntentIota
 
-        val hasShapeOnly =
-            !hasShapeAndScale &&
+        val hasScaleOnly =
+            !hasLegacyShapeAndScale &&
                 stack.size >= 4 &&
                 stack[stack.lastIndex] is DoubleIota &&
-                stack[stack.lastIndex - 1] is DoubleIota &&
-                stack[stack.lastIndex - 2] is PresenceIntentIota
+                stack[stack.lastIndex - 1] is PresenceIntentIota
 
-        if (hasShapeAndScale) {
+        if (hasLegacyShapeAndScale) {
             val scaleIota = stack.removeAt(stack.lastIndex) as DoubleIota
-            val shapeIota = stack.removeAt(stack.lastIndex) as DoubleIota
+            val deprecatedShapeIota = stack.removeAt(stack.lastIndex) as DoubleIota
 
-            val shapeRounded = Math.round(shapeIota.double).toInt()
+            val shapeRounded = Math.round(deprecatedShapeIota.double).toInt()
             if (shapeRounded != 0 && shapeRounded != 1) {
-                throw MishapInvalidIota.ofType(shapeIota, 1, "0 or 1")
+                throw MishapInvalidIota.ofType(deprecatedShapeIota, 1, "0 or 1")
             }
-            portalShape = shapeRounded
 
             val rawScale = scaleIota.double
             if (rawScale <= 0.0 || rawScale > 3.0) {
                 throw MishapInvalidIota.ofType(scaleIota, 0, "number in (0, 3]")
             }
             scale = rawScale.toFloat()
-        } else if (hasShapeOnly) {
-            val shapeIota = stack.removeAt(stack.lastIndex) as DoubleIota
-            val shapeRounded = Math.round(shapeIota.double).toInt()
-            if (shapeRounded != 0 && shapeRounded != 1) {
-                throw MishapInvalidIota.ofType(shapeIota, 0, "0 or 1")
+        } else if (hasScaleOnly) {
+            val scaleIota = stack.removeAt(stack.lastIndex) as DoubleIota
+            val rawScale = scaleIota.double
+            if (rawScale <= 0.0 || rawScale > 3.0) {
+                throw MishapInvalidIota.ofType(scaleIota, 0, "number in (0, 3]")
             }
-            portalShape = shapeRounded
+            scale = rawScale.toFloat()
         }
 
         val mediaIota = stack.removeAt(stack.lastIndex)
@@ -128,13 +127,8 @@ object OpOpenCorridorPortal : Action {
                 throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent with non-zero facing")
             }
 
-            val axis = when (Direction.getNearest(facing.x, facing.y, facing.z).axis) {
-                Direction.Axis.X -> Direction.Axis.X
-                Direction.Axis.Z -> Direction.Axis.Z
-                Direction.Axis.Y -> Direction.Axis.Z
-                else -> Direction.Axis.Z
-            }
-            Triple(BlockPos.containing(bIota.position), axis, bIota.dimensionId)
+            val yaw = yawFromFacing(facing)
+            Triple(BlockPos.containing(bIota.position), horizontalAxisForYaw(yaw), bIota.dimensionId)
         } else {
             stack.add(aIota)
             stack.add(bIota)
@@ -153,15 +147,9 @@ object OpOpenCorridorPortal : Action {
             throw MishapBadLocation(Vec3.atCenterOf(bPos), "out_of_world")
         }
 
-        val sourceAxis = if (caster.direction.axis == Direction.Axis.Y) {
-            Direction.Axis.Z
-        } else {
-            caster.direction.axis
-        }
-
-        // Warm chunks so portal placement and first traversal are reliable, including remote destination chunks.
-        sourceLevel.getChunk(aPos.x shr 4, aPos.z shr 4)
-        targetLevel.getChunk(bPos.x shr 4, bPos.z shr 4)
+        val sourceYaw = Mth.wrapDegrees(caster.yRot)
+        val targetYaw = yawFromFacing(bIota.facing)
+        val sourceAxis = horizontalAxisForYaw(sourceYaw)
 
         placePortal(sourceLevel, aPos, sourceAxis)
         placePortal(targetLevel, bPos, bAxis)
@@ -182,7 +170,7 @@ object OpOpenCorridorPortal : Action {
             caster.uuid,
             mediaBudget,
             scale,
-            portalShape
+            sourceYaw
         )
         bPortal.linkTo(
             targetLevel,
@@ -191,7 +179,7 @@ object OpOpenCorridorPortal : Action {
             caster.uuid,
             mediaBudget,
             scale,
-            portalShape
+            targetYaw
         )
         OWNED_PORTALS[caster.uuid] = PortalPair(
             PortalEndpoint(sourceLevel.dimension().location().toString(), aPos.immutable()),
@@ -265,4 +253,8 @@ object OpOpenCorridorPortal : Action {
     private data class PortalPair(val first: PortalEndpoint, val second: PortalEndpoint)
 
     private val OWNED_PORTALS: MutableMap<UUID, PortalPair> = ConcurrentHashMap()
+
+    private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
+
+    private fun horizontalAxisForYaw(yaw: Float): Direction.Axis = Direction.fromYRot(yaw.toDouble()).axis
 }

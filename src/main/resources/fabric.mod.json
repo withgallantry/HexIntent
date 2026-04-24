@@ -20,6 +20,9 @@
       "com.bluup.manifestation.client.ManifestationClient"
     ]
   },
+  "mixins": [
+    "manifestation.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.Tag
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
@@ -14,8 +15,10 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
+import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.FaceAttachedHorizontalDirectionalBlock
 import net.minecraft.world.level.block.LeverBlock
@@ -26,6 +29,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import org.joml.Vector3f
 import java.util.UUID
 
 class IntentRelayBlockEntity(
@@ -34,7 +38,7 @@ class IntentRelayBlockEntity(
 ) : BlockEntity(ManifestationBlocks.INTENT_RELAY_BLOCK_ENTITY, pos, state) {
 
     private var targetDimensionId: String? = null
-    private var targetPos: BlockPos? = null
+    private val targetPositions: MutableList<BlockPos> = mutableListOf()
     private var ownerUuid: UUID? = null
     private var nextUseGameTime: Long = 0L
     private var redstoneStrength: Int = 0
@@ -49,9 +53,9 @@ class IntentRelayBlockEntity(
     private var trackedTargetPos: BlockPos? = null
     private var trackedActiveStateKey: String? = null
 
-    fun hasTarget(): Boolean = targetDimensionId != null && targetPos != null
+    fun hasTarget(): Boolean = targetDimensionId != null && targetPositions.isNotEmpty()
 
-    fun linkedTargetPos(): BlockPos? = targetPos?.immutable()
+    fun linkedTargetPos(): BlockPos? = targetPositions.firstOrNull()?.immutable()
 
     fun linkedTargetDimensionId(): String? = targetDimensionId
 
@@ -77,8 +81,16 @@ class IntentRelayBlockEntity(
         owner: UUID?,
         modeRedstoneStrength: Int?
     ) {
-        targetDimensionId = level.dimension().location().toString()
-        targetPos = newTargetPos.immutable()
+        val newDimId = level.dimension().location().toString()
+        if (targetDimensionId != newDimId) {
+            targetPositions.clear()
+        }
+
+        targetDimensionId = newDimId
+        val immutablePos = newTargetPos.immutable()
+        if (targetPositions.none { it == immutablePos }) {
+            targetPositions.add(immutablePos)
+        }
         ownerUuid = owner
         redstoneMode = modeRedstoneStrength != null
         redstoneStrength = modeRedstoneStrength?.coerceIn(0, 15) ?: 0
@@ -88,7 +100,7 @@ class IntentRelayBlockEntity(
 
     fun clearTarget() {
         targetDimensionId = null
-        targetPos = null
+        targetPositions.clear()
         ownerUuid = null
         redstoneMode = false
         redstoneStrength = 0
@@ -100,66 +112,135 @@ class IntentRelayBlockEntity(
     }
 
     fun forwardIntent(level: ServerLevel, player: ServerPlayer, hand: InteractionHand): InteractionResult {
+        val hadBrokenLink = pruneBrokenLinksOnActivation(level)
+        if (!hasTarget() && hadBrokenLink) {
+            return InteractionResult.FAIL
+        }
+
         val dimId = targetDimensionId ?: return InteractionResult.PASS
-        val pos = targetPos ?: return InteractionResult.PASS
+        val targets = targetPositions.toList()
+        if (targets.isEmpty()) {
+            return InteractionResult.PASS
+        }
 
         if (level.gameTime < nextUseGameTime) {
             return InteractionResult.CONSUME
         }
 
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(dimId))
-        val targetLevel = player.server.getLevel(targetKey) ?: return InteractionResult.FAIL
+        val targetLevel = player.server.getLevel(targetKey)
+        if (targetLevel == null) {
+            spawnBrokenLinkParticles(level, worldPosition)
+            clearTarget()
+            return InteractionResult.FAIL
+        }
 
         val maxRange = ManifestationConfig.intentRelayMaxRangeBlocks()
-        if (maxRange > 0) {
-            val limitSq = maxRange.toDouble() * maxRange.toDouble()
-            if (worldPosition.distSqr(pos) > limitSq) {
-                return InteractionResult.FAIL
-            }
-        }
+        val maxRangeSq = if (maxRange > 0) maxRange.toDouble() * maxRange.toDouble() else -1.0
 
         if (redstoneMode) {
             val lockoutTicks = maxOf(MIN_ACTIVATED_STATE_TICKS, ManifestationConfig.intentRelayCooldownTicks())
-            if (!beginRedstonePulse(targetLevel, pos, lockoutTicks, redstoneStrength)) {
+            var anySucceeded = false
+            var trackedPos: BlockPos? = null
+
+            for (pos in targets) {
+                if (maxRangeSq > 0.0 && worldPosition.distSqr(pos) > maxRangeSq) {
+                    continue
+                }
+                if (targetLevel.getBlockState(pos).isAir) {
+                    spawnBrokenLinkParticles(targetLevel, pos)
+                    targetPositions.remove(pos)
+                    continue
+                }
+                if (!beginRedstonePulse(targetLevel, pos, lockoutTicks, redstoneStrength)) {
+                    continue
+                }
+                spawnTriggerParticles(targetLevel, pos)
+                anySucceeded = true
+                trackedPos = pos
+            }
+
+            if (targetPositions.isEmpty()) {
+                clearTarget()
+            } else {
+                markUpdated()
+            }
+
+            if (!anySucceeded || trackedPos == null) {
                 return InteractionResult.FAIL
             }
             val outward = outwardDirection(blockState)
             ManifestationServer.sendIntentShifterRunes(level, worldPosition, outward, lockoutTicks)
             nextUseGameTime = level.gameTime + lockoutTicks
-            beginActivatedState(level, dimId, pos, targetLevel.getBlockState(pos), targetLevel.getBlockState(pos), lockoutTicks)
+            beginActivatedState(
+                level,
+                dimId,
+                trackedPos,
+                targetLevel.getBlockState(trackedPos),
+                targetLevel.getBlockState(trackedPos),
+                lockoutTicks
+            )
             setChanged()
             return InteractionResult.CONSUME
         }
 
-        val targetState = targetLevel.getBlockState(pos)
-        if (targetState.isAir) {
-            return InteractionResult.PASS
+        var anySucceeded = false
+        var trackedPos: BlockPos? = null
+        var trackedBefore: BlockState? = null
+        var trackedAfter: BlockState? = null
+
+        for (pos in targets) {
+            if (maxRangeSq > 0.0 && worldPosition.distSqr(pos) > maxRangeSq) {
+                continue
+            }
+
+            val targetState = targetLevel.getBlockState(pos)
+            if (targetState.isAir) {
+                spawnBrokenLinkParticles(targetLevel, pos)
+                targetPositions.remove(pos)
+                continue
+            }
+
+            val hit = BlockHitResult(
+                Vec3.atCenterOf(pos),
+                player.direction.opposite,
+                pos,
+                false
+            )
+
+            val result = IntentRelayRuntime.runForwarding {
+                targetState.use(targetLevel, player, hand, hit)
+            } ?: InteractionResult.FAIL
+
+            if (!result.consumesAction()) {
+                continue
+            }
+
+            val stateAfterUse = targetLevel.getBlockState(pos)
+            spawnTriggerParticles(targetLevel, pos)
+            anySucceeded = true
+            trackedPos = pos
+            trackedBefore = targetState
+            trackedAfter = stateAfterUse
         }
 
-        val stateBeforeUse = targetState
+        if (targetPositions.isEmpty()) {
+            clearTarget()
+        } else {
+            markUpdated()
+        }
 
-        val hit = BlockHitResult(
-            Vec3.atCenterOf(pos),
-            player.direction.opposite,
-            pos,
-            false
-        )
-
-        val result = IntentRelayRuntime.runForwarding {
-            targetState.use(targetLevel, player, hand, hit)
-        } ?: InteractionResult.FAIL
-
-        if (result.consumesAction()) {
+        if (anySucceeded && trackedPos != null && trackedBefore != null && trackedAfter != null) {
             val lockoutTicks = maxOf(MIN_ACTIVATED_STATE_TICKS, ManifestationConfig.intentRelayCooldownTicks())
-            val stateAfterUse = targetLevel.getBlockState(pos)
             val outward = outwardDirection(blockState)
             ManifestationServer.sendIntentShifterRunes(level, worldPosition, outward, lockoutTicks)
             nextUseGameTime = level.gameTime + lockoutTicks
-            beginActivatedState(level, dimId, pos, stateBeforeUse, stateAfterUse, lockoutTicks)
+            beginActivatedState(level, dimId, trackedPos, trackedBefore, trackedAfter, lockoutTicks)
             setChanged()
+            return InteractionResult.CONSUME
         }
 
-        return result
+        return if (hadBrokenLink) InteractionResult.FAIL else InteractionResult.PASS
     }
 
     fun onScheduledTick(level: ServerLevel) {
@@ -178,7 +259,14 @@ class IntentRelayBlockEntity(
         super.load(tag)
 
         targetDimensionId = if (tag.contains(TAG_TARGET_DIMENSION)) tag.getString(TAG_TARGET_DIMENSION) else null
-        targetPos = if (tag.contains(TAG_TARGET_POS)) BlockPos.of(tag.getLong(TAG_TARGET_POS)) else null
+        targetPositions.clear()
+        if (tag.contains(TAG_TARGET_POSITIONS, Tag.TAG_LONG_ARRAY.toInt())) {
+            for (raw in tag.getLongArray(TAG_TARGET_POSITIONS)) {
+                targetPositions.add(BlockPos.of(raw).immutable())
+            }
+        } else if (tag.contains(TAG_TARGET_POS)) {
+            targetPositions.add(BlockPos.of(tag.getLong(TAG_TARGET_POS)).immutable())
+        }
         ownerUuid = if (tag.hasUUID(TAG_OWNER_UUID)) tag.getUUID(TAG_OWNER_UUID) else null
         nextUseGameTime = tag.getLong(TAG_NEXT_USE_TIME)
         redstoneMode = tag.getBoolean(TAG_REDSTONE_MODE)
@@ -223,9 +311,8 @@ class IntentRelayBlockEntity(
             tag.putString(TAG_TARGET_DIMENSION, dimId)
         }
 
-        val pos = targetPos
-        if (pos != null) {
-            tag.putLong(TAG_TARGET_POS, pos.asLong())
+        if (targetPositions.isNotEmpty()) {
+            tag.putLongArray(TAG_TARGET_POSITIONS, targetPositions.map { it.asLong() })
         }
 
         val owner = ownerUuid
@@ -457,12 +544,65 @@ class IntentRelayBlockEntity(
         world.sendBlockUpdated(worldPosition, blockState, blockState, Block.UPDATE_CLIENTS)
     }
 
+    private fun pruneBrokenLinksOnActivation(level: ServerLevel): Boolean {
+        val dimId = targetDimensionId ?: return false
+        if (targetPositions.isEmpty()) {
+            return false
+        }
+
+        val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(dimId))
+        val targetLevel = level.server.getLevel(targetKey)
+        if (targetLevel == null) {
+            spawnBrokenLinkParticles(level, worldPosition)
+            clearTarget()
+            return true
+        }
+
+        var removedAny = false
+        val iter = targetPositions.iterator()
+        while (iter.hasNext()) {
+            val pos = iter.next()
+            if (!targetLevel.isLoaded(pos)) {
+                continue
+            }
+            if (targetLevel.getBlockState(pos).isAir) {
+                spawnBrokenLinkParticles(targetLevel, pos)
+                iter.remove()
+                removedAny = true
+            }
+        }
+
+        if (targetPositions.isEmpty()) {
+            clearTarget()
+            return true
+        }
+
+        if (removedAny) {
+            markUpdated()
+        }
+
+        return removedAny
+    }
+
+    private fun spawnBrokenLinkParticles(level: ServerLevel, pos: BlockPos) {
+        val center = Vec3.atCenterOf(pos)
+        val redDust = DustParticleOptions(Vector3f(1.0f, 0.18f, 0.18f), 1.0f)
+        level.sendParticles(redDust, center.x, center.y + 0.1, center.z, 14, 0.25, 0.2, 0.25, 0.0)
+    }
+
+    private fun spawnTriggerParticles(level: ServerLevel, pos: BlockPos) {
+        val center = Vec3.atCenterOf(pos)
+        level.sendParticles(ParticleTypes.WITCH, center.x, center.y + 0.1, center.z, 8, 0.22, 0.16, 0.22, 0.001)
+        level.sendParticles(ParticleTypes.ENCHANT, center.x, center.y + 0.1, center.z, 10, 0.28, 0.2, 0.28, 0.02)
+    }
+
     companion object {
         private const val MIN_ACTIVATED_STATE_TICKS = 20
         private const val ACTIVATED_ANIMATION_TICKS = 75
 
         private const val TAG_TARGET_DIMENSION = "TargetDimension"
         private const val TAG_TARGET_POS = "TargetPos"
+        private const val TAG_TARGET_POSITIONS = "TargetPositions"
         private const val TAG_OWNER_UUID = "OwnerUuid"
         private const val TAG_NEXT_USE_TIME = "NextUseGameTime"
         private const val TAG_REDSTONE_MODE = "RedstoneMode"

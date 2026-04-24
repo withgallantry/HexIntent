@@ -40,10 +40,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
-
-        if (state.getValue(CorridorPortalBlock.AXIS) == net.minecraft.core.Direction.Axis.X) {
-            poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
-        }
+        poseStack.mulPose(Axis.YP.rotationDegrees(-blockEntity.getRenderYawDegrees()));
 
         float envelope = blockEntity.renderEnvelope(partialTick);
         if (envelope <= 0.01f) {
@@ -57,20 +54,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float time = (blockEntity.getLevel() == null ? 0f : (blockEntity.getLevel().getGameTime() + partialTick)) * 0.042f;
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
-        int shape = blockEntity.getRenderShape();
-
         // End portal parallax core with a jagged tear silhouette.
-        if (shape == 1) {
-            drawPortalSquare(poseStack, portalVc, Z_EPSILON, envelope, scale);
-            drawPortalSquare(poseStack, portalVc, -Z_EPSILON, envelope, scale);
-        } else {
-            drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
-            drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
-        }
-        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, shape);
+        drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
+        drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
+        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0);
         drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time);
-        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, shape);
-        drawSquareCornerAccents(poseStack, energyVc, packedLight, envelope, scale, time, shape);
+        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0);
         drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
 
         poseStack.popPose();
@@ -247,11 +236,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        int trails = 18;
+        int trails = 14;
         for (int i = 0; i < trails; i++) {
             float seed = i * 0.731f;
             float p0 = Mth.frac(time * 0.34f + i * 0.143f);
-            float p1 = Mth.clamp(p0 + 0.17f, 0.0f, 1.0f);
+            float p1 = Mth.clamp(p0 + 0.22f, 0.0f, 1.0f);
 
             float x0 = trailX(p0, seed, halfW, time);
             float y0 = trailY(p0, seed, halfH, time);
@@ -267,30 +256,38 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
             float nx = -dy / len;
             float ny = dx / len;
-            float width0 = (0.028f + 0.013f * Mth.sin(time * 1.2f + seed * 2.0f)) * (1.0f - p0) * envelope * scale;
-            float width1 = width0 * 0.32f;
-            int alphaTail = Mth.clamp((int) (74f * (1.0f - p0) * envelope), 0, 255);
-            int alphaHead = Mth.clamp((int) (146f * (1.0f - p0) * envelope), 0, 255);
+            float baseSize = (0.014f + 0.006f * Mth.sin(time * 1.2f + seed * 2.0f)) * (1.0f - p0) * envelope * scale;
+            int alphaTail = Mth.clamp((int) (46f * (1.0f - p0) * envelope), 0, 255);
+            int alphaHead = Mth.clamp((int) (98f * (1.0f - p0) * envelope), 0, 255);
 
             float zFront = Z_EPSILON + 0.0019f;
             float zBack = -Z_EPSILON - 0.0019f;
-            drawTrailQuad(vc, mat4, normal, x0, y0, x1, y1, nx, ny, width0, width1, zFront, light, 1.0f, alphaTail, alphaHead);
-            drawTrailQuad(vc, mat4, normal, x0, y0, x1, y1, nx, ny, width0, width1, zBack, light, -1.0f, alphaTail, alphaHead);
+            for (int mote = 0; mote < 4; mote++) {
+                float moteT = mote / 3.8f;
+                float cx = Mth.lerp(moteT, x0, x1);
+                float cy = Mth.lerp(moteT, y0, y1);
+                float fade = 1.0f - moteT;
+                float size = baseSize * (0.75f + 0.45f * fade);
+                float stretch = size * (1.5f + 0.4f * fade);
+                int moteTailAlpha = Mth.clamp((int) (alphaTail * fade), 0, 255);
+                int moteHeadAlpha = Mth.clamp((int) (alphaHead * fade), 0, 255);
+
+                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zFront, light, 1.0f, moteTailAlpha, moteHeadAlpha);
+                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zBack, light, -1.0f, moteTailAlpha, moteHeadAlpha);
+            }
         }
     }
 
-    private void drawTrailQuad(
+    private void drawTrailWisp(
         VertexConsumer vc,
         Matrix4f mat4,
         Matrix3f normal,
-        float x0,
-        float y0,
-        float x1,
-        float y1,
+        float cx,
+        float cy,
         float nx,
         float ny,
-        float width0,
-        float width1,
+        float size,
+        float stretch,
         float z,
         int light,
         float nz,
@@ -298,15 +295,15 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int alphaHead
     ) {
         quadBidirectional(vc, mat4, normal,
-            x0 - nx * width0, y0 - ny * width0,
-            x0 + nx * width0, y0 + ny * width0,
-            x1 + nx * width1, y1 + ny * width1,
-            x1 - nx * width1, y1 - ny * width1,
+            cx - nx * size, cy - ny * size,
+            cx - nx * stretch * 0.35f, cy - ny * stretch * 0.35f,
+            cx + nx * size, cy + ny * size,
+            cx + nx * stretch, cy + ny * stretch,
             z, light, nz,
-            146, 92, 255, alphaTail,
-            180, 124, 255, alphaTail,
-            236, 192, 255, alphaHead,
-            214, 166, 255, alphaHead);
+            118, 84, 220, 0,
+            150, 106, 255, alphaTail,
+            216, 176, 255, alphaHead,
+            188, 138, 255, 0);
     }
 
     private void drawPortalSquare(

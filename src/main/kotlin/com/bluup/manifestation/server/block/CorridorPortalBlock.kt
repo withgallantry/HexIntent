@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.EnumProperty
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -36,10 +37,10 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
         level: BlockGetter,
         pos: BlockPos,
         context: CollisionContext
-    ): VoxelShape = when (state.getValue(AXIS)) {
-        net.minecraft.core.Direction.Axis.X -> X_SHAPE
-        net.minecraft.core.Direction.Axis.Z -> Z_SHAPE
-        else -> Z_SHAPE
+    ): VoxelShape = if (state.getValue(AXIS) == net.minecraft.core.Direction.Axis.X) {
+        INTERACTION_SHAPE_X
+    } else {
+        INTERACTION_SHAPE_Z
     }
 
     override fun getCollisionShape(
@@ -56,7 +57,40 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
 
         val server = level as? ServerLevel ?: return
         val portal = server.getBlockEntity(pos) as? CorridorPortalBlockEntity ?: return
+
+        // Keep portal interaction to a slim, yaw-aligned plane around the visual aperture.
+        val scale = portal.getRenderScale().coerceIn(0.1f, 3.0f).toDouble()
+        val center = Vec3.atCenterOf(pos)
+        val relative = entity.position().subtract(center)
+
+        val yawRad = Math.toRadians(portal.getRenderYawDegrees().toDouble())
+        val normal = Vec3(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad))
+        val tangent = Vec3(kotlin.math.cos(yawRad), 0.0, kotlin.math.sin(yawRad))
+
+        val halfThickness = 0.08
+        val halfWidth = 0.52 * scale
+        val halfHeight = 0.82 * scale
+
+        val depth = relative.dot(normal)
+        val horizontal = relative.dot(tangent)
+        val vertical = relative.y
+        if (kotlin.math.abs(depth) > halfThickness || kotlin.math.abs(horizontal) > halfWidth || kotlin.math.abs(vertical) > halfHeight) {
+            return
+        }
+
         portal.tryTeleport(server, entity, state)
+    }
+
+    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, isMoving: Boolean) {
+        if (state.block != newState.block) {
+            val server = level as? ServerLevel
+            val portal = server?.getBlockEntity(pos) as? CorridorPortalBlockEntity
+            if (server != null && portal != null) {
+                portal.breakLinkedCounterpartNow(server)
+            }
+        }
+
+        super.onRemove(state, level, pos, newState, isMoving)
     }
 
     override fun <T : BlockEntity> getTicker(
@@ -80,8 +114,7 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
         @JvmField
         val AXIS: EnumProperty<net.minecraft.core.Direction.Axis> = BlockStateProperties.HORIZONTAL_AXIS
 
-        private const val HALF_THICKNESS = 0.75
-        private val X_SHAPE: VoxelShape = box(8.0 - HALF_THICKNESS, 0.0, 0.0, 8.0 + HALF_THICKNESS, 16.0, 16.0)
-        private val Z_SHAPE: VoxelShape = box(0.0, 0.0, 8.0 - HALF_THICKNESS, 16.0, 16.0, 8.0 + HALF_THICKNESS)
+        private val INTERACTION_SHAPE_X: VoxelShape = box(0.0, 0.0, 7.0, 16.0, 16.0, 9.0)
+        private val INTERACTION_SHAPE_Z: VoxelShape = box(7.0, 0.0, 0.0, 9.0, 16.0, 16.0)
     }
 }

@@ -57,6 +57,15 @@ public final class IntentShifterLensOverlay {
                 ));
 
                 String lookedDim = world.dimension().location().toString();
+                if (dimId.equals(lookedDim) && world.isLoaded(target) && world.getBlockState(target).isAir()) {
+                    lines.add(new Pair<>(
+                        icon,
+                        Component.translatable("hexcasting.tooltip.manifestation.intent_shifter.unlinked")
+                            .withStyle(ChatFormatting.GRAY)
+                    ));
+                    return;
+                }
+
                 if (!dimId.equals(lookedDim)) {
                     lines.add(new Pair<>(
                         ItemStack.EMPTY,

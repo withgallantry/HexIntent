@@ -228,6 +228,35 @@ public final class ManifestationUiIotaTypes {
         }
     };
 
+    public static final IotaType<SelfIntentIota> SELF_INTENT = new IotaType<>() {
+        @Nullable
+        @Override
+        public SelfIntentIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            if (ctag.hasUUID("owner")) {
+                return new SelfIntentIota(ctag.getUUID("owner"));
+            }
+
+            String owner = ctag.getString("owner");
+            return new SelfIntentIota(java.util.UUID.fromString(owner));
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            String owner = ctag.hasUUID("owner") ? ctag.getUUID("owner").toString() : ctag.getString("owner");
+            return Component.literal("SelfIntent(")
+                .append(Component.literal(owner.substring(0, Math.min(owner.length(), 8))).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+                .withStyle(ChatFormatting.DARK_PURPLE);
+        }
+
+        @Override
+        public int color() {
+            return 0xff_8f64d8;
+        }
+    };
+
     public static void register() {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_button"), UI_BUTTON);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_input"), UI_INPUT);
@@ -235,5 +264,6 @@ public final class ManifestationUiIotaTypes {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_section"), UI_SECTION);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("presence_intent"), PRESENCE_INTENT);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("self_intent"), SELF_INTENT);
     }
 }

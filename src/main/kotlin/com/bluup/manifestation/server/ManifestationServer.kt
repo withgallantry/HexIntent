@@ -14,7 +14,9 @@ import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
+import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
+import com.bluup.manifestation.server.action.OpSelfIntent
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiDropdown
 import com.bluup.manifestation.server.action.OpUiInput
@@ -23,6 +25,7 @@ import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.block.ManifestationBlocks
+import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -80,6 +83,12 @@ object ManifestationServer : ModInitializer {
     private const val PRESENCE_INTENT_SIG = "awwaqwedwwdawqea"
     private val PRESENCE_INTENT_DIR = HexDir.NORTH_EAST
 
+    private const val SELF_INTENT_SIG = "awwaqwedwwdawqew"
+    private val SELF_INTENT_DIR = HexDir.NORTH_EAST
+
+    private const val MANIFEST_ECHO_SIG = "awwaqwedwwdawqwea"
+    private val MANIFEST_ECHO_DIR = HexDir.NORTH_EAST
+
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
 
@@ -89,6 +98,7 @@ object ManifestationServer : ModInitializer {
         registerIotaTypes()
         registerActions()
         registerC2SReceivers()
+        EchoRuntime.register()
 
         Manifestation.LOGGER.info(
             "Manifestation: registered menu constructors, menu actions, ui iota types, and dispatch receiver."
@@ -195,6 +205,22 @@ object ManifestationServer : ModInitializer {
             ActionRegistryEntry(
                 HexPattern.fromAngles(PRESENCE_INTENT_SIG, PRESENCE_INTENT_DIR),
                 OpPresenceIntent
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("self_intent"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(SELF_INTENT_SIG, SELF_INTENT_DIR),
+                OpSelfIntent
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("manifest_echo"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(MANIFEST_ECHO_SIG, MANIFEST_ECHO_DIR),
+                OpManifestEcho
             )
         )
     }

@@ -3,11 +3,7 @@ package com.bluup.manifestation.server.block
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.ListTag
-import net.minecraft.nbt.StringTag
-import net.minecraft.nbt.Tag
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
@@ -15,6 +11,9 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.block.entity.BlockEntity
@@ -36,9 +35,7 @@ class CorridorPortalBlockEntity(
     private var openedAtGameTime: Long = 0L
     private var collapseStartedAtGameTime: Long = -1L
     private var renderScale: Float = 1.0f
-    private var renderShape: Int = 0
-    private var previewPositive: List<String>? = null
-    private var previewNegative: List<String>? = null
+    private var renderYawDegrees: Float = 0.0f
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
 
@@ -49,7 +46,7 @@ class CorridorPortalBlockEntity(
         owner: UUID?,
         mediaBudget: Long,
         scale: Float,
-        shape: Int
+        yawDegrees: Float
     ) {
         targetDimensionId = targetDimension
         targetPos = target.immutable()
@@ -59,18 +56,7 @@ class CorridorPortalBlockEntity(
         openedAtGameTime = level.gameTime
         collapseStartedAtGameTime = -1L
         renderScale = scale.coerceIn(0.1f, 3.0f)
-        renderShape = shape.coerceIn(0, 1)
-
-        val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDimension))
-        val targetLevel = level.server.getLevel(targetKey)
-        if (targetLevel != null) {
-            val axis = blockState.getValue(CorridorPortalBlock.AXIS)
-            previewPositive = samplePreviewGrid(targetLevel, target, axis, 1)
-            previewNegative = samplePreviewGrid(targetLevel, target, axis, -1)
-        } else {
-            previewPositive = null
-            previewNegative = null
-        }
+        renderYawDegrees = Mth.wrapDegrees(yawDegrees)
 
         setChanged()
         level.sendBlockUpdated(worldPosition, blockState, blockState, 3)
@@ -120,13 +106,9 @@ class CorridorPortalBlockEntity(
 
     fun getRenderTargetDimensionId(): String? = targetDimensionId
 
-    fun getRenderPreviewPositive(): List<String>? = previewPositive
-
-    fun getRenderPreviewNegative(): List<String>? = previewNegative
-
     fun getRenderScale(): Float = renderScale
 
-    fun getRenderShape(): Int = renderShape
+    fun getRenderYawDegrees(): Float = renderYawDegrees
 
     fun serverTick(level: ServerLevel) {
         if (!isSustainDriver(level)) {
@@ -187,9 +169,6 @@ class CorridorPortalBlockEntity(
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
         val targetLevel = level.server.getLevel(targetKey) ?: return
 
-        // Prime destination chunk so stepping through can succeed without requiring pre-loaded chunks.
-        targetLevel.getChunk(target.x shr 4, target.z shr 4)
-
         val targetState = targetLevel.getBlockState(target)
         if (targetState.block != ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
             return
@@ -197,12 +176,12 @@ class CorridorPortalBlockEntity(
 
         val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity ?: return
 
-        val sourceNormal = normalFromAxis(state.getValue(CorridorPortalBlock.AXIS))
+        val sourceNormal = normalFromYaw(renderYawDegrees)
         val sourceCenter = Vec3.atCenterOf(worldPosition)
         val toEntity = entity.position().subtract(sourceCenter)
         val side = if (toEntity.dot(sourceNormal) >= 0.0) 1.0 else -1.0
 
-        val targetNormal = normalFromAxis(targetState.getValue(CorridorPortalBlock.AXIS))
+        val targetNormal = normalFromYaw(targetPortal.renderYawDegrees)
         val targetCenter = Vec3.atCenterOf(target)
         val relativeY = (entity.y - worldPosition.y).coerceIn(0.05, 1.75)
         val scaledExitOffset = EXIT_OFFSET * targetPortal.getRenderScale().coerceIn(0.1f, 3.0f)
@@ -216,20 +195,32 @@ class CorridorPortalBlockEntity(
         cooldownUntilByEntity[uuid] = newCooldown
         targetPortal.cooldownUntilByEntity[uuid] = newCooldown
 
-        if (entity is ServerPlayer) {
+        val teleported = if (entity is ServerPlayer) {
             entity.teleportTo(targetLevel, exitPos.x, exitPos.y, exitPos.z, exitYaw, entity.xRot)
             entity.setYHeadRot(exitYaw)
             entity.setYBodyRot(exitYaw)
+            true
         } else {
             if (targetLevel == level) {
                 entity.teleportTo(exitPos.x, exitPos.y, exitPos.z)
                 entity.yRot = exitYaw
                 entity.setYHeadRot(exitYaw)
                 entity.setYBodyRot(exitYaw)
+                true
             } else {
-                return
+                false
             }
         }
+
+        if (teleported) {
+            playTeleportSound(level, worldPosition, targetLevel, target)
+        }
+    }
+
+    private fun playTeleportSound(sourceLevel: ServerLevel, sourcePos: BlockPos, targetLevel: ServerLevel, targetPos: BlockPos) {
+        val pitch = 0.93f + (sourceLevel.random.nextFloat() * 0.1f)
+        sourceLevel.playSound(null, sourcePos, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.BLOCKS, 0.45f, pitch)
+        targetLevel.playSound(null, targetPos, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.BLOCKS, 0.5f, pitch + 0.06f)
     }
 
     override fun load(tag: CompoundTag) {
@@ -247,17 +238,7 @@ class CorridorPortalBlockEntity(
             -1L
         }
         renderScale = if (tag.contains(TAG_RENDER_SCALE)) tag.getFloat(TAG_RENDER_SCALE) else 1.0f
-        renderShape = if (tag.contains(TAG_RENDER_SHAPE)) tag.getInt(TAG_RENDER_SHAPE) else 0
-        previewPositive = if (tag.contains(TAG_PREVIEW_POSITIVE, Tag.TAG_LIST.toInt())) {
-            readStringList(tag.getList(TAG_PREVIEW_POSITIVE, Tag.TAG_STRING.toInt()))
-        } else {
-            null
-        }
-        previewNegative = if (tag.contains(TAG_PREVIEW_NEGATIVE, Tag.TAG_LIST.toInt())) {
-            readStringList(tag.getList(TAG_PREVIEW_NEGATIVE, Tag.TAG_STRING.toInt()))
-        } else {
-            null
-        }
+        renderYawDegrees = if (tag.contains(TAG_RENDER_YAW_DEGREES)) tag.getFloat(TAG_RENDER_YAW_DEGREES) else 0.0f
     }
 
     override fun saveAdditional(tag: CompoundTag) {
@@ -282,15 +263,7 @@ class CorridorPortalBlockEntity(
             tag.putLong(TAG_COLLAPSE_STARTED_AT_TIME, collapseStartedAtGameTime)
         }
         tag.putFloat(TAG_RENDER_SCALE, renderScale)
-        tag.putInt(TAG_RENDER_SHAPE, renderShape)
-        val posPreview = previewPositive
-        if (!posPreview.isNullOrEmpty()) {
-            tag.put(TAG_PREVIEW_POSITIVE, writeStringList(posPreview))
-        }
-        val negPreview = previewNegative
-        if (!negPreview.isNullOrEmpty()) {
-            tag.put(TAG_PREVIEW_NEGATIVE, writeStringList(negPreview))
-        }
+        tag.putFloat(TAG_RENDER_YAW_DEGREES, renderYawDegrees)
     }
 
     override fun getUpdateTag(): CompoundTag = saveWithoutMetadata()
@@ -306,9 +279,7 @@ class CorridorPortalBlockEntity(
         private const val TAG_OPENED_AT_TIME = "OpenedAtGameTime"
         private const val TAG_COLLAPSE_STARTED_AT_TIME = "CollapseStartedAtGameTime"
         private const val TAG_RENDER_SCALE = "RenderScale"
-        private const val TAG_RENDER_SHAPE = "RenderShape"
-        private const val TAG_PREVIEW_POSITIVE = "PreviewPositive"
-        private const val TAG_PREVIEW_NEGATIVE = "PreviewNegative"
+        private const val TAG_RENDER_YAW_DEGREES = "RenderYawDegrees"
 
         private const val TELEPORT_COOLDOWN_TICKS = 20L
         private const val EXIT_OFFSET = 0.80
@@ -317,77 +288,12 @@ class CorridorPortalBlockEntity(
         private const val OPEN_ANIM_TICKS = 12L
         private const val CLOSE_ANIM_TICKS = 12L
 
-        private fun normalFromAxis(axis: Direction.Axis): Vec3 {
-            return when (axis) {
-                Direction.Axis.X -> Vec3(1.0, 0.0, 0.0)
-                Direction.Axis.Z -> Vec3(0.0, 0.0, 1.0)
-                else -> Vec3(0.0, 0.0, 1.0)
-            }
+        private fun normalFromYaw(yawDegrees: Float): Vec3 {
+            val radians = Math.toRadians(yawDegrees.toDouble())
+            return Vec3(-kotlin.math.sin(radians), 0.0, kotlin.math.cos(radians))
         }
 
         private fun smoothstep(t: Float): Float = t * t * (3.0f - 2.0f * t)
-
-        private fun writeStringList(values: List<String>): ListTag {
-            val out = ListTag()
-            for (value in values) {
-                out.add(StringTag.valueOf(value))
-            }
-            return out
-        }
-
-        private fun readStringList(values: ListTag): List<String> {
-            val out = ArrayList<String>(values.size)
-            for (i in 0 until values.size) {
-                out.add(values.getString(i))
-            }
-            return out
-        }
-    }
-
-    private fun samplePreviewGrid(
-        targetLevel: ServerLevel,
-        target: BlockPos,
-        axis: Direction.Axis,
-        normalStep: Int
-    ): List<String> {
-        val normalX: Int
-        val normalZ: Int
-        val rightX: Int
-        val rightZ: Int
-
-        if (axis == Direction.Axis.X) {
-            normalX = normalStep
-            normalZ = 0
-            rightX = 0
-            rightZ = if (normalStep > 0) -1 else 1
-        } else {
-            normalX = 0
-            normalZ = normalStep
-            rightX = if (normalStep > 0) 1 else -1
-            rightZ = 0
-        }
-
-        val out = ArrayList<String>(9)
-        for (row in 0..2) {
-            val yOffset = row - 1
-            for (col in 0..2) {
-                val rightOffset = col - 1
-                val samplePos = target.offset(
-                    normalX + rightX * rightOffset,
-                    yOffset,
-                    normalZ + rightZ * rightOffset
-                )
-
-                var sampleState = targetLevel.getBlockState(samplePos)
-                if (sampleState.block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
-                    sampleState = targetLevel.getBlockState(samplePos.offset(normalX, 0, normalZ))
-                }
-
-                val id = BuiltInRegistries.BLOCK.getKey(sampleState.block)
-                out.add(id.toString())
-            }
-        }
-        return out
     }
 
     private fun isSustainDriver(level: ServerLevel): Boolean {
@@ -419,6 +325,7 @@ class CorridorPortalBlockEntity(
         val targetDim = targetDimensionId
 
         if (level.getBlockState(worldPosition).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+            playCollapseEffects(level, worldPosition)
             level.removeBlock(worldPosition, false)
         }
 
@@ -427,9 +334,30 @@ class CorridorPortalBlockEntity(
             val targetLevel = level.server.getLevel(targetKey)
             if (targetLevel != null) {
                 if (targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+                    playCollapseEffects(targetLevel, target)
                     targetLevel.removeBlock(target, false)
                 }
             }
         }
+    }
+
+    fun breakLinkedCounterpartNow(level: ServerLevel) {
+        val target = targetPos ?: return
+        val targetDim = targetDimensionId ?: return
+
+        val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
+        val targetLevel = level.server.getLevel(targetKey) ?: return
+        if (targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+            playCollapseEffects(targetLevel, target)
+            targetLevel.removeBlock(target, false)
+        }
+    }
+
+    private fun playCollapseEffects(level: ServerLevel, pos: BlockPos) {
+        val center = Vec3.atCenterOf(pos)
+        level.sendParticles(ParticleTypes.REVERSE_PORTAL, center.x, center.y, center.z, 28, 0.32, 0.36, 0.32, 0.04)
+        level.sendParticles(ParticleTypes.DRAGON_BREATH, center.x, center.y, center.z, 18, 0.24, 0.26, 0.24, 0.01)
+        level.playSound(null, pos, SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 0.9f, 0.72f)
+        level.playSound(null, pos, SoundEvents.BEACON_DEACTIVATE, SoundSource.BLOCKS, 0.45f, 0.75f)
     }
 }
