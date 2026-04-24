@@ -7,6 +7,9 @@ import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
+import at.petrak.hexcasting.api.casting.iota.Iota
+import at.petrak.hexcasting.api.casting.iota.ListIota
+import at.petrak.hexcasting.api.casting.iota.PatternIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadLocation
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
@@ -37,7 +40,7 @@ import kotlin.math.atan2
  * Stack shape on entry (top -> bottom):
  *   scale (optional, >0 and <=3)
  *   media budget
- *   destination presence intent
+ *   destination presence intent OR list of patterns (threshold trigger mode)
  *   source portal vector
  */
 object OpOpenCorridorPortal : Action {
@@ -119,6 +122,25 @@ object OpOpenCorridorPortal : Action {
         // Source portal must be within ambit.
         env.assertVecInRange(Vec3.atCenterOf(aPos))
 
+        val thresholdPatterns: List<Iota>? = if (bIota is ListIota) {
+            val list = bIota.list.toList()
+            if (list.isEmpty()) {
+                stack.add(aIota)
+                stack.add(bIota)
+                throw MishapInvalidIota.ofType(bIota, 0, "non-empty list of patterns")
+            }
+
+            if (list.any { it !is PatternIota }) {
+                stack.add(aIota)
+                stack.add(bIota)
+                throw MishapInvalidIota.ofType(bIota, 0, "list of patterns")
+            }
+
+            list
+        } else {
+            null
+        }
+
         val (bPos, bAxis, bDimensionId) = if (bIota is PresenceIntentIota) {
             val facing = bIota.facing
             if (facing.lengthSqr() <= 1.0e-10) {
@@ -129,15 +151,46 @@ object OpOpenCorridorPortal : Action {
 
             val yaw = yawFromFacing(facing)
             Triple(BlockPos.containing(bIota.position), horizontalAxisForYaw(yaw), bIota.dimensionId)
+        } else if (thresholdPatterns != null) {
+            Triple(aPos, horizontalAxisForYaw(Mth.wrapDegrees((env.castingEntity as? net.minecraft.server.level.ServerPlayer)?.yRot ?: 0f)), "")
         } else {
             stack.add(aIota)
             stack.add(bIota)
-            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent")
+            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent or [patterns]")
         }
 
         val caster = env.castingEntity as? net.minecraft.server.level.ServerPlayer
             ?: throw MishapRequiresCasterWill()
         val sourceLevel = caster.serverLevel()
+
+        val sourceYaw = Mth.wrapDegrees(caster.yRot)
+        val sourceAxis = horizontalAxisForYaw(sourceYaw)
+
+        if (thresholdPatterns != null) {
+            placePortal(sourceLevel, aPos, sourceAxis)
+            val threshold = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
+
+            if (env.extractMedia(mediaBudget, true) > 0) {
+                throw MishapNotEnoughMedia(mediaBudget)
+            }
+
+            threshold.configureThresholdTrigger(
+                sourceLevel,
+                thresholdPatterns,
+                caster.uuid,
+                mediaBudget,
+                scale,
+                sourceYaw
+            )
+
+            val image2 = image.withUsedOp().copy(stack = stack)
+            return OperationResult(
+                image2,
+                listOf(OperatorSideEffect.ConsumeMedia(mediaBudget)),
+                continuation,
+                HexEvalSounds.NORMAL_EXECUTE
+            )
+        }
 
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(bDimensionId))
         val targetLevel = caster.server.getLevel(targetKey)
@@ -147,9 +200,7 @@ object OpOpenCorridorPortal : Action {
             throw MishapBadLocation(Vec3.atCenterOf(bPos), "out_of_world")
         }
 
-        val sourceYaw = Mth.wrapDegrees(caster.yRot)
-        val targetYaw = yawFromFacing(bIota.facing)
-        val sourceAxis = horizontalAxisForYaw(sourceYaw)
+        val targetYaw = yawFromFacing((bIota as PresenceIntentIota).facing)
 
         placePortal(sourceLevel, aPos, sourceAxis)
         placePortal(targetLevel, bPos, bAxis)

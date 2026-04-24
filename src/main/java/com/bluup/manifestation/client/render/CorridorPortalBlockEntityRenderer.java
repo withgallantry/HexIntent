@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -20,6 +21,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final float HALF_HEIGHT = 0.78f;
     private static final float HALF_WIDTH = 0.50f;
     private static final float Z_EPSILON = 0.0025f;
+    private static final ResourceLocation THRESHOLD_GLYPH_TEXTURE = new ResourceLocation("manifestation", "textures/block/spell_circle.png");
 
     public CorridorPortalBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -54,6 +56,15 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float time = (blockEntity.getLevel() == null ? 0f : (blockEntity.getLevel().getGameTime() + partialTick)) * 0.042f;
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
+
+        if (blockEntity.isThresholdMode()) {
+            VertexConsumer glyphVc = buffer.getBuffer(RenderType.entityTranslucent(THRESHOLD_GLYPH_TEXTURE));
+            drawThresholdGlyph(poseStack, glyphVc, packedLight, envelope, scale, time);
+            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
+            poseStack.popPose();
+            return;
+        }
+
         // End portal parallax core with a jagged tear silhouette.
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
@@ -345,15 +356,106 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         Matrix4f mat4 = pose.pose();
         Matrix3f normal = pose.normal();
 
-        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 222, 178, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 236, 203, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 255, 230, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 236, 203, 255, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 138, 84, 255, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 176, 108, 255, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 214, 164, 255, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 176, 108, 255, alpha, light, 1.0f);
 
-        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 236, 203, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 255, 230, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 236, 203, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 222, 178, 255, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 176, 108, 255, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 214, 164, 255, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 176, 108, 255, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 138, 84, 255, alpha, light, -1.0f);
+    }
+
+    private void drawThresholdGlyph(
+        PoseStack poseStack,
+        VertexConsumer vc,
+        int light,
+        float envelope,
+        float scale,
+        float time
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+
+        float halfH = HALF_HEIGHT * envelope * scale;
+        float halfW = HALF_WIDTH * envelope * scale;
+        if (halfH <= 0.0001f || halfW <= 0.0001f) {
+            return;
+        }
+
+        float pulse = 0.72f + (0.22f * Mth.sin(time * 2.2f));
+        int alphaOuter = Mth.clamp((int) (132f * envelope * pulse), 0, 255);
+        int alphaInner = Mth.clamp((int) (186f * envelope * pulse), 0, 255);
+
+        glyphQuadBidirectional(vc, mat4, normal,
+            -halfW, -halfH,
+            halfW, -halfH,
+            halfW, halfH,
+            -halfW, halfH,
+            Z_EPSILON + 0.0015f,
+            light,
+            1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            168, 126, 255, alphaOuter,
+            226, 200, 255, alphaInner,
+            226, 200, 255, alphaInner,
+            168, 126, 255, alphaOuter);
+    }
+
+    private static void glyphQuadBidirectional(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        float x0,
+        float y0,
+        float x1,
+        float y1,
+        float x2,
+        float y2,
+        float x3,
+        float y3,
+        float z,
+        int light,
+        float normalZ,
+        float u0,
+        float v0,
+        float u1,
+        float v1,
+        float u2,
+        float v2,
+        float u3,
+        float v3,
+        int r0,
+        int g0,
+        int b0,
+        int a0,
+        int r1,
+        int g1,
+        int b1,
+        int a1,
+        int r2,
+        int g2,
+        int b2,
+        int a2,
+        int r3,
+        int g3,
+        int b3,
+        int a3
+    ) {
+        vertex(vc, mat4, normal, x0, y0, z, u0, v0, r0, g0, b0, a0, light, normalZ);
+        vertex(vc, mat4, normal, x1, y1, z, u1, v1, r1, g1, b1, a1, light, normalZ);
+        vertex(vc, mat4, normal, x2, y2, z, u2, v2, r2, g2, b2, a2, light, normalZ);
+        vertex(vc, mat4, normal, x3, y3, z, u3, v3, r3, g3, b3, a3, light, normalZ);
+
+        vertex(vc, mat4, normal, x3, y3, z, u3, v3, r3, g3, b3, a3, light, -normalZ);
+        vertex(vc, mat4, normal, x2, y2, z, u2, v2, r2, g2, b2, a2, light, -normalZ);
+        vertex(vc, mat4, normal, x1, y1, z, u1, v1, r1, g1, b1, a1, light, -normalZ);
+        vertex(vc, mat4, normal, x0, y0, z, u0, v0, r0, g0, b0, a0, light, -normalZ);
     }
 
     private static float ellipseWidthFactor(float normalizedY) {

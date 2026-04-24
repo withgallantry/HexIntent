@@ -5,14 +5,27 @@ import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public final class ManifestationBlocks {
+    private static final SoundType CORRIDOR_PORTAL_SOUND = new SoundType(
+        1.0f,
+        1.0f,
+        SoundEvents.ENDER_EYE_DEATH,
+        SoundType.GLASS.getStepSound(),
+        SoundType.GLASS.getPlaceSound(),
+        SoundType.GLASS.getHitSound(),
+        SoundType.GLASS.getFallSound()
+    );
+
     public static final CorridorPortalBlock CORRIDOR_PORTAL_BLOCK = new CorridorPortalBlock(
         FabricBlockSettings.copyOf(Blocks.END_PORTAL_FRAME)
             .strength(-1.0f, 3600000.0f)
             .noOcclusion()
+            .sound(CORRIDOR_PORTAL_SOUND)
             .lightLevel(state -> 8)
     );
 
