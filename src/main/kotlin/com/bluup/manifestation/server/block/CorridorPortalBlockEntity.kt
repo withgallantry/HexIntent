@@ -602,32 +602,39 @@ class CorridorPortalBlockEntity(
         val tangent = Vec3(kotlin.math.cos(yawRad), 0.0, kotlin.math.sin(yawRad))
         val maxSide = 0.62 * scale
         val maxHeight = 0.78 * scale
+        val time = level.gameTime.toDouble()
 
-        repeat(FLOW_PARTICLES_PER_BURST) {
-            val useVerticalEdge = level.random.nextBoolean()
+        repeat(FLOW_PARTICLES_PER_BURST) { index ->
+            val phase = time * 0.055 + (index * 1.91)
+            val useVerticalEdge = (index % 2) == 0
             val side = if (useVerticalEdge) {
-                if (level.random.nextBoolean()) maxSide else -maxSide
+                if (kotlin.math.sin(phase * 0.7) >= 0.0) maxSide else -maxSide
             } else {
-                (level.random.nextDouble() * 2.0 - 1.0) * maxSide
+                kotlin.math.sin(phase) * (maxSide * 0.92)
             }
             val height = if (useVerticalEdge) {
-                (level.random.nextDouble() * 2.0 - 1.0) * (maxHeight * 0.95)
+                kotlin.math.cos(phase * 0.9) * (maxHeight * 0.88)
             } else {
-                (maxHeight * 0.8) + (level.random.nextDouble() * maxHeight * 0.25)
+                (maxHeight * 0.78) + (0.14 * scale * kotlin.math.sin(phase * 1.3))
             }
-            val depth = (level.random.nextDouble() * 2.0 - 1.0) * 0.035
+            val depth = 0.018 * kotlin.math.sin(phase * 1.1)
 
             val spawn = center
                 .add(tangent.scale(side))
                 .add(normal.scale(depth))
                 .add(0.0, height, 0.0)
 
-            val towardPlane = normal.scale(-depth * (6.0 + level.random.nextDouble() * 4.0))
-            val lateral = tangent.scale((level.random.nextDouble() * 2.0 - 1.0) * 0.01)
-            val downward = Vec3(0.0, -(0.035 + level.random.nextDouble() * 0.045), 0.0)
-            val velocity = towardPlane.add(lateral).add(downward)
+            val towardCore = center.subtract(spawn).scale(0.030)
+            val towardPlane = normal.scale(-depth * 0.9)
+            val lateral = tangent.scale(0.003 * kotlin.math.sin(phase * 1.8))
+            val downward = Vec3(0.0, -(0.004 + (0.003 * kotlin.math.cos(phase * 1.2))), 0.0)
+            val velocity = towardCore.add(towardPlane).add(lateral).add(downward)
 
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, spawn.x, spawn.y, spawn.z, 0, velocity.x, velocity.y, velocity.z, 1.0)
+            // Portal particles read lighter and naturally feel like they are being drawn inward.
+            level.sendParticles(ParticleTypes.PORTAL, spawn.x, spawn.y, spawn.z, 1, velocity.x, velocity.y, velocity.z, 0.0)
+            if (level.random.nextInt(5) == 0) {
+                level.sendParticles(ParticleTypes.DRAGON_BREATH, spawn.x, spawn.y, spawn.z, 1, velocity.x * 0.15, velocity.y * 0.15, velocity.z * 0.15, 0.0)
+            }
         }
     }
 

@@ -69,6 +69,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
         drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0);
+        drawSideFrame(poseStack, energyVc, packedLight, envelope, scale, time);
         drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time);
         drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0);
         drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
@@ -315,6 +316,130 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             150, 106, 255, alphaTail,
             216, 176, 255, alphaHead,
             188, 138, 255, 0);
+    }
+
+    private void drawSideFrame(
+        PoseStack poseStack,
+        VertexConsumer vc,
+        int light,
+        float envelope,
+        float scale,
+        float time
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+
+        float halfH = HALF_HEIGHT * envelope * scale;
+        float halfW = HALF_WIDTH * envelope * scale;
+        if (halfH <= 0.0001f || halfW <= 0.0001f) {
+            return;
+        }
+
+        float depth = 0.052f * envelope * scale;
+        float sideInset = 0.030f * envelope * scale;
+        float topInset = 0.036f * envelope * scale;
+        int alpha = Mth.clamp((int) ((86f + 18f * Mth.sin(time * 2.0f)) * envelope), 0, 255);
+
+        // Left side wall
+        quad3dBidirectional(vc, mat4, normal,
+            -halfW, -halfH + sideInset, -depth,
+            -halfW, halfH - sideInset, -depth,
+            -halfW, halfH - sideInset, depth,
+            -halfW, -halfH + sideInset, depth,
+            light,
+            -1.0f, 0.0f, 0.0f,
+            124, 84, 220, alpha,
+            164, 116, 255, alpha,
+            164, 116, 255, alpha,
+            124, 84, 220, alpha);
+
+        // Right side wall
+        quad3dBidirectional(vc, mat4, normal,
+            halfW, -halfH + sideInset, depth,
+            halfW, halfH - sideInset, depth,
+            halfW, halfH - sideInset, -depth,
+            halfW, -halfH + sideInset, -depth,
+            light,
+            1.0f, 0.0f, 0.0f,
+            124, 84, 220, alpha,
+            164, 116, 255, alpha,
+            164, 116, 255, alpha,
+            124, 84, 220, alpha);
+
+        // Top cap
+        quad3dBidirectional(vc, mat4, normal,
+            -halfW + topInset, halfH, -depth,
+            halfW - topInset, halfH, -depth,
+            halfW - topInset, halfH, depth,
+            -halfW + topInset, halfH, depth,
+            light,
+            0.0f, 1.0f, 0.0f,
+            136, 92, 232, alpha,
+            176, 128, 255, alpha,
+            176, 128, 255, alpha,
+            136, 92, 232, alpha);
+
+        // Bottom cap
+        quad3dBidirectional(vc, mat4, normal,
+            -halfW + topInset, -halfH, depth,
+            halfW - topInset, -halfH, depth,
+            halfW - topInset, -halfH, -depth,
+            -halfW + topInset, -halfH, -depth,
+            light,
+            0.0f, -1.0f, 0.0f,
+            136, 92, 232, alpha,
+            176, 128, 255, alpha,
+            176, 128, 255, alpha,
+            136, 92, 232, alpha);
+    }
+
+    private static void quad3dBidirectional(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        float x0,
+        float y0,
+        float z0,
+        float x1,
+        float y1,
+        float z1,
+        float x2,
+        float y2,
+        float z2,
+        float x3,
+        float y3,
+        float z3,
+        int light,
+        float nx,
+        float ny,
+        float nz,
+        int r0,
+        int g0,
+        int b0,
+        int a0,
+        int r1,
+        int g1,
+        int b1,
+        int a1,
+        int r2,
+        int g2,
+        int b2,
+        int a2,
+        int r3,
+        int g3,
+        int b3,
+        int a3
+    ) {
+        vertex(vc, mat4, normal, x0, y0, z0, 0.0f, 0.0f, r0, g0, b0, a0, light, nx, ny, nz);
+        vertex(vc, mat4, normal, x1, y1, z1, 1.0f, 0.0f, r1, g1, b1, a1, light, nx, ny, nz);
+        vertex(vc, mat4, normal, x2, y2, z2, 1.0f, 1.0f, r2, g2, b2, a2, light, nx, ny, nz);
+        vertex(vc, mat4, normal, x3, y3, z3, 0.0f, 1.0f, r3, g3, b3, a3, light, nx, ny, nz);
+
+        vertex(vc, mat4, normal, x3, y3, z3, 0.0f, 1.0f, r3, g3, b3, a3, light, -nx, -ny, -nz);
+        vertex(vc, mat4, normal, x2, y2, z2, 1.0f, 1.0f, r2, g2, b2, a2, light, -nx, -ny, -nz);
+        vertex(vc, mat4, normal, x1, y1, z1, 1.0f, 0.0f, r1, g1, b1, a1, light, -nx, -ny, -nz);
+        vertex(vc, mat4, normal, x0, y0, z0, 0.0f, 0.0f, r0, g0, b0, a0, light, -nx, -ny, -nz);
     }
 
     private void drawPortalSquare(
@@ -756,6 +881,33 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             .overlayCoords(0)
             .uv2(light)
             .normal(normal, 0.0f, 0.0f, normalZ)
+            .endVertex();
+    }
+
+    private static void vertex(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        float x,
+        float y,
+        float z,
+        float u,
+        float v,
+        int r,
+        int g,
+        int b,
+        int a,
+        int light,
+        float normalX,
+        float normalY,
+        float normalZ
+    ) {
+        vc.vertex(mat4, x, y, z)
+            .color(r, g, b, a)
+            .uv(u, v)
+            .overlayCoords(0)
+            .uv2(light)
+            .normal(normal, normalX, normalY, normalZ)
             .endVertex();
     }
 }

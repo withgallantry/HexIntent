@@ -63,13 +63,13 @@ object OpOpenCorridorPortal : Action {
                 stack[stack.lastIndex] is DoubleIota &&
                 stack[stack.lastIndex - 1] is DoubleIota &&
                 stack[stack.lastIndex - 2] is DoubleIota &&
-                stack[stack.lastIndex - 3] is PresenceIntentIota
+                isValidDestinationIota(stack[stack.lastIndex - 3])
 
         val hasScaleOnly =
             !hasLegacyShapeAndScale &&
                 stack.size >= 4 &&
                 stack[stack.lastIndex] is DoubleIota &&
-                stack[stack.lastIndex - 1] is PresenceIntentIota
+                isValidDestinationIota(stack[stack.lastIndex - 1])
 
         if (hasLegacyShapeAndScale) {
             val scaleIota = stack.removeAt(stack.lastIndex) as DoubleIota
@@ -304,6 +304,9 @@ object OpOpenCorridorPortal : Action {
     private data class PortalPair(val first: PortalEndpoint, val second: PortalEndpoint)
 
     private val OWNED_PORTALS: MutableMap<UUID, PortalPair> = ConcurrentHashMap()
+
+    private fun isValidDestinationIota(iota: Iota): Boolean =
+        iota is PresenceIntentIota || iota is ListIota
 
     private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
 

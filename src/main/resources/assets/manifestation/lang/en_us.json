@@ -11,7 +11,7 @@
   "hexcasting.action.manifestation:manifest_echo": "Manifest Echo [position, slot 0..2]",
   "hexcasting.action.manifestation:link_intent_relay": "Manifest Relay [relay, target, signal?]",
   "hexcasting.action.manifestation:unlink_intent_relay": "Unlink Intent Relay [relay]",
-  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Threshold [source, destination, media, scale?<=3]",
+  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Threshold [source, destination presence, media, scale?<=3]",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",
