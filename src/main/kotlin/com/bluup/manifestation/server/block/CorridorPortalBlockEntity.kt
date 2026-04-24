@@ -291,8 +291,8 @@ class CorridorPortalBlockEntity(
         private const val MEDIA_DRAIN_PER_STEP = 10L
         private const val OPEN_ANIM_TICKS = 12L
         private const val CLOSE_ANIM_TICKS = 12L
-        private const val FLOW_PARTICLE_INTERVAL_TICKS = 2L
-        private const val FLOW_PARTICLES_PER_BURST = 3
+        private const val FLOW_PARTICLE_INTERVAL_TICKS = 4L
+        private const val FLOW_PARTICLES_PER_BURST = 2
 
         private fun normalFromYaw(yawDegrees: Float): Vec3 {
             val radians = Math.toRadians(yawDegrees.toDouble())
@@ -398,25 +398,30 @@ class CorridorPortalBlockEntity(
         val maxHeight = 0.78 * scale
 
         repeat(FLOW_PARTICLES_PER_BURST) {
-            val side = (level.random.nextDouble() * 2.0 - 1.0) * maxSide
-            val height = (level.random.nextDouble() * 2.0 - 1.0) * maxHeight
-            val face = if (level.random.nextBoolean()) 1.0 else -1.0
-            val depth = face * (0.22 + level.random.nextDouble() * 0.24)
+            val useVerticalEdge = level.random.nextBoolean()
+            val side = if (useVerticalEdge) {
+                if (level.random.nextBoolean()) maxSide else -maxSide
+            } else {
+                (level.random.nextDouble() * 2.0 - 1.0) * maxSide
+            }
+            val height = if (useVerticalEdge) {
+                (level.random.nextDouble() * 2.0 - 1.0) * (maxHeight * 0.95)
+            } else {
+                (maxHeight * 0.8) + (level.random.nextDouble() * maxHeight * 0.25)
+            }
+            val depth = (level.random.nextDouble() * 2.0 - 1.0) * 0.035
 
             val spawn = center
                 .add(tangent.scale(side))
                 .add(normal.scale(depth))
                 .add(0.0, height, 0.0)
 
-            val inward = center
-                .add(tangent.scale(side * 0.08))
-                .add(0.0, height * 0.75, 0.0)
-                .subtract(spawn)
-                .normalize()
-                .scale(0.055 + level.random.nextDouble() * 0.03)
+            val towardPlane = normal.scale(-depth * (6.0 + level.random.nextDouble() * 4.0))
+            val lateral = tangent.scale((level.random.nextDouble() * 2.0 - 1.0) * 0.01)
+            val downward = Vec3(0.0, -(0.035 + level.random.nextDouble() * 0.045), 0.0)
+            val velocity = towardPlane.add(lateral).add(downward)
 
-            level.sendParticles(ParticleTypes.WITCH, spawn.x, spawn.y, spawn.z, 0, inward.x, inward.y, inward.z, 1.0)
-            level.sendParticles(ParticleTypes.ENCHANT, spawn.x, spawn.y, spawn.z, 0, inward.x, inward.y, inward.z, 1.0)
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, spawn.x, spawn.y, spawn.z, 0, velocity.x, velocity.y, velocity.z, 1.0)
         }
     }
 }
