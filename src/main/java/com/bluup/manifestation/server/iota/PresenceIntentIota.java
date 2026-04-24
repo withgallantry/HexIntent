@@ -17,7 +17,7 @@ public final class PresenceIntentIota extends Iota {
     private final String dimensionId;
 
     public PresenceIntentIota(Vec3 position, Vec3 facing, String dimensionId) {
-        super(ManifestationUiIotaTypes.PRESENCE_INTENT, List.of(position, facing, dimensionId));
+        super(ManifestationUiIotaTypes.PRESENCE_INTENT, List.of(position));
         this.position = sanitize(position);
         this.facing = sanitize(facing);
         this.dimensionId = dimensionId;

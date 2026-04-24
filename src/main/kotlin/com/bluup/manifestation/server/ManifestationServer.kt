@@ -16,7 +16,6 @@ import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
-import com.bluup.manifestation.server.action.OpSelfIntent
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiDropdown
 import com.bluup.manifestation.server.action.OpUiInput
@@ -82,9 +81,6 @@ object ManifestationServer : ModInitializer {
 
     private const val PRESENCE_INTENT_SIG = "awwaqwedwwdawqea"
     private val PRESENCE_INTENT_DIR = HexDir.NORTH_EAST
-
-    private const val SELF_INTENT_SIG = "awwaqwedwwdawqew"
-    private val SELF_INTENT_DIR = HexDir.NORTH_EAST
 
     private const val MANIFEST_ECHO_SIG = "awwaqwedwwdawqwea"
     private val MANIFEST_ECHO_DIR = HexDir.NORTH_EAST
@@ -205,14 +201,6 @@ object ManifestationServer : ModInitializer {
             ActionRegistryEntry(
                 HexPattern.fromAngles(PRESENCE_INTENT_SIG, PRESENCE_INTENT_DIR),
                 OpPresenceIntent
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("self_intent"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(SELF_INTENT_SIG, SELF_INTENT_DIR),
-                OpSelfIntent
             )
         )
         Registry.register(
