@@ -4,6 +4,7 @@ import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
+import at.petrak.hexcasting.api.casting.eval.env.StaffCastEnv
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
@@ -132,6 +133,8 @@ object MenuActionDispatcher {
         val vm: CastingVM = IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
         val world = player.serverLevel()
 
+        suppressStaffCastSounds(vm)
+
         val inputIotas = toInputIotas(inputs, world)
         if (inputIotas.isNotEmpty()) {
             val newStack = vm.image.stack.toMutableList()
@@ -164,6 +167,19 @@ object MenuActionDispatcher {
             )
             // We don't touch setPatterns — the existing drawn-pattern list in
             // the staff UI is the player's, not ours. Leaving it alone.
+        }
+    }
+
+    private fun suppressStaffCastSounds(vm: CastingVM) {
+        val staffEnv = vm.env as? StaffCastEnv ?: return
+
+        try {
+            val soundsPlayedField = StaffCastEnv::class.java.getDeclaredField("soundsPlayed")
+            soundsPlayedField.isAccessible = true
+            // StaffCastEnv only plays sounds while soundsPlayed < 100.
+            soundsPlayedField.setInt(staffEnv, 100)
+        } catch (t: Throwable) {
+            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to suppress staff cast sounds", t)
         }
     }
 
