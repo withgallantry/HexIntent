@@ -13,6 +13,7 @@ import com.bluup.manifestation.client.menu.execution.MenuActionSender
 import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpCreateRadialMenu
+import com.bluup.manifestation.server.action.OpDestroyManifestation
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
@@ -84,6 +85,9 @@ object ManifestationServer : ModInitializer {
 
     private const val MANIFEST_ECHO_SIG = "awwaqwedwwdawqwea"
     private val MANIFEST_ECHO_DIR = HexDir.NORTH_EAST
+
+    private const val DESTROY_MANIFESTATION_SIG = "awwaqwedwwdawqwew"
+    private val DESTROY_MANIFESTATION_DIR = HexDir.NORTH_EAST
 
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
@@ -211,6 +215,14 @@ object ManifestationServer : ModInitializer {
                 OpManifestEcho
             )
         )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("destroy_manifestation"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(DESTROY_MANIFESTATION_SIG, DESTROY_MANIFESTATION_DIR),
+                OpDestroyManifestation
+            )
+        )
     }
 
     /**
@@ -221,6 +233,11 @@ object ManifestationServer : ModInitializer {
             ManifestationNetworking.DISPATCH_ACTION_C2S
         ) { server, player, _, buf, _ ->
             val hand = buf.readEnum(InteractionHand::class.java)
+            val dispatchSource = buf.readEnum(MenuPayload.DispatchSource::class.java)
+            if (!MenuDispatchAbuseGuard.shouldAllow(player)) {
+                return@registerGlobalReceiver
+            }
+
             val inputCount = buf.readVarInt()
             if (inputCount < 0 || inputCount > MAX_INPUTS) {
                 Manifestation.LOGGER.warn(
@@ -275,7 +292,7 @@ object ManifestationServer : ModInitializer {
                         null
                     }
                 }
-                MenuActionDispatcher.dispatch(player, hand, inputs, iotas)
+                MenuActionDispatcher.dispatch(player, hand, dispatchSource, inputs, iotas)
             }
         }
     }

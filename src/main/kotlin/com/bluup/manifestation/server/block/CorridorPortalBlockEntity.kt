@@ -1,5 +1,6 @@
 package com.bluup.manifestation.server.block
 
+
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.iota.EntityIota
 import at.petrak.hexcasting.api.casting.iota.Iota
@@ -23,6 +24,7 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
@@ -34,6 +36,15 @@ class CorridorPortalBlockEntity(
     state: BlockState
 ) : BlockEntity(ManifestationBlocks.CORRIDOR_PORTAL_BLOCK_ENTITY, pos, state) {
 
+    private data class PendingPlayerTeleport(
+        val playerUuid: UUID,
+        val targetDimensionId: String,
+        val targetPortalPos: BlockPos,
+        val exitPos: Vec3,
+        val exitYaw: Float,
+        val triggerSound: Boolean
+    )
+
     private var targetDimensionId: String? = null
     private var targetPos: BlockPos? = null
     private var ownerUuid: UUID? = null
@@ -44,9 +55,14 @@ class CorridorPortalBlockEntity(
     private var renderScale: Float = 1.0f
     private var renderYawDegrees: Float = 0.0f
     private var thresholdMode: Boolean = false
+    private var portalBackdropColor: Int = DEFAULT_PORTAL_BACKDROP_COLOR
+    private var portalMidColor: Int = DEFAULT_PORTAL_MID_COLOR
+    private var portalHighlightColor: Int = DEFAULT_PORTAL_HIGHLIGHT_COLOR
+    private var portalFrameColor: Int = DEFAULT_PORTAL_FRAME_COLOR
     private val thresholdPatterns: MutableList<CompoundTag> = mutableListOf()
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
+    private val pendingPlayerTeleports: MutableMap<UUID, PendingPlayerTeleport> = ConcurrentHashMap()
 
     fun linkTo(
         level: ServerLevel,
@@ -67,6 +83,8 @@ class CorridorPortalBlockEntity(
         renderScale = scale.coerceIn(0.1f, 3.0f)
         renderYawDegrees = Mth.wrapDegrees(yawDegrees)
         thresholdMode = false
+        updateThresholdBlockState(level, false)
+        resetPortalColors()
         thresholdPatterns.clear()
 
         setChanged()
@@ -91,6 +109,8 @@ class CorridorPortalBlockEntity(
         renderScale = scale.coerceIn(0.1f, 3.0f)
         renderYawDegrees = Mth.wrapDegrees(yawDegrees)
         thresholdMode = true
+        updateThresholdBlockState(level, true)
+        resetPortalColors()
         thresholdPatterns.clear()
 
         for (pattern in patterns) {
@@ -154,7 +174,27 @@ class CorridorPortalBlockEntity(
 
     fun isThresholdMode(): Boolean = thresholdMode
 
+    fun getPortalBackdropColor(): Int = portalBackdropColor
+
+    fun getPortalMidColor(): Int = portalMidColor
+
+    fun getPortalHighlightColor(): Int = portalHighlightColor
+
+    fun getPortalFrameColor(): Int = portalFrameColor
+
+    fun setPortalColors(backdropColor: Int, midColor: Int, highlightColor: Int, frameColor: Int) {
+        portalBackdropColor = backdropColor and 0xFFFFFF
+        portalMidColor = midColor and 0xFFFFFF
+        portalHighlightColor = highlightColor and 0xFFFFFF
+        portalFrameColor = frameColor and 0xFFFFFF
+
+        setChanged()
+        level?.sendBlockUpdated(worldPosition, blockState, blockState, 3)
+    }
+
     fun serverTick(level: ServerLevel) {
+        processPendingPlayerTeleports(level)
+
         if (thresholdMode) {
             serverTickThreshold(level)
             return
@@ -213,10 +253,6 @@ class CorridorPortalBlockEntity(
             return
         }
 
-        if (level.gameTime % THRESHOLD_PARTICLE_INTERVAL_TICKS == 0L) {
-            spawnThresholdAmbientParticles(level)
-        }
-
         if (lastSustainDrainGameTime <= 0L) {
             lastSustainDrainGameTime = level.gameTime
             return
@@ -269,6 +305,7 @@ class CorridorPortalBlockEntity(
         }
 
         val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity ?: return
+        targetLevel.getChunk(target)
 
         val sourceNormal = normalFromYaw(renderYawDegrees)
         val sourceCenter = Vec3.atCenterOf(worldPosition)
@@ -290,9 +327,14 @@ class CorridorPortalBlockEntity(
         targetPortal.cooldownUntilByEntity[uuid] = newCooldown
 
         val teleported = if (entity is ServerPlayer) {
-            entity.teleportTo(targetLevel, exitPos.x, exitPos.y, exitPos.z, exitYaw, entity.xRot)
-            entity.setYHeadRot(exitYaw)
-            entity.setYBodyRot(exitYaw)
+            pendingPlayerTeleports[uuid] = PendingPlayerTeleport(
+                playerUuid = uuid,
+                targetDimensionId = targetLevel.dimension().location().toString(),
+                targetPortalPos = target.immutable(),
+                exitPos = exitPos,
+                exitYaw = exitYaw,
+                triggerSound = true
+            )
             true
         } else {
             if (targetLevel == level) {
@@ -308,6 +350,72 @@ class CorridorPortalBlockEntity(
 
         if (teleported) {
             playTeleportSound(level, worldPosition, targetLevel, target)
+        } else if (entity is ServerPlayer) {
+            Manifestation.LOGGER.info(
+                "Manifestation: portal teleport did not settle player {} to target {} in dimension {} (actual dim={}, pos={})",
+                entity.gameProfile.name,
+                exitPos,
+                targetLevel.dimension().location(),
+                entity.serverLevel().dimension().location(),
+                entity.position()
+            )
+        }
+    }
+
+    private fun processPendingPlayerTeleports(level: ServerLevel) {
+        if (pendingPlayerTeleports.isEmpty()) {
+            return
+        }
+
+        val iterator = pendingPlayerTeleports.values.iterator()
+        while (iterator.hasNext()) {
+            val pending = iterator.next()
+            val player = level.server.playerList.getPlayer(pending.playerUuid)
+            if (player == null) {
+                iterator.remove()
+                continue
+            }
+
+            val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(pending.targetDimensionId))
+            val targetLevel = level.server.getLevel(targetKey)
+            if (targetLevel == null) {
+                iterator.remove()
+                continue
+            }
+
+            if (targetLevel.getBlockState(pending.targetPortalPos).block != ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+                iterator.remove()
+                continue
+            }
+
+            if (targetLevel == player.serverLevel()) {
+                player.connection.teleport(pending.exitPos.x, pending.exitPos.y, pending.exitPos.z, pending.exitYaw, player.xRot)
+            } else {
+                player.teleportTo(targetLevel, pending.exitPos.x, pending.exitPos.y, pending.exitPos.z, pending.exitYaw, player.xRot)
+            }
+
+            val moved = player.serverLevel() == targetLevel && player.position().distanceToSqr(pending.exitPos) <= 9.0
+            if (moved) {
+                player.fallDistance = 0.0f
+                player.deltaMovement = Vec3.ZERO
+                player.setYHeadRot(pending.exitYaw)
+                player.setYBodyRot(pending.exitYaw)
+                player.yRot = pending.exitYaw
+                if (pending.triggerSound) {
+                    playTeleportSound(level, worldPosition, targetLevel, pending.targetPortalPos)
+                }
+            } else {
+                Manifestation.LOGGER.info(
+                    "Manifestation: deferred portal teleport did not settle player {} to target {} in dimension {} (actual dim={}, pos={})",
+                    player.gameProfile.name,
+                    pending.exitPos,
+                    targetLevel.dimension().location(),
+                    player.serverLevel().dimension().location(),
+                    player.position()
+                )
+            }
+
+            iterator.remove()
         }
     }
 
@@ -332,15 +440,15 @@ class CorridorPortalBlockEntity(
         }
 
         cooldownUntilByEntity[uuid] = now + THRESHOLD_TRIGGER_COOLDOWN_TICKS
-        runThresholdPatterns(level, entity)
-
-        // Threshold mode is single-fire: once crossed, it begins dissolving.
-        beginCollapse(level)
+        if (runThresholdPatterns(level, entity)) {
+            // Threshold mode is single-fire: once crossed, it begins dissolving.
+            beginCollapse(level)
+        }
     }
 
-    private fun runThresholdPatterns(level: ServerLevel, entity: Entity) {
+    private fun runThresholdPatterns(level: ServerLevel, entity: Entity): Boolean {
         if (thresholdPatterns.isEmpty()) {
-            return
+            return false
         }
 
         val iotas = mutableListOf<Iota>()
@@ -356,16 +464,37 @@ class CorridorPortalBlockEntity(
         }
 
         if (iotas.isEmpty()) {
-            return
+            return false
         }
 
+        val env = ThresholdTriggerCastEnv(level, worldPosition, this, entity as? LivingEntity)
+        // Threshold payloads always execute with the triggering entity pre-seeded on stack according to what I read.
+        return tryExecuteThresholdPatterns(level, iotas, env, listOf(EntityIota(entity)))
+    }
+
+    private fun tryExecuteThresholdPatterns(
+        level: ServerLevel,
+        iotas: List<Iota>,
+        env: ThresholdTriggerCastEnv,
+        initialStack: List<Iota>
+    ): Boolean {
         try {
-            val env = ThresholdTriggerCastEnv(level, worldPosition, this)
             val vm = CastingVM.empty(env)
-            vm.image = vm.image.copy(stack = listOf(EntityIota(entity)))
-            vm.queueExecuteAndWrapIotas(iotas, level)
+            vm.image = vm.image.copy(stack = initialStack)
+            val clientInfo = vm.queueExecuteAndWrapIotas(iotas, level)
+            val success = clientInfo.resolutionType.success
+            if (!success) {
+                Manifestation.LOGGER.info(
+                    "Manifestation: threshold trigger produced non-success resolution {} at {} (stack seed = {})",
+                    clientInfo.resolutionType,
+                    worldPosition,
+                    if (initialStack.isEmpty()) "empty" else "entity"
+                )
+            }
+            return success
         } catch (t: Throwable) {
-            Manifestation.LOGGER.warn("Manifestation: threshold trigger execution failed at {}", worldPosition, t)
+            Manifestation.LOGGER.warn("Manifestation: threshold trigger execution failed at {} (stack seed = {})", worldPosition, if (initialStack.isEmpty()) "empty" else "entity", t)
+            return false
         }
     }
 
@@ -376,12 +505,22 @@ class CorridorPortalBlockEntity(
 
         val available = sustainMediaRemaining.coerceAtLeast(0L)
         val spent = minOf(cost, available)
+        val remaining = cost - spent
+        if (remaining > 0L && simulate) {
+            Manifestation.LOGGER.info(
+                "Manifestation: threshold media shortfall at {} (required={}, available={}, missing={})",
+                worldPosition,
+                cost,
+                available,
+                remaining
+            )
+        }
         if (!simulate && spent > 0L) {
             sustainMediaRemaining = available - spent
             setChanged()
         }
 
-        return cost - spent
+        return remaining
     }
 
     private fun playTeleportSound(sourceLevel: ServerLevel, sourcePos: BlockPos, targetLevel: ServerLevel, targetPos: BlockPos) {
@@ -407,6 +546,10 @@ class CorridorPortalBlockEntity(
         renderScale = if (tag.contains(TAG_RENDER_SCALE)) tag.getFloat(TAG_RENDER_SCALE) else 1.0f
         renderYawDegrees = if (tag.contains(TAG_RENDER_YAW_DEGREES)) tag.getFloat(TAG_RENDER_YAW_DEGREES) else 0.0f
         thresholdMode = tag.getBoolean(TAG_THRESHOLD_MODE)
+        portalBackdropColor = if (tag.contains(TAG_PORTAL_BACKDROP_COLOR)) tag.getInt(TAG_PORTAL_BACKDROP_COLOR) else DEFAULT_PORTAL_BACKDROP_COLOR
+        portalMidColor = if (tag.contains(TAG_PORTAL_MID_COLOR)) tag.getInt(TAG_PORTAL_MID_COLOR) else DEFAULT_PORTAL_MID_COLOR
+        portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
+        portalFrameColor = if (tag.contains(TAG_PORTAL_FRAME_COLOR)) tag.getInt(TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
         thresholdPatterns.clear()
         if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
             val list = tag.getList(TAG_THRESHOLD_PATTERNS, Tag.TAG_COMPOUND.toInt())
@@ -440,6 +583,10 @@ class CorridorPortalBlockEntity(
         tag.putFloat(TAG_RENDER_SCALE, renderScale)
         tag.putFloat(TAG_RENDER_YAW_DEGREES, renderYawDegrees)
         tag.putBoolean(TAG_THRESHOLD_MODE, thresholdMode)
+        tag.putInt(TAG_PORTAL_BACKDROP_COLOR, portalBackdropColor)
+        tag.putInt(TAG_PORTAL_MID_COLOR, portalMidColor)
+        tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
+        tag.putInt(TAG_PORTAL_FRAME_COLOR, portalFrameColor)
         if (thresholdPatterns.isNotEmpty()) {
             val serialized = ListTag()
             for (pattern in thresholdPatterns) {
@@ -465,18 +612,28 @@ class CorridorPortalBlockEntity(
         private const val TAG_RENDER_YAW_DEGREES = "RenderYawDegrees"
         private const val TAG_THRESHOLD_MODE = "ThresholdMode"
         private const val TAG_THRESHOLD_PATTERNS = "ThresholdPatterns"
+        private const val TAG_PORTAL_BACKDROP_COLOR = "PortalBackdropColor"
+        private const val TAG_PORTAL_MID_COLOR = "PortalMidColor"
+        private const val TAG_PORTAL_HIGHLIGHT_COLOR = "PortalHighlightColor"
+        private const val TAG_PORTAL_FRAME_COLOR = "PortalFrameColor"
+
+        private const val DEFAULT_PORTAL_BACKDROP_COLOR = 0x050A10
+        private const val DEFAULT_PORTAL_MID_COLOR = 0x1E8F88
+        private const val DEFAULT_PORTAL_HIGHLIGHT_COLOR = 0x8BFFF2
+        private const val DEFAULT_PORTAL_FRAME_COLOR = 0x46D4C1
 
         private const val TELEPORT_COOLDOWN_TICKS = 20L
         private const val THRESHOLD_TRIGGER_COOLDOWN_TICKS = 10L
         private const val EXIT_OFFSET = 0.80
         private const val TICKS_PER_DRAIN_STEP = 20L
-        private const val MEDIA_DRAIN_PER_STEP = 1L
-        private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 1L
+        // Budgets are stored in raw media, but configured as dust-equivalent input.
+        // 2 dust/sec = 20,000 media/sec at one drain step per second.
+        private const val MEDIA_DRAIN_PER_STEP = 20_000L
+        private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 20_000L
         private const val OPEN_ANIM_TICKS = 12L
         private const val CLOSE_ANIM_TICKS = 12L
-        private const val FLOW_PARTICLE_INTERVAL_TICKS = 4L
-        private const val THRESHOLD_PARTICLE_INTERVAL_TICKS = 5L
-        private const val FLOW_PARTICLES_PER_BURST = 2
+        private const val FLOW_PARTICLE_INTERVAL_TICKS = 5L
+        private const val FLOW_PARTICLES_PER_BURST = 1
 
         private fun normalFromYaw(yawDegrees: Float): Vec3 {
             val radians = Math.toRadians(yawDegrees.toDouble())
@@ -484,6 +641,13 @@ class CorridorPortalBlockEntity(
         }
 
         private fun smoothstep(t: Float): Float = t * t * (3.0f - 2.0f * t)
+    }
+
+    private fun resetPortalColors() {
+        portalBackdropColor = DEFAULT_PORTAL_BACKDROP_COLOR
+        portalMidColor = DEFAULT_PORTAL_MID_COLOR
+        portalHighlightColor = DEFAULT_PORTAL_HIGHLIGHT_COLOR
+        portalFrameColor = DEFAULT_PORTAL_FRAME_COLOR
     }
 
     private fun isSustainDriver(level: ServerLevel): Boolean {
@@ -602,67 +766,30 @@ class CorridorPortalBlockEntity(
         val tangent = Vec3(kotlin.math.cos(yawRad), 0.0, kotlin.math.sin(yawRad))
         val maxSide = 0.62 * scale
         val maxHeight = 0.78 * scale
-        val time = level.gameTime.toDouble()
+        val random = level.random
 
-        repeat(FLOW_PARTICLES_PER_BURST) { index ->
-            val phase = time * 0.055 + (index * 1.91)
-            val useVerticalEdge = (index % 2) == 0
-            val side = if (useVerticalEdge) {
-                if (kotlin.math.sin(phase * 0.7) >= 0.0) maxSide else -maxSide
-            } else {
-                kotlin.math.sin(phase) * (maxSide * 0.92)
-            }
-            val height = if (useVerticalEdge) {
-                kotlin.math.cos(phase * 0.9) * (maxHeight * 0.88)
-            } else {
-                (maxHeight * 0.78) + (0.14 * scale * kotlin.math.sin(phase * 1.3))
-            }
-            val depth = 0.018 * kotlin.math.sin(phase * 1.1)
+        repeat(FLOW_PARTICLES_PER_BURST) {
+            val side = (random.nextDouble() * 2.0 - 1.0) * maxSide
+            val height = (random.nextDouble() * 2.0 - 1.0) * (maxHeight * 0.92)
+            val depth = (random.nextDouble() * 2.0 - 1.0) * (0.30 * scale)
 
             val spawn = center
                 .add(tangent.scale(side))
                 .add(normal.scale(depth))
                 .add(0.0, height, 0.0)
 
-            val towardCore = center.subtract(spawn).scale(0.030)
-            val towardPlane = normal.scale(-depth * 0.9)
-            val lateral = tangent.scale(0.003 * kotlin.math.sin(phase * 1.8))
-            val downward = Vec3(0.0, -(0.004 + (0.003 * kotlin.math.cos(phase * 1.2))), 0.0)
-            val velocity = towardCore.add(towardPlane).add(lateral).add(downward)
+            val towardPlane = normal.scale(-depth * 0.62)
+            val alongFace = tangent.scale(-side * 0.0016)
+            val verticalDrift = Vec3(0.0, (random.nextDouble() * 2.0 - 1.0) * 0.0009, 0.0)
+            val shimmer = Vec3(
+                (random.nextDouble() * 2.0 - 1.0) * 0.0012,
+                (random.nextDouble() * 2.0 - 1.0) * 0.0004,
+                (random.nextDouble() * 2.0 - 1.0) * 0.0012
+            )
+            val velocity = towardPlane.add(alongFace).add(verticalDrift).add(shimmer)
 
-            // Portal particles read lighter and naturally feel like they are being drawn inward.
-            level.sendParticles(ParticleTypes.PORTAL, spawn.x, spawn.y, spawn.z, 1, velocity.x, velocity.y, velocity.z, 0.0)
-            if (level.random.nextInt(5) == 0) {
-                level.sendParticles(ParticleTypes.DRAGON_BREATH, spawn.x, spawn.y, spawn.z, 1, velocity.x * 0.15, velocity.y * 0.15, velocity.z * 0.15, 0.0)
-            }
-        }
-    }
-
-    private fun spawnThresholdAmbientParticles(level: ServerLevel) {
-        val center = Vec3.atCenterOf(worldPosition)
-        val scale = renderScale.coerceIn(0.1f, 3.0f).toDouble()
-        val time = level.gameTime.toDouble()
-
-        repeat(3) { i ->
-            // Use a time-driven orbit so sparkles glide instead of popping randomly.
-            val baseAngle = (Math.PI * 2.0 * i / 3.0)
-            val angle = baseAngle + (time * 0.075)
-            val radius = (0.34 + (0.06 * kotlin.math.sin(time * 0.06 + i))) * scale
-            val x = center.x + kotlin.math.cos(angle) * radius
-            val z = center.z + kotlin.math.sin(angle) * radius
-            val y = center.y + (0.08 * scale) + (0.18 * kotlin.math.sin(time * 0.08 + (i * 1.7)))
-
-            val vx = -kotlin.math.sin(angle) * 0.010
-            val vz = kotlin.math.cos(angle) * 0.010
-            val vy = 0.010 + (0.004 * kotlin.math.sin(time * 0.09 + i))
-
-            // END_ROD lives longer and reads as a stable magical sparkle.
-            level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, vx, vy, vz, 0.0)
-
-            // Keep a subtle secondary shimmer without turning into visual noise.
-            if (level.random.nextInt(3) == 0) {
-                level.sendParticles(ParticleTypes.ENCHANT, x, y + 0.03, z, 1, vx * 0.5, vy * 0.7, vz * 0.5, 0.0)
-            }
+            // Reverse-portal streaks sell the idea of space folding inward.
+            level.sendParticles(ParticleTypes.REVERSE_PORTAL, spawn.x, spawn.y, spawn.z, 0, velocity.x * 0.55, velocity.y * 0.55, velocity.z * 0.55, 1.0)
         }
     }
 
@@ -670,6 +797,17 @@ class CorridorPortalBlockEntity(
         if (level.getBlockState(worldPosition).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
             playCollapseEffects(level, worldPosition)
             level.removeBlock(worldPosition, false)
+        }
+    }
+
+    private fun updateThresholdBlockState(level: ServerLevel, threshold: Boolean) {
+        val state = level.getBlockState(worldPosition)
+        if (state.block != ManifestationBlocks.CORRIDOR_PORTAL_BLOCK || !state.hasProperty(CorridorPortalBlock.THRESHOLD)) {
+            return
+        }
+
+        if (state.getValue(CorridorPortalBlock.THRESHOLD) != threshold) {
+            level.setBlock(worldPosition, state.setValue(CorridorPortalBlock.THRESHOLD, threshold), 3)
         }
     }
 }

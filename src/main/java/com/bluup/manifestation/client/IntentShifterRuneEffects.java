@@ -1,5 +1,6 @@
 package com.bluup.manifestation.client;
 
+import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.server.block.IntentRelayBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -33,6 +34,7 @@ public final class IntentShifterRuneEffects {
     private static final String[] RUNES = {"ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ", "ᚹ", "ᛇ", "ᛉ", "ᛟ"};
 
     private static final Map<Long, ActiveRunes> ACTIVE = new HashMap<>();
+    private static boolean renderFailureLogged;
 
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(
@@ -88,78 +90,87 @@ public final class IntentShifterRuneEffects {
 
         Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        try {
+            for (ActiveRunes runes : ACTIVE.values()) {
+                Vec3 outward = new Vec3(runes.outward.getStepX(), runes.outward.getStepY(), runes.outward.getStepZ());
+                Vec3 right;
+                Vec3 up;
 
-        for (ActiveRunes runes : ACTIVE.values()) {
-            Vec3 outward = new Vec3(runes.outward.getStepX(), runes.outward.getStepY(), runes.outward.getStepZ());
-            Vec3 right;
-            Vec3 up;
+                if (Math.abs(outward.y) > 0.5) {
+                    right = new Vec3(1, 0, 0);
+                    up = new Vec3(0, 0, 1);
+                } else if (Math.abs(outward.x) > 0.5) {
+                    right = new Vec3(0, 0, 1);
+                    up = new Vec3(0, 1, 0);
+                } else {
+                    right = new Vec3(1, 0, 0);
+                    up = new Vec3(0, 1, 0);
+                }
 
-            if (Math.abs(outward.y) > 0.5) {
-                right = new Vec3(1, 0, 0);
-                up = new Vec3(0, 0, 1);
-            } else if (Math.abs(outward.x) > 0.5) {
-                right = new Vec3(0, 0, 1);
-                up = new Vec3(0, 1, 0);
-            } else {
-                right = new Vec3(1, 0, 0);
-                up = new Vec3(0, 1, 0);
+                // The shifter is a thin decal near one side of the block space, not a full cube.
+                // This places runes relative to the rendered face rather than full-block depth.
+                double renderedFaceCenterAlongOutward = -(0.5 - DECAL_DEPTH_BLOCKS);
+                Vec3 origin = Vec3.atCenterOf(runes.pos)
+                    .add(outward.scale(renderedFaceCenterAlongOutward + FACE_SURFACE_OFFSET))
+                    .add(0.0, WORLD_Y_LIFT, 0.0);
+
+                float progress = Mth.clamp(runes.age / (float) runes.fallbackDurationTicks, 0f, 1f);
+                int revealed = Math.max(1, Mth.floor(progress * RUNE_SLOTS));
+                if (!runes.stillActive) {
+                    revealed = RUNE_SLOTS;
+                }
+
+                float fade = runes.fade();
+
+                for (int i = 0; i < revealed; i++) {
+                    double baseAngle = ((Math.PI * 2.0) / RUNE_SLOTS) * i;
+                    double spin = runes.age * 0.015;
+                    double angle = baseAngle + spin;
+                    double radialX = Math.cos(angle) * RING_RADIUS;
+                    double radialY = Math.sin(angle) * RING_RADIUS;
+                    double shimmer = Math.sin((runes.age + i * 2.0) * 0.21) * 0.009;
+
+                    Vec3 p = origin
+                        .add(right.scale(radialX))
+                        .add(up.scale(radialY + shimmer));
+
+                    String glyph = RUNES[(runes.seed + i) % RUNES.length];
+                    int baseAlpha = runes.stillActive ? 0xE0 : 0xA0;
+                    int alpha = Mth.clamp((int) (baseAlpha * fade), 0, 255);
+                    int color = (alpha << 24) | 0x79E9FF;
+
+                    poseStack.pushPose();
+                    try {
+                        poseStack.translate(p.x - cam.x, p.y - cam.y, p.z - cam.z);
+                        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+                        poseStack.scale(-RUNE_SCALE, -RUNE_SCALE, RUNE_SCALE);
+
+                        float w = mc.font.width(glyph) / 2.0f;
+                        mc.font.drawInBatch(
+                            glyph,
+                            -w,
+                            0.0f,
+                            color,
+                            false,
+                            poseStack.last().pose(),
+                            buffers,
+                            Font.DisplayMode.SEE_THROUGH,
+                            0,
+                            FULL_BRIGHT
+                        );
+                    } finally {
+                        poseStack.popPose();
+                    }
+                }
             }
-
-            // The shifter is a thin decal near one side of the block space, not a full cube.
-            // This places runes relative to the rendered face rather than full-block depth.
-            double renderedFaceCenterAlongOutward = -(0.5 - DECAL_DEPTH_BLOCKS);
-            Vec3 origin = Vec3.atCenterOf(runes.pos)
-                .add(outward.scale(renderedFaceCenterAlongOutward + FACE_SURFACE_OFFSET))
-                .add(0.0, WORLD_Y_LIFT, 0.0);
-
-            float progress = Mth.clamp(runes.age / (float) runes.fallbackDurationTicks, 0f, 1f);
-            int revealed = Math.max(1, Mth.floor(progress * RUNE_SLOTS));
-            if (!runes.stillActive) {
-                revealed = RUNE_SLOTS;
+        } catch (Throwable t) {
+            if (!renderFailureLogged) {
+                renderFailureLogged = true;
+                Manifestation.LOGGER.warn("Manifestation: failed rendering intent shifter runes", t);
             }
-
-            float fade = runes.fade();
-
-            for (int i = 0; i < revealed; i++) {
-                double baseAngle = ((Math.PI * 2.0) / RUNE_SLOTS) * i;
-                double spin = runes.age * 0.015;
-                double angle = baseAngle + spin;
-                double radialX = Math.cos(angle) * RING_RADIUS;
-                double radialY = Math.sin(angle) * RING_RADIUS;
-                double shimmer = Math.sin((runes.age + i * 2.0) * 0.21) * 0.009;
-
-                Vec3 p = origin
-                    .add(right.scale(radialX))
-                    .add(up.scale(radialY + shimmer));
-
-                String glyph = RUNES[(runes.seed + i) % RUNES.length];
-                int baseAlpha = runes.stillActive ? 0xE0 : 0xA0;
-                int alpha = Mth.clamp((int) (baseAlpha * fade), 0, 255);
-                int color = (alpha << 24) | 0x79E9FF;
-
-                poseStack.pushPose();
-                poseStack.translate(p.x - cam.x, p.y - cam.y, p.z - cam.z);
-                poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-                poseStack.scale(-RUNE_SCALE, -RUNE_SCALE, RUNE_SCALE);
-
-                float w = mc.font.width(glyph) / 2.0f;
-                mc.font.drawInBatch(
-                    glyph,
-                    -w,
-                    0.0f,
-                    color,
-                    false,
-                    poseStack.last().pose(),
-                    buffers,
-                    Font.DisplayMode.SEE_THROUGH,
-                    0,
-                    FULL_BRIGHT
-                );
-                poseStack.popPose();
-            }
+        } finally {
+            buffers.endBatch();
         }
-
-        buffers.endBatch();
     }
 
     private static final class ActiveRunes {

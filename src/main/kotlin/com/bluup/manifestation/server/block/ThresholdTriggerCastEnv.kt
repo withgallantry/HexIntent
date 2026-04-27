@@ -7,6 +7,7 @@ import at.petrak.hexcasting.api.pigment.FrozenPigment
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.ItemStack
@@ -16,18 +17,22 @@ import java.util.function.Predicate
 /**
  * Restricted environment for threshold-triggered pattern execution.
  *
- * There is intentionally no caster and no inventory access, so threshold
- * scripts cannot impersonate a player or edit blocks directly via permissions.
+ * The environment keeps world-edit permissions disabled, but when the triggering
+ * entity is a player it exposes that player's held/inventory context so normal
+ * player-targeted spell paths can resolve like an in-hand cast.
  */
 class ThresholdTriggerCastEnv(
     world: ServerLevel,
     private val origin: BlockPos,
-    private val mediaSource: CorridorPortalBlockEntity
+    private val mediaSource: CorridorPortalBlockEntity,
+    private val triggeringCaster: LivingEntity?
 ) : CastingEnvironment(world) {
 
-    override fun getCastingEntity(): LivingEntity? = null
+    private val triggeringPlayer: ServerPlayer? = triggeringCaster as? ServerPlayer
 
-    override fun getMishapEnvironment(): MishapEnvironment = NoopMishapEnvironment(world)
+    override fun getCastingEntity(): LivingEntity? = triggeringCaster
+
+    override fun getMishapEnvironment(): MishapEnvironment = NoopMishapEnvironment(world, triggeringPlayer)
 
     override fun mishapSprayPos(): Vec3 = Vec3.atCenterOf(origin)
 
@@ -44,29 +49,38 @@ class ThresholdTriggerCastEnv(
 
     override fun getCastingHand(): InteractionHand = InteractionHand.MAIN_HAND
 
-    override fun getUsableStacks(mode: StackDiscoveryMode): List<ItemStack> = listOf()
+    override fun getUsableStacks(mode: StackDiscoveryMode): List<ItemStack> {
+        val player = triggeringPlayer ?: return listOf()
+        return getUsableStacksForPlayer(mode, getCastingHand(), player)
+    }
 
-    override fun getPrimaryStacks(): List<HeldItemInfo> = listOf()
+    override fun getPrimaryStacks(): List<HeldItemInfo> {
+        val player = triggeringPlayer ?: return listOf()
+        return getPrimaryStacksForPlayer(getCastingHand(), player)
+    }
 
     override fun replaceItem(
         stackOk: Predicate<ItemStack>,
         replaceWith: ItemStack,
         hand: InteractionHand?
-    ): Boolean = false
+    ): Boolean {
+        val player = triggeringPlayer ?: return false
+        return replaceItemForPlayer(stackOk, replaceWith, hand, player)
+    }
 
     override fun getPigment(): FrozenPigment = FrozenPigment.DEFAULT.get()
 
     override fun setPigment(pigment: FrozenPigment?): FrozenPigment? = null
 
     override fun produceParticles(particles: ParticleSpray, colorizer: FrozenPigment) {
-        particles.sprayParticles(world, colorizer)
+        // Intentionally suppressed: threshold triggers should not emit cast particle sprays.
     }
 
     override fun printMessage(message: Component) {
         // Threshold triggers are autonomous and have no caster to message.
     }
 
-    private class NoopMishapEnvironment(world: ServerLevel) : MishapEnvironment(world, null) {
+    private class NoopMishapEnvironment(world: ServerLevel, player: ServerPlayer?) : MishapEnvironment(world, player) {
         override fun yeetHeldItemsTowards(targetPos: Vec3) {}
 
         override fun dropHeldItems() {}

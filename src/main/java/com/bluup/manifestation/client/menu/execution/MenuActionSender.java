@@ -3,6 +3,7 @@ package com.bluup.manifestation.client.menu.execution;
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.menu.MenuEntry;
+import com.bluup.manifestation.common.menu.MenuPayload;
 import com.bluup.manifestation.common.menu.StoredIota;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -53,7 +54,7 @@ public final class MenuActionSender {
     private MenuActionSender() {
     }
 
-    public static void send(MenuEntry entry, InteractionHand hand, List<InputDatum> inputs) {
+    public static void send(MenuEntry entry, InteractionHand hand, MenuPayload.DispatchSource dispatchSource, List<InputDatum> inputs) {
         if (!entry.isButton()) {
             Manifestation.LOGGER.debug(
                     "MenuActionSender: entry '{}' is not a button, ignoring send",
@@ -75,6 +76,7 @@ public final class MenuActionSender {
 
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeEnum(hand);
+        buf.writeEnum(dispatchSource);
         buf.writeVarInt(inputs.size());
         for (InputDatum input : inputs) {
             buf.writeVarInt(input.order());

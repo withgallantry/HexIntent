@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "manifestation",
-  "version": "0.2.0",
+  "version": "${version}",
   "name": "Manifestation",
   "description": "A companion mod for Hex Casting that adds menu-creation patterns. Stack up a menu definition, cast CREATE_LIST_MENU or CREATE_GRID_MENU, and an interactive HUD opens — click a button to cast its stored pattern list as a normal Hex.",
   "authors": [

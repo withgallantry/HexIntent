@@ -23,7 +23,7 @@ public final class ManifestationBlocks {
 
     public static final CorridorPortalBlock CORRIDOR_PORTAL_BLOCK = new CorridorPortalBlock(
         FabricBlockSettings.copyOf(Blocks.END_PORTAL_FRAME)
-            .strength(-1.0f, 3600000.0f)
+            .strength(3.0f, 1200.0f)
             .noOcclusion()
             .sound(CORRIDOR_PORTAL_SOUND)
             .lightLevel(state -> 8)

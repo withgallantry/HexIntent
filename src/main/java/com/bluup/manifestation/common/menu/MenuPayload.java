@@ -27,20 +27,35 @@ public final class MenuPayload {
         SCHOLAR
     }
 
+    public enum DispatchSource {
+        STAFF,
+        HEXICAL_CHARM
+    }
+
     private final Component title;
     private final List<MenuEntry> entries;
     private final Layout layout;
     private final Theme theme;
     private final int columns;
     private final InteractionHand hand;
+    private final DispatchSource dispatchSource;
 
-    public MenuPayload(Component title, List<MenuEntry> entries, Layout layout, Theme theme, int columns, InteractionHand hand) {
+    public MenuPayload(
+            Component title,
+            List<MenuEntry> entries,
+            Layout layout,
+            Theme theme,
+            int columns,
+            InteractionHand hand,
+            DispatchSource dispatchSource
+    ) {
         this.title = Objects.requireNonNull(title, "title");
         this.entries = List.copyOf(entries);
         this.layout = Objects.requireNonNull(layout, "layout");
         this.theme = Objects.requireNonNull(theme, "theme");
         this.columns = Math.max(1, columns);
         this.hand = Objects.requireNonNull(hand, "hand");
+        this.dispatchSource = Objects.requireNonNull(dispatchSource, "dispatchSource");
     }
 
     public Component title() {
@@ -67,12 +82,17 @@ public final class MenuPayload {
         return hand;
     }
 
+    public DispatchSource dispatchSource() {
+        return dispatchSource;
+    }
+
     public void write(FriendlyByteBuf buf) {
         buf.writeComponent(title);
         buf.writeEnum(layout);
         buf.writeEnum(theme);
         buf.writeVarInt(columns);
         buf.writeEnum(hand);
+        buf.writeEnum(dispatchSource);
         buf.writeVarInt(entries.size());
         for (MenuEntry e : entries) {
             e.write(buf);
@@ -85,11 +105,12 @@ public final class MenuPayload {
         Theme theme = buf.readEnum(Theme.class);
         int columns = buf.readVarInt();
         InteractionHand hand = buf.readEnum(InteractionHand.class);
+        DispatchSource dispatchSource = buf.readEnum(DispatchSource.class);
         int n = buf.readVarInt();
         MenuEntry[] entries = new MenuEntry[n];
         for (int i = 0; i < n; i++) {
             entries[i] = MenuEntry.read(buf);
         }
-        return new MenuPayload(title, List.of(entries), layout, theme, columns, hand);
+        return new MenuPayload(title, List.of(entries), layout, theme, columns, hand, dispatchSource);
     }
 }

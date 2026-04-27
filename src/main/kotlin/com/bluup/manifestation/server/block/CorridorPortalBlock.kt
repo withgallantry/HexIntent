@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.Vec3
@@ -23,11 +24,15 @@ import net.minecraft.world.phys.shapes.VoxelShape
 class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(AXIS, net.minecraft.core.Direction.Axis.Z))
+        registerDefaultState(
+            stateDefinition.any()
+                .setValue(AXIS, net.minecraft.core.Direction.Axis.Z)
+                .setValue(THRESHOLD, false)
+        )
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(AXIS)
+        builder.add(AXIS, THRESHOLD)
     }
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
@@ -37,6 +42,12 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
         level: BlockGetter,
         pos: BlockPos,
         context: CollisionContext
+    ): VoxelShape = Shapes.empty()
+
+    override fun getInteractionShape(
+        state: BlockState,
+        level: BlockGetter,
+        pos: BlockPos
     ): VoxelShape = if (state.getValue(AXIS) == net.minecraft.core.Direction.Axis.X) {
         INTERACTION_SHAPE_X
     } else {
@@ -63,7 +74,6 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
             return
         }
 
-        // Keep portal interaction to a slim, yaw-aligned plane around the visual aperture.
         val scale = portal.getRenderScale().coerceIn(0.1f, 3.0f).toDouble()
         val center = Vec3.atCenterOf(pos)
         val entityCenter = entity.boundingBox.center
@@ -131,6 +141,9 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
     companion object {
         @JvmField
         val AXIS: EnumProperty<net.minecraft.core.Direction.Axis> = BlockStateProperties.HORIZONTAL_AXIS
+
+        @JvmField
+        val THRESHOLD: BooleanProperty = BooleanProperty.create("threshold")
 
         private val INTERACTION_SHAPE_X: VoxelShape = box(0.0, 0.0, 7.0, 16.0, 16.0, 9.0)
         private val INTERACTION_SHAPE_Z: VoxelShape = box(7.0, 0.0, 0.0, 9.0, 16.0, 16.0)

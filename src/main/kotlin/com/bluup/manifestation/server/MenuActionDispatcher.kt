@@ -1,6 +1,8 @@
 package com.bluup.manifestation.server
 
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
+import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
+import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
@@ -8,12 +10,14 @@ import at.petrak.hexcasting.api.casting.eval.env.StaffCastEnv
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.common.menu.MenuPayload
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.ItemStack
 import java.lang.reflect.Constructor
 
 /**
@@ -36,6 +40,9 @@ object MenuActionDispatcher {
 
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
+    private const val HEXICAL_CHARM_ENV_CLASS = "miyucomics.hexical.features.charms.CharmCastEnv"
+    private const val HEXICAL_CHARM_UTIL_CLASS = "miyucomics.hexical.features.charms.CharmUtilities"
+    private const val HEXICAL_CURIO_ITEM_CLASS = "miyucomics.hexical.features.curios.CurioItem"
 
     data class InputDatum(
         val order: Int,
@@ -93,12 +100,19 @@ object MenuActionDispatcher {
      *
      * @param player the player who clicked the button
      * @param hand   which hand is holding the casting item
+     * @param source where this menu originated (staff vs charm context)
      * @param inputs typed input values in menu order
      * @param iotas  the iotas to dispatch in order, as deserialized from the
      *               client-sent packet via [IotaType]
      */
     @JvmStatic
-    fun dispatch(player: ServerPlayer, hand: InteractionHand, inputs: List<InputDatum>, iotas: List<Iota>) {
+    fun dispatch(
+        player: ServerPlayer,
+        hand: InteractionHand,
+        source: MenuPayload.DispatchSource,
+        inputs: List<InputDatum>,
+        iotas: List<Iota>
+    ) {
         if (inputs.size > MAX_INPUTS) {
             Manifestation.LOGGER.warn(
                 "MenuActionDispatcher: rejecting dispatch for {} due to too many inputs ({})",
@@ -123,19 +137,45 @@ object MenuActionDispatcher {
         }
 
         Manifestation.LOGGER.info(
-            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {})",
-            iotas.size, player.name.string, hand
+            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {}, source {})",
+            iotas.size, player.name.string, hand, source
         )
 
+        val world = player.serverLevel()
+        val inputIotas = toInputIotas(inputs, world)
+
+        when (source) {
+            MenuPayload.DispatchSource.STAFF -> {
+                dispatchStaff(player, hand, inputIotas, iotas, world)
+            }
+
+            MenuPayload.DispatchSource.HEXICAL_CHARM -> {
+                val ok = dispatchHexicalCharm(player, hand, inputIotas, iotas, world)
+                if (!ok) {
+                    Manifestation.LOGGER.warn(
+                        "MenuActionDispatcher: rejected HEXICAL_CHARM dispatch for {} (hand {}) because charm context was unavailable",
+                        player.name.string,
+                        hand
+                    )
+                }
+            }
+        }
+    }
+
+    private fun dispatchStaff(
+        player: ServerPlayer,
+        hand: InteractionHand,
+        inputIotas: List<Iota>,
+        iotas: List<Iota>,
+        world: ServerLevel
+    ) {
         // Pull the player's live casting session. getStaffcastVM constructs a
         // CastingVM wrapping their persisted CastingImage — so any mutations we
         // make to vm.image will be observable once we persist back.
         val vm: CastingVM = IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
-        val world = player.serverLevel()
 
         suppressStaffCastSounds(vm)
 
-        val inputIotas = toInputIotas(inputs, world)
         if (inputIotas.isNotEmpty()) {
             val newStack = vm.image.stack.toMutableList()
             newStack.addAll(inputIotas)
@@ -167,6 +207,83 @@ object MenuActionDispatcher {
             )
             // We don't touch setPatterns — the existing drawn-pattern list in
             // the staff UI is the player's, not ours. Leaving it alone.
+        }
+    }
+
+    private fun dispatchHexicalCharm(
+        player: ServerPlayer,
+        hand: InteractionHand,
+        inputIotas: List<Iota>,
+        iotas: List<Iota>,
+        world: ServerLevel
+    ): Boolean {
+        val stackInHand = player.getItemInHand(hand)
+        if (!isHexicalCharmedStack(stackInHand)) {
+            return false
+        }
+
+        val env = createHexicalCharmEnv(player, hand, stackInHand) ?: return false
+        val image = CastingImage().copy(stack = inputIotas.toMutableList())
+        val vm = CastingVM(image, env)
+        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
+        Manifestation.LOGGER.info(
+            "MenuActionDispatcher: hexical charm dispatch complete, stack empty = {}, resolution = {}",
+            clientInfo.isStackClear,
+            clientInfo.resolutionType
+        )
+
+        // Curio charms in Hexical run post-cast hooks after execution.
+        tryInvokeHexicalCurioPostCast(player, stackInHand, hand, world, vm.image.stack)
+        return true
+    }
+
+    private fun isHexicalCharmedStack(stack: ItemStack): Boolean {
+        return try {
+            val utilClass = Class.forName(HEXICAL_CHARM_UTIL_CLASS)
+            val method = utilClass.getMethod("isStackCharmed", ItemStack::class.java)
+            (method.invoke(null, stack) as? Boolean) == true
+        } catch (_: Throwable) {
+            // If Hexical is not present, only trust explicit dispatches when stack has charm tag.
+            stack.tag?.contains("charmed") == true
+        }
+    }
+
+    private fun createHexicalCharmEnv(player: ServerPlayer, hand: InteractionHand, stack: ItemStack): CastingEnvironment? {
+        return try {
+            val envClass = Class.forName(HEXICAL_CHARM_ENV_CLASS)
+            val ctor = envClass.constructors.firstOrNull { ctor ->
+                ctor.parameterTypes.size == 3 &&
+                    ctor.parameterTypes[0].isAssignableFrom(player.javaClass) &&
+                    ctor.parameterTypes[1].isInstance(hand) &&
+                    ctor.parameterTypes[2].isAssignableFrom(ItemStack::class.java)
+            } ?: return null
+
+            ctor.newInstance(player, hand, stack) as? CastingEnvironment
+        } catch (t: Throwable) {
+            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to create Hexical CharmCastEnv", t)
+            null
+        }
+    }
+
+    private fun tryInvokeHexicalCurioPostCast(
+        player: ServerPlayer,
+        stack: ItemStack,
+        hand: InteractionHand,
+        world: ServerLevel,
+        resultingStack: List<Iota>
+    ) {
+        val item = stack.item
+        if (item.javaClass.name != HEXICAL_CURIO_ITEM_CLASS) {
+            return
+        }
+
+        try {
+            val method = item.javaClass.methods.firstOrNull { m ->
+                m.name == "postCharmCast" && m.parameterTypes.size == 5
+            } ?: return
+            method.invoke(item, player, stack, hand, world, resultingStack)
+        } catch (t: Throwable) {
+            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to invoke Hexical Curio postCharmCast", t)
         }
     }
 

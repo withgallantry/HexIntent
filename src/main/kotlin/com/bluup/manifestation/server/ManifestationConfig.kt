@@ -20,6 +20,11 @@ object ManifestationConfig {
     private const val DEFAULT_PORTAL_LIVE_VIEW_COLS = 48
     private const val DEFAULT_PORTAL_LIVE_VIEW_ROWS = 72
     private const val DEFAULT_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS = 48
+    private const val DEFAULT_MENU_DISPATCH_REFILL_PER_SECOND = 12.0
+    private const val DEFAULT_MENU_DISPATCH_BURST_TOKENS = 36.0
+    private const val DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS = 15_000L
+    private const val DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS = 500L
+    private const val DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS = 8_000L
 
     private const val MIN_MENU_LOOP_WINDOW_MS = 200L
     private const val MAX_MENU_LOOP_WINDOW_MS = 10_000L
@@ -35,6 +40,16 @@ object ManifestationConfig {
     private const val MAX_PORTAL_LIVE_VIEW_ROWS = 128
     private const val MIN_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS = 8
     private const val MAX_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS = 128
+    private const val MIN_MENU_DISPATCH_REFILL_PER_SECOND = 1.0
+    private const val MAX_MENU_DISPATCH_REFILL_PER_SECOND = 40.0
+    private const val MIN_MENU_DISPATCH_BURST_TOKENS = 4.0
+    private const val MAX_MENU_DISPATCH_BURST_TOKENS = 120.0
+    private const val MIN_MENU_DISPATCH_VIOLATION_DECAY_MS = 1_000L
+    private const val MAX_MENU_DISPATCH_VIOLATION_DECAY_MS = 120_000L
+    private const val MIN_MENU_DISPATCH_BASE_COOLDOWN_MS = 100L
+    private const val MAX_MENU_DISPATCH_BASE_COOLDOWN_MS = 5_000L
+    private const val MIN_MENU_DISPATCH_MAX_COOLDOWN_MS = 250L
+    private const val MAX_MENU_DISPATCH_MAX_COOLDOWN_MS = 60_000L
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val configPath = FabricLoader.getInstance().configDir.resolve("manifestation.json")
@@ -66,6 +81,21 @@ object ManifestationConfig {
     @Volatile
     private var portalLiveViewDistanceBlocks: Int = DEFAULT_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS
 
+    @Volatile
+    private var menuDispatchRefillPerSecond: Double = DEFAULT_MENU_DISPATCH_REFILL_PER_SECOND
+
+    @Volatile
+    private var menuDispatchBurstTokens: Double = DEFAULT_MENU_DISPATCH_BURST_TOKENS
+
+    @Volatile
+    private var menuDispatchViolationDecayMs: Long = DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS
+
+    @Volatile
+    private var menuDispatchBaseCooldownMs: Long = DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS
+
+    @Volatile
+    private var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS
+
     fun load() {
         val loaded = readOrNull()
         val effective = sanitize(loaded ?: RawConfig())
@@ -79,6 +109,11 @@ object ManifestationConfig {
         portalLiveViewCols = effective.portalLiveViewCols
         portalLiveViewRows = effective.portalLiveViewRows
         portalLiveViewDistanceBlocks = effective.portalLiveViewDistanceBlocks
+        menuDispatchRefillPerSecond = effective.menuDispatchRefillPerSecond
+        menuDispatchBurstTokens = effective.menuDispatchBurstTokens
+        menuDispatchViolationDecayMs = effective.menuDispatchViolationDecayMs
+        menuDispatchBaseCooldownMs = effective.menuDispatchBaseCooldownMs
+        menuDispatchMaxCooldownMs = effective.menuDispatchMaxCooldownMs
 
         if (loaded == null || loaded != effective) {
             write(effective)
@@ -87,7 +122,9 @@ object ManifestationConfig {
         Manifestation.LOGGER.info(
             "Manifestation config loaded: menuOpenLoopWindowMs={}, menuOpenLoopTriggerCount={}, " +
                 "intentRelayMaxRangeBlocks={}, intentRelayCooldownTicks={}, intentRelayStepTriggerEnabled={}, " +
-                "portalLiveViewEnabled={}, portalLiveViewCols={}, portalLiveViewRows={}, portalLiveViewDistanceBlocks={}",
+                "portalLiveViewEnabled={}, portalLiveViewCols={}, portalLiveViewRows={}, portalLiveViewDistanceBlocks={}, " +
+                "menuDispatchRefillPerSecond={}, menuDispatchBurstTokens={}, menuDispatchViolationDecayMs={}, " +
+                "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}",
             menuLoopWindowMs,
             menuLoopTriggerCount,
             intentRelayMaxRangeBlocks,
@@ -96,7 +133,12 @@ object ManifestationConfig {
             portalLiveViewEnabled,
             portalLiveViewCols,
             portalLiveViewRows,
-            portalLiveViewDistanceBlocks
+            portalLiveViewDistanceBlocks,
+            menuDispatchRefillPerSecond,
+            menuDispatchBurstTokens,
+            menuDispatchViolationDecayMs,
+            menuDispatchBaseCooldownMs,
+            menuDispatchMaxCooldownMs
         )
     }
 
@@ -117,6 +159,16 @@ object ManifestationConfig {
     fun portalLiveViewRows(): Int = portalLiveViewRows
 
     fun portalLiveViewDistanceBlocks(): Int = portalLiveViewDistanceBlocks
+
+    fun menuDispatchRefillPerSecond(): Double = menuDispatchRefillPerSecond
+
+    fun menuDispatchBurstTokens(): Double = menuDispatchBurstTokens
+
+    fun menuDispatchViolationDecayMs(): Long = menuDispatchViolationDecayMs
+
+    fun menuDispatchBaseCooldownMs(): Long = menuDispatchBaseCooldownMs
+
+    fun menuDispatchMaxCooldownMs(): Long = menuDispatchMaxCooldownMs
 
     private fun readOrNull(): RawConfig? {
         if (!Files.exists(configPath)) {
@@ -181,8 +233,34 @@ object ManifestationConfig {
             portalLiveViewDistanceBlocks = raw.portalLiveViewDistanceBlocks.coerceIn(
                 MIN_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS,
                 MAX_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS
+            ),
+            menuDispatchRefillPerSecond = raw.menuDispatchRefillPerSecond.coerceIn(
+                MIN_MENU_DISPATCH_REFILL_PER_SECOND,
+                MAX_MENU_DISPATCH_REFILL_PER_SECOND
+            ),
+            menuDispatchBurstTokens = raw.menuDispatchBurstTokens.coerceIn(
+                MIN_MENU_DISPATCH_BURST_TOKENS,
+                MAX_MENU_DISPATCH_BURST_TOKENS
+            ),
+            menuDispatchViolationDecayMs = raw.menuDispatchViolationDecayMs.coerceIn(
+                MIN_MENU_DISPATCH_VIOLATION_DECAY_MS,
+                MAX_MENU_DISPATCH_VIOLATION_DECAY_MS
+            ),
+            menuDispatchBaseCooldownMs = raw.menuDispatchBaseCooldownMs.coerceIn(
+                MIN_MENU_DISPATCH_BASE_COOLDOWN_MS,
+                MAX_MENU_DISPATCH_BASE_COOLDOWN_MS
+            ),
+            menuDispatchMaxCooldownMs = raw.menuDispatchMaxCooldownMs.coerceIn(
+                MIN_MENU_DISPATCH_MAX_COOLDOWN_MS,
+                MAX_MENU_DISPATCH_MAX_COOLDOWN_MS
             )
-        )
+        ).let { sanitized ->
+            if (sanitized.menuDispatchMaxCooldownMs < sanitized.menuDispatchBaseCooldownMs) {
+                sanitized.copy(menuDispatchMaxCooldownMs = sanitized.menuDispatchBaseCooldownMs)
+            } else {
+                sanitized
+            }
+        }
     }
 
     private data class RawConfig(
@@ -194,6 +272,11 @@ object ManifestationConfig {
         var portalLiveViewEnabled: Boolean = DEFAULT_PORTAL_LIVE_VIEW_ENABLED,
         var portalLiveViewCols: Int = DEFAULT_PORTAL_LIVE_VIEW_COLS,
         var portalLiveViewRows: Int = DEFAULT_PORTAL_LIVE_VIEW_ROWS,
-        var portalLiveViewDistanceBlocks: Int = DEFAULT_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS
+        var portalLiveViewDistanceBlocks: Int = DEFAULT_PORTAL_LIVE_VIEW_DISTANCE_BLOCKS,
+        var menuDispatchRefillPerSecond: Double = DEFAULT_MENU_DISPATCH_REFILL_PER_SECOND,
+        var menuDispatchBurstTokens: Double = DEFAULT_MENU_DISPATCH_BURST_TOKENS,
+        var menuDispatchViolationDecayMs: Long = DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS,
+        var menuDispatchBaseCooldownMs: Long = DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS,
+        var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS
     )
 }

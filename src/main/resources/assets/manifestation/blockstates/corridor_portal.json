@@ -1,6 +1,8 @@
 {
   "variants": {
-    "axis=x": {"model": "manifestation:block/corridor_portal", "y": 90},
-    "axis=z": {"model": "manifestation:block/corridor_portal"}
+    "axis=x,threshold=false": {"model": "manifestation:block/corridor_portal", "y": 90},
+    "axis=z,threshold=false": {"model": "manifestation:block/corridor_portal"},
+    "axis=x,threshold=true": {"model": "manifestation:block/corridor_portal_threshold", "y": 90},
+    "axis=z,threshold=true": {"model": "manifestation:block/corridor_portal_threshold"}
   }
 }

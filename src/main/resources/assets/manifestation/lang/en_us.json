@@ -11,7 +11,8 @@
   "hexcasting.action.manifestation:manifest_echo": "Manifest Echo [position, slot 0..2]",
   "hexcasting.action.manifestation:link_intent_relay": "Manifest Relay [relay, target, signal?]",
   "hexcasting.action.manifestation:unlink_intent_relay": "Unlink Intent Relay [relay]",
-  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Threshold [source, destination presence, media, scale?<=3]",
+  "hexcasting.action.manifestation:open_corridor_portal": "Manifest Threshold [source, destination presence, media]",
+  "hexcasting.action.manifestation:destroy_manifestation": "Raze Manifestation [center, radius]",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",
@@ -23,6 +24,7 @@
   "hexcasting.action.book.manifestation:link_intent_relay": "Manifest Relay",
   "hexcasting.action.book.manifestation:unlink_intent_relay": "Unlink Intent Relay",
   "hexcasting.action.book.manifestation:open_corridor_portal": "Manifest Threshold",
+  "hexcasting.action.book.manifestation:destroy_manifestation": "Raze Manifestation",
 
   "block.manifestation.corridor_portal": "Manifest Threshold",
   "block.manifestation.intent_relay": "Manifest Relay",
@@ -53,6 +55,7 @@
   "hexcasting.page.manifestation.intents.link_intent_relay": "Manifests a Relay linked from a destination vector to a target vector. It manifests on the face of the destination vector cast is looking at. Optionally takes a redstone signal strength (0-15) to emit when the relay is activated.",
   "hexcasting.page.manifestation.intents.unlink_intent_relay": "Clears an existing link from a Manifest Relay block.",
   "hexcasting.page.manifestation.intents.open_corridor_portal": "A threshold is a boundary where intent manifests. To cross it is to make the caster's will real.",
+  "hexcasting.page.manifestation.intents.destroy_manifestation": "Unravels manifestation blocks in a radius around a vector. Only blocks your will can edit are affected.",
 
   "hexcasting.tooltip.manifestation.intent_shifter.unlinked": "Manifest Relay: Unlinked",
   "hexcasting.tooltip.manifestation.intent_shifter.linked": "Manifest Relay: Linked",

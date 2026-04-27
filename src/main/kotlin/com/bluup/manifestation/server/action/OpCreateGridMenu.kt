@@ -49,7 +49,8 @@ object OpCreateGridMenu : Action {
             MenuPayload.Layout.GRID,
             MenuPayload.Theme.SCHOLAR,
             columns,
-            env.castingHand
+            env.castingHand,
+            MenuDispatchSourceResolver.fromEnvironment(env)
         )
         if (MenuOpenLoopGuard.shouldMishap(caster, payload)) {
             throw MishapMenuOpenLoop()

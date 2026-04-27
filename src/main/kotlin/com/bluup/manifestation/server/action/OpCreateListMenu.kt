@@ -46,7 +46,8 @@ object OpCreateListMenu : Action {
             MenuPayload.Layout.LIST,
             MenuPayload.Theme.RITUAL,
             1, // unused for LIST; carry a sentinel so the payload is valid
-            env.castingHand
+            env.castingHand,
+            MenuDispatchSourceResolver.fromEnvironment(env)
         )
         if (MenuOpenLoopGuard.shouldMishap(caster, payload)) {
             throw MishapMenuOpenLoop()

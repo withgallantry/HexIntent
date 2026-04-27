@@ -7,12 +7,15 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class CorridorPortalBlockEntityRenderer implements BlockEntityRenderer<CorridorPortalBlockEntity> {
@@ -20,8 +23,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final int OUTLINE_SEGMENTS = 64;
     private static final float HALF_HEIGHT = 0.78f;
     private static final float HALF_WIDTH = 0.50f;
+    private static final float THRESHOLD_HALF_SIZE = 0.50f;
     private static final float Z_EPSILON = 0.0025f;
-    private static final ResourceLocation THRESHOLD_GLYPH_TEXTURE = new ResourceLocation("manifestation", "textures/block/spell_circle.png");
+    private static final ResourceLocation THRESHOLD_GLYPH_SPRITE = new ResourceLocation("manifestation", "block/spell_circle");
 
     public CorridorPortalBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -53,23 +57,24 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
-        float time = (blockEntity.getLevel() == null ? 0f : (blockEntity.getLevel().getGameTime() + partialTick)) * 0.042f;
+        float worldTicks = blockEntity.getLevel() == null ? 0f : (blockEntity.getLevel().getGameTime() + partialTick);
+        float time = worldTicks * 0.042f;
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
 
         if (blockEntity.isThresholdMode()) {
-            VertexConsumer glyphVc = buffer.getBuffer(RenderType.entityTranslucent(THRESHOLD_GLYPH_TEXTURE));
-            drawThresholdGlyph(poseStack, glyphVc, packedLight, envelope, scale, time);
+            TextureAtlasSprite glyphSprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(THRESHOLD_GLYPH_SPRITE);
+            VertexConsumer glyphVc = buffer.getBuffer(RenderType.entityTranslucent(InventoryMenu.BLOCK_ATLAS));
+            drawThresholdGlyph(poseStack, glyphVc, glyphSprite, packedLight, envelope, scale, time, worldTicks);
             drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
             poseStack.popPose();
             return;
         }
 
-        // End portal parallax core with a jagged tear silhouette.
+        // Jagged tear around portal. This took a lot to get looking so so lol.
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
         drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0);
-        drawSideFrame(poseStack, energyVc, packedLight, envelope, scale, time);
         drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time);
         drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0);
         drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
@@ -318,6 +323,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             188, 138, 255, 0);
     }
 
+        // Leaving this in incase I want to add it back but it wasn't great looking and I wasn't sure how to get it right.
     private void drawSideFrame(
         PoseStack poseStack,
         VertexConsumer vc,
@@ -468,6 +474,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
     private void drawCollapseSpark(PoseStack poseStack, VertexConsumer vc, int light, float collapseProgress) {
         // Bright implosion spark only in the final part of collapse.
+        // I keep flip flopping on whether I like this or not but it does add a bit of extra punch to the collapse and I don't have a better idea for what to do in that moment, so here we are.
         if (collapseProgress < 0.78f || collapseProgress >= 1.0f) {
             return;
         }
@@ -495,37 +502,41 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private void drawThresholdGlyph(
         PoseStack poseStack,
         VertexConsumer vc,
+        TextureAtlasSprite sprite,
         int light,
         float envelope,
         float scale,
-        float time
+        float time,
+        float worldTicks
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
         Matrix3f normal = pose.normal();
 
-        float halfH = HALF_HEIGHT * envelope * scale;
-        float halfW = HALF_WIDTH * envelope * scale;
-        if (halfH <= 0.0001f || halfW <= 0.0001f) {
+        float halfSize = THRESHOLD_HALF_SIZE * envelope;
+        if (halfSize <= 0.0001f) {
             return;
         }
 
         float pulse = 0.72f + (0.22f * Mth.sin(time * 2.2f));
         int alphaOuter = Mth.clamp((int) (132f * envelope * pulse), 0, 255);
         int alphaInner = Mth.clamp((int) (186f * envelope * pulse), 0, 255);
-
+        float u0 = sprite.getU0();
+        float v0 = sprite.getV0();
+        float u1 = sprite.getU1();
+        float v1 = sprite.getV1();
         glyphQuadBidirectional(vc, mat4, normal,
-            -halfW, -halfH,
-            halfW, -halfH,
-            halfW, halfH,
-            -halfW, halfH,
+            -halfSize, -halfSize,
+            halfSize, -halfSize,
+            halfSize, halfSize,
+            -halfSize, halfSize,
             Z_EPSILON + 0.0015f,
             light,
             1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            u0, v0,
+            u1, v0,
+            u1, v1,
+            u0, v1,
             168, 126, 255, alphaOuter,
             226, 200, 255, alphaInner,
             226, 200, 255, alphaInner,

@@ -1,7 +1,7 @@
 {
   "textures": {
     "portal": "minecraft:block/end_portal",
-    "particle": "minecraft:block/black_wool"
+    "particle": "manifestation:block/spell_circle"
   },
   "elements": [
     {

@@ -72,7 +72,10 @@ class IntentRelayBlockEntity(
     }
 
     fun displayedIconStack(): ItemStack {
-        return if (redstoneMode) ItemStack(Items.REDSTONE) else displayedItem
+        if (!displayedItem.isEmpty) {
+            return displayedItem
+        }
+        return if (redstoneMode) ItemStack(Items.REDSTONE) else ItemStack.EMPTY
     }
 
     fun setTarget(

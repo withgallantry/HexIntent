@@ -43,7 +43,8 @@ object OpCreateRadialMenu : Action {
             MenuPayload.Layout.RADIAL,
             MenuPayload.Theme.SCHOLAR,
             1,
-            env.castingHand
+            env.castingHand,
+            MenuDispatchSourceResolver.fromEnvironment(env)
         )
         if (MenuOpenLoopGuard.shouldMishap(caster, payload)) {
             throw MishapMenuOpenLoop()

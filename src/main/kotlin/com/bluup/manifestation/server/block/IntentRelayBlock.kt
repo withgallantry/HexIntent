@@ -93,11 +93,9 @@ class IntentRelayBlock(properties: Properties) : FaceAttachedHorizontalDirection
         val relay = serverLevel.getBlockEntity(pos) as? IntentRelayBlockEntity ?: return InteractionResult.PASS
 
         if (serverPlayer.isSecondaryUseActive || serverPlayer.isShiftKeyDown) {
-            if (!relay.isRedstoneMode()) {
-                val held = serverPlayer.getItemInHand(hand)
-                val shown = if (held.isEmpty) ItemStack.EMPTY else held.copyWithCount(1)
-                relay.setDisplayedItem(shown)
-            }
+            val held = serverPlayer.getItemInHand(hand)
+            val shown = if (held.isEmpty) ItemStack.EMPTY else held.copyWithCount(1)
+            relay.setDisplayedItem(shown)
             return InteractionResult.CONSUME
         }
 

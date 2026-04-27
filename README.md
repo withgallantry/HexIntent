@@ -1,7 +1,7 @@
 # Manifestation
 
 Manifestation is a Fabric companion mod for Hex Casting.
-Current release version: 1.0.0.
+Current release version: 2.0.0.
 
 This README is intentionally minimal. Full usage and pattern details live in the docs.
 

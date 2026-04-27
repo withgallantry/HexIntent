@@ -9,13 +9,14 @@ import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.ListIota
-import at.petrak.hexcasting.api.casting.iota.PatternIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadLocation
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
+import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
+import com.bluup.manifestation.server.PortalOwnershipStore
 import com.bluup.manifestation.server.block.CorridorPortalBlock
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity
 import com.bluup.manifestation.server.block.ManifestationBlocks
@@ -30,16 +31,13 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.Vec3
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
 
 /**
  * Create a linked pair of corridor portals from two vectors.
  *
  * Stack shape on entry (top -> bottom):
- *   scale (optional, >0 and <=3)
- *   media budget
+ *   dust budget
  *   destination presence intent OR list of patterns (threshold trigger mode)
  *   source portal vector
  */
@@ -53,62 +51,27 @@ object OpOpenCorridorPortal : Action {
         if (stack.size < 3) {
             throw MishapNotEnoughArgs(3, stack.size)
         }
+        if (stack.size > 3) {
+            throw MishapInvalidIota.ofType(stack[stack.lastIndex], 0, "no optional arguments")
+        }
 
         var scale = 1.0f
 
-        // Optional suffix arguments are positional: [scale].
-        // Accept the old [shape, scale] suffix for compatibility, but ignore shape.
-        val hasLegacyShapeAndScale =
-            stack.size >= 5 &&
-                stack[stack.lastIndex] is DoubleIota &&
-                stack[stack.lastIndex - 1] is DoubleIota &&
-                stack[stack.lastIndex - 2] is DoubleIota &&
-                isValidDestinationIota(stack[stack.lastIndex - 3])
-
-        val hasScaleOnly =
-            !hasLegacyShapeAndScale &&
-                stack.size >= 4 &&
-                stack[stack.lastIndex] is DoubleIota &&
-                isValidDestinationIota(stack[stack.lastIndex - 1])
-
-        if (hasLegacyShapeAndScale) {
-            val scaleIota = stack.removeAt(stack.lastIndex) as DoubleIota
-            val deprecatedShapeIota = stack.removeAt(stack.lastIndex) as DoubleIota
-
-            val shapeRounded = Math.round(deprecatedShapeIota.double).toInt()
-            if (shapeRounded != 0 && shapeRounded != 1) {
-                throw MishapInvalidIota.ofType(deprecatedShapeIota, 1, "0 or 1")
-            }
-
-            val rawScale = scaleIota.double
-            if (rawScale <= 0.0 || rawScale > 3.0) {
-                throw MishapInvalidIota.ofType(scaleIota, 0, "number in (0, 3]")
-            }
-            scale = rawScale.toFloat()
-        } else if (hasScaleOnly) {
-            val scaleIota = stack.removeAt(stack.lastIndex) as DoubleIota
-            val rawScale = scaleIota.double
-            if (rawScale <= 0.0 || rawScale > 3.0) {
-                throw MishapInvalidIota.ofType(scaleIota, 0, "number in (0, 3]")
-            }
-            scale = rawScale.toFloat()
-        }
-
-        val mediaIota = stack.removeAt(stack.lastIndex)
+        val budgetIota = stack.removeAt(stack.lastIndex)
         val bIota = stack.removeAt(stack.lastIndex)
         val aIota = stack.removeAt(stack.lastIndex)
 
-        val mediaBudget = if (mediaIota is DoubleIota) {
-            val value = Math.round(mediaIota.double).toLong()
+        val mediaBudget = if (budgetIota is DoubleIota) {
+            val value = Math.round(budgetIota.double).toLong()
             if (value <= 0L) {
-                throw MishapInvalidIota.ofType(mediaIota, 0, "positive number")
+                throw MishapInvalidIota.ofType(budgetIota, 0, "positive dust budget")
             }
-            value
+            value * MediaConstants.DUST_UNIT
         } else {
             stack.add(aIota)
             stack.add(bIota)
-            stack.add(mediaIota)
-            throw MishapInvalidIota.ofType(mediaIota, 0, "number")
+            stack.add(budgetIota)
+            throw MishapInvalidIota.ofType(budgetIota, 0, "number (dust budget)")
         }
 
         val aPos = if (aIota is Vec3Iota) {
@@ -122,18 +85,12 @@ object OpOpenCorridorPortal : Action {
         // Source portal must be within ambit.
         env.assertVecInRange(Vec3.atCenterOf(aPos))
 
-        val thresholdPatterns: List<Iota>? = if (bIota is ListIota) {
+        val thresholdPayload: List<Iota>? = if (bIota is ListIota) {
             val list = bIota.list.toList()
             if (list.isEmpty()) {
                 stack.add(aIota)
                 stack.add(bIota)
-                throw MishapInvalidIota.ofType(bIota, 0, "non-empty list of patterns")
-            }
-
-            if (list.any { it !is PatternIota }) {
-                stack.add(aIota)
-                stack.add(bIota)
-                throw MishapInvalidIota.ofType(bIota, 0, "list of patterns")
+                throw MishapInvalidIota.ofType(bIota, 0, "non-empty list of iotas")
             }
 
             list
@@ -151,12 +108,12 @@ object OpOpenCorridorPortal : Action {
 
             val yaw = yawFromFacing(facing)
             Triple(BlockPos.containing(bIota.position), horizontalAxisForYaw(yaw), bIota.dimensionId)
-        } else if (thresholdPatterns != null) {
+        } else if (thresholdPayload != null) {
             Triple(aPos, horizontalAxisForYaw(Mth.wrapDegrees((env.castingEntity as? net.minecraft.server.level.ServerPlayer)?.yRot ?: 0f)), "")
         } else {
             stack.add(aIota)
             stack.add(bIota)
-            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent or [patterns]")
+            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent or [iotas]")
         }
 
         val caster = env.castingEntity as? net.minecraft.server.level.ServerPlayer
@@ -166,7 +123,7 @@ object OpOpenCorridorPortal : Action {
         val sourceYaw = Mth.wrapDegrees(caster.yRot)
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
 
-        if (thresholdPatterns != null) {
+        if (thresholdPayload != null) {
             placePortal(sourceLevel, aPos, sourceAxis)
             val threshold = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
 
@@ -176,7 +133,7 @@ object OpOpenCorridorPortal : Action {
 
             threshold.configureThresholdTrigger(
                 sourceLevel,
-                thresholdPatterns,
+                thresholdPayload,
                 caster.uuid,
                 mediaBudget,
                 scale,
@@ -201,6 +158,7 @@ object OpOpenCorridorPortal : Action {
         }
 
         val targetYaw = yawFromFacing((bIota as PresenceIntentIota).facing)
+        val ownershipStore = PortalOwnershipStore.get(caster.server)
 
         placePortal(sourceLevel, aPos, sourceAxis)
         placePortal(targetLevel, bPos, bAxis)
@@ -208,7 +166,7 @@ object OpOpenCorridorPortal : Action {
         val aPortal = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
         val bPortal = targetLevel.getBlockEntity(bPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
 
-        val previousPair = OWNED_PORTALS[caster.uuid]
+        val previousPair = ownershipStore.get(caster.uuid)
 
         if (env.extractMedia(mediaBudget, true) > 0) {
             throw MishapNotEnoughMedia(mediaBudget)
@@ -232,15 +190,18 @@ object OpOpenCorridorPortal : Action {
             scale,
             targetYaw
         )
-        OWNED_PORTALS[caster.uuid] = PortalPair(
-            PortalEndpoint(sourceLevel.dimension().location().toString(), aPos.immutable()),
-            PortalEndpoint(targetLevel.dimension().location().toString(), bPos.immutable())
+        ownershipStore.put(
+            caster.uuid,
+            PortalOwnershipStore.PortalPair(
+                PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), aPos.immutable()),
+                PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), bPos.immutable())
+            )
         )
 
         // Enforce one active portal pair per caster by clearing any previous pair.
         if (previousPair != null) {
-            val newSource = PortalEndpoint(sourceLevel.dimension().location().toString(), aPos)
-            val newTarget = PortalEndpoint(targetLevel.dimension().location().toString(), bPos)
+            val newSource = PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), aPos)
+            val newTarget = PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), bPos)
             clearOwnedPortal(caster.server, previousPair.first, newSource, newTarget)
             clearOwnedPortal(caster.server, previousPair.second, newSource, newTarget)
         }
@@ -276,9 +237,9 @@ object OpOpenCorridorPortal : Action {
 
     private fun clearOwnedPortal(
         server: net.minecraft.server.MinecraftServer,
-        oldEndpoint: PortalEndpoint,
-        newA: PortalEndpoint,
-        newB: PortalEndpoint
+        oldEndpoint: PortalOwnershipStore.PortalEndpoint,
+        newA: PortalOwnershipStore.PortalEndpoint,
+        newB: PortalOwnershipStore.PortalEndpoint
     ) {
         if (oldEndpoint == newA || oldEndpoint == newB) {
             return
@@ -298,15 +259,6 @@ object OpOpenCorridorPortal : Action {
             }
         }
     }
-
-    private data class PortalEndpoint(val dimensionId: String, val pos: BlockPos)
-
-    private data class PortalPair(val first: PortalEndpoint, val second: PortalEndpoint)
-
-    private val OWNED_PORTALS: MutableMap<UUID, PortalPair> = ConcurrentHashMap()
-
-    private fun isValidDestinationIota(iota: Iota): Boolean =
-        iota is PresenceIntentIota || iota is ListIota
 
     private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
 

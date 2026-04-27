@@ -1,5 +1,11 @@
 package com.bluup.manifestation.client.menu.ui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.bluup.manifestation.client.ActiveMenuState;
 import com.bluup.manifestation.client.menu.execution.MenuActionSender;
 import com.bluup.manifestation.common.menu.MenuEntry;
@@ -9,10 +15,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import org.joml.Matrix4f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,6 +53,8 @@ public final class MenuScreen extends Screen {
     private static final int RADIAL_INNER_RADIUS = 44;
     private static final int RADIAL_FILL_STEPS = 28;
     private static final double RADIAL_GAP_RADIANS = Math.toRadians(4.0);
+    private static final int RADIAL_HOVER_SPARK_COUNT = 12;
+    private static final int RADIAL_HOVER_SPARK_TRAIL = 2;
 
     private static final int INTRO_TRACE_TICKS = 12;
     private static final int INK_REVEAL_TICKS = 18;
@@ -421,7 +431,7 @@ public final class MenuScreen extends Screen {
 
         // Clear first in case dispatch re-enters the screen loop.
         ActiveMenuState.get().clear();
-        MenuActionSender.send(entry, this.hand, collectInputValues());
+        MenuActionSender.send(entry, this.hand, menu.dispatchSource(), collectInputValues());
         if (this.minecraft != null) {
             closeAfterSelection = true;
             this.minecraft.setScreen(null);
@@ -631,21 +641,28 @@ public final class MenuScreen extends Screen {
             double start = radialStartAngle(i, entries.size()) + RADIAL_GAP_RADIANS;
             double end = radialEndAngle(i, entries.size()) - RADIAL_GAP_RADIANS;
             boolean isHovered = i == hovered;
+            int arcSegments = Math.max(
+                RADIAL_FILL_STEPS,
+                (int) Math.ceil(Math.abs(end - start) * geometry.outerRadius * 0.30)
+            );
 
             int fillAlpha = isHovered ? 132 + (int) (48 * pulse) : 62 + (int) (18 * pulse);
             int frameAlpha = isHovered ? 218 + (int) (30 * pulse) : 118 + (int) (20 * pulse);
             int fill = (fillAlpha << 24) | themed(0x43235D, 0x15394D);
             int frame = (frameAlpha << 24) | themed(0xE1B7FF, 0x9DE8FF);
             int glow = (((isHovered ? 120 : 46) + (int) (32 * pulse)) << 24) | themed(0xA872FF, 0x5FD3FF);
+            int hoverFill = ((Math.min(235, fillAlpha + 52)) << 24) | themed(0x6A338E, 0x1B5D7A);
 
-            for (int step = 0; step <= RADIAL_FILL_STEPS; step++) {
-                double t = step / (double) RADIAL_FILL_STEPS;
-                double angle = Mth.lerp(t, start, end);
-                int x1 = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.innerRadius);
-                int y1 = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.innerRadius);
-                int x2 = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.outerRadius);
-                int y2 = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.outerRadius);
-                drawPixelLine(graphics, x1, y1, x2, y2, fill, 0);
+            drawRadialBand(graphics, geometry, start, end, fill, arcSegments);
+            if (isHovered) {
+                drawRadialBand(graphics, geometry, start, end, hoverFill, arcSegments);
+            }
+
+            drawArcStroke(graphics, geometry.centerX, geometry.centerY, geometry.outerRadius, start, end, frame, isHovered ? 1 : 0);
+            drawArcStroke(graphics, geometry.centerX, geometry.centerY, geometry.innerRadius, start, end, isHovered ? frame : (frame & 0x88FFFFFF), 0);
+            if (isHovered) {
+                drawArcStroke(graphics, geometry.centerX, geometry.centerY, geometry.outerRadius + 1, start, end, glow, 1);
+                drawHoveredSegmentSparks(graphics, geometry, start, end, pulse);
             }
 
             drawPixelLine(
@@ -655,7 +672,7 @@ public final class MenuScreen extends Screen {
                 geometry.centerX + (int) Math.round(Math.cos(start) * geometry.outerRadius),
                 geometry.centerY + (int) Math.round(Math.sin(start) * geometry.outerRadius),
                 frame,
-                0
+                isHovered ? 1 : 0
             );
             drawPixelLine(
                 graphics,
@@ -664,24 +681,8 @@ public final class MenuScreen extends Screen {
                 geometry.centerX + (int) Math.round(Math.cos(end) * geometry.outerRadius),
                 geometry.centerY + (int) Math.round(Math.sin(end) * geometry.outerRadius),
                 frame,
-                0
+                isHovered ? 1 : 0
             );
-
-            for (int step = 0; step <= RADIAL_FILL_STEPS; step++) {
-                double t = step / (double) RADIAL_FILL_STEPS;
-                double angle = Mth.lerp(t, start, end);
-                int outerX = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.outerRadius);
-                int outerY = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.outerRadius);
-                graphics.fill(outerX, outerY, outerX + 1, outerY + 1, frame);
-                int innerX = geometry.centerX + (int) Math.round(Math.cos(angle) * geometry.innerRadius);
-                int innerY = geometry.centerY + (int) Math.round(Math.sin(angle) * geometry.innerRadius);
-                graphics.fill(innerX, innerY, innerX + 1, innerY + 1, isHovered ? frame : (frame & 0x88FFFFFF));
-                if (isHovered) {
-                    int glowX = geometry.centerX + (int) Math.round(Math.cos(angle) * (geometry.outerRadius + 1));
-                    int glowY = geometry.centerY + (int) Math.round(Math.sin(angle) * (geometry.outerRadius + 1));
-                    graphics.fill(glowX, glowY, glowX + 1, glowY + 1, glow);
-                }
-            }
 
             double mid = (start + end) * 0.5;
             int labelRadius = radialLabelRadius(geometry);
@@ -1082,6 +1083,113 @@ public final class MenuScreen extends Screen {
             int px = Math.round(Mth.lerp(t, x1, x2));
             int py = Math.round(Mth.lerp(t, y1, y2));
             graphics.fill(px - thickness, py - thickness, px + thickness + 1, py + thickness + 1, color);
+        }
+    }
+
+    private void drawArcStroke(
+        GuiGraphics graphics,
+        int cx,
+        int cy,
+        int radius,
+        double start,
+        double end,
+        int color,
+        int thickness
+    ) {
+        int steps = Math.max(14, (int) Math.ceil(Math.abs(end - start) * radius * 0.85));
+        for (int i = 0; i <= steps; i++) {
+            double t = i / (double) steps;
+            double angle = Mth.lerp(t, start, end);
+            int px = cx + (int) Math.round(Math.cos(angle) * radius);
+            int py = cy + (int) Math.round(Math.sin(angle) * radius);
+            graphics.fill(px - thickness, py - thickness, px + thickness + 1, py + thickness + 1, color);
+        }
+    }
+
+    private void drawRadialBand(
+        GuiGraphics graphics,
+        RadialGeometry geometry,
+        double start,
+        double end,
+        int color,
+        int segments
+    ) {
+        int steps = Math.max(4, segments);
+        Matrix4f matrix = graphics.pose().last().pose();
+        float a = ((color >>> 24) & 0xFF) / 255.0f;
+        float r = ((color >>> 16) & 0xFF) / 255.0f;
+        float g = ((color >>> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+
+        for (int i = 0; i < steps; i++) {
+            double t0 = i / (double) steps;
+            double t1 = (i + 1) / (double) steps;
+            double a0 = Mth.lerp(t0, start, end);
+            double a1 = Mth.lerp(t1, start, end);
+
+            float ix0 = geometry.centerX + (float) (Math.cos(a0) * geometry.innerRadius);
+            float iy0 = geometry.centerY + (float) (Math.sin(a0) * geometry.innerRadius);
+            float ox0 = geometry.centerX + (float) (Math.cos(a0) * geometry.outerRadius);
+            float oy0 = geometry.centerY + (float) (Math.sin(a0) * geometry.outerRadius);
+            float ix1 = geometry.centerX + (float) (Math.cos(a1) * geometry.innerRadius);
+            float iy1 = geometry.centerY + (float) (Math.sin(a1) * geometry.innerRadius);
+            float ox1 = geometry.centerX + (float) (Math.cos(a1) * geometry.outerRadius);
+            float oy1 = geometry.centerY + (float) (Math.sin(a1) * geometry.outerRadius);
+
+            builder.vertex(matrix, ix0, iy0, 0.0f).color(r, g, b, a).endVertex();
+            builder.vertex(matrix, ox0, oy0, 0.0f).color(r, g, b, a).endVertex();
+            builder.vertex(matrix, ix1, iy1, 0.0f).color(r, g, b, a).endVertex();
+
+            builder.vertex(matrix, ix1, iy1, 0.0f).color(r, g, b, a).endVertex();
+            builder.vertex(matrix, ox0, oy0, 0.0f).color(r, g, b, a).endVertex();
+            builder.vertex(matrix, ox1, oy1, 0.0f).color(r, g, b, a).endVertex();
+        }
+
+        BufferUploader.drawWithShader(builder.end());
+        RenderSystem.disableBlend();
+    }
+
+    private void drawHoveredSegmentSparks(
+        GuiGraphics graphics,
+        RadialGeometry geometry,
+        double start,
+        double end,
+        float pulse
+    ) {
+        double sweep = end - start;
+        if (sweep <= 0.0) {
+            return;
+        }
+
+        int baseAlpha = 128 + (int) (72 * pulse);
+        int bright = (Math.min(255, baseAlpha + 50) << 24) | themed(0xF4D6FF, 0xD9F7FF);
+        int tail = ((baseAlpha / 2) << 24) | themed(0xB987FF, 0x88DCFF);
+        float phase = (animTick & 1023) * 0.067f;
+
+        for (int i = 0; i < RADIAL_HOVER_SPARK_COUNT; i++) {
+            float seed = i * 0.731f;
+            float drift = (phase + seed) - (float) Math.floor(phase + seed);
+            double angle = start + (drift * sweep);
+            double radialBias = 0.70 + 0.24 * Math.sin((phase * 2.2f) + seed * 4.1f);
+            int radius = geometry.innerRadius + (int) Math.round((geometry.outerRadius - geometry.innerRadius) * radialBias);
+
+            int px = geometry.centerX + (int) Math.round(Math.cos(angle) * radius);
+            int py = geometry.centerY + (int) Math.round(Math.sin(angle) * radius);
+
+            graphics.fill(px, py, px + 1, py + 1, bright);
+
+            for (int t = 1; t <= RADIAL_HOVER_SPARK_TRAIL; t++) {
+                int tx = geometry.centerX + (int) Math.round(Math.cos(angle - (0.018 * t)) * radius);
+                int ty = geometry.centerY + (int) Math.round(Math.sin(angle - (0.018 * t)) * radius);
+                graphics.fill(tx, ty, tx + 1, ty + 1, tail);
+            }
         }
     }
 
