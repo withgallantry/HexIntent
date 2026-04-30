@@ -71,22 +71,22 @@ object ManifestationServer : ModInitializer {
     private const val UI_DROPDOWN_SIG = "awwaqwedwwdawaq"
     private val UI_DROPDOWN_DIR = HexDir.NORTH_EAST
 
-    private const val LINK_INTENT_RELAY_SIG = "awwaqwedwwdawdw"
-    private val LINK_INTENT_RELAY_DIR = HexDir.NORTH_EAST
+    private const val LINK_INTENT_RELAY_SIG = "edeweqaq"
+    private val LINK_INTENT_RELAY_DIR = HexDir.SOUTH_WEST
 
-    private const val UNLINK_INTENT_RELAY_SIG = "awwaqwedwwdawda"
-    private val UNLINK_INTENT_RELAY_DIR = HexDir.NORTH_EAST
+    private const val UNLINK_INTENT_RELAY_SIG = "edeweqaqq"
+    private val UNLINK_INTENT_RELAY_DIR = HexDir.SOUTH_WEST
 
-    private const val OPEN_CORRIDOR_PORTAL_SIG = "awwaqwedwwdawqwe"
-    private val OPEN_CORRIDOR_PORTAL_DIR = HexDir.NORTH_EAST
+    private const val OPEN_CORRIDOR_PORTAL_SIG = "edqqdeew"
+    private val OPEN_CORRIDOR_PORTAL_DIR = HexDir.NORTH_WEST
 
-    private const val PRESENCE_INTENT_SIG = "awwaqwedwwdawqea"
-    private val PRESENCE_INTENT_DIR = HexDir.NORTH_EAST
+    private const val PRESENCE_INTENT_SIG = "edewqaqdeeeweee"
+    private val PRESENCE_INTENT_DIR = HexDir.NORTH_WEST
 
-    private const val MANIFEST_ECHO_SIG = "awwaqwedwwdawqwea"
-    private val MANIFEST_ECHO_DIR = HexDir.NORTH_EAST
+    private const val MANIFEST_ECHO_SIG = "qqqqqaweeee"
+    private val MANIFEST_ECHO_DIR = HexDir.WEST
 
-    private const val DESTROY_MANIFESTATION_SIG = "awwaqwedwwdawqwew"
+    private const val DESTROY_MANIFESTATION_SIG = "eweeewedww"
     private val DESTROY_MANIFESTATION_DIR = HexDir.NORTH_EAST
 
     override fun onInitialize() {
