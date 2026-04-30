@@ -49,31 +49,37 @@
   },
   {
     "id": "manifestation:presence_intent",
-    "signature": "awwaqwedwwdawqea",
-    "startdir": "NORTH_EAST",
+    "signature": "edewqaqdeeeweee",
+    "startdir": "NORTH_WEST",
     "is_per_world": false
   },
   {
     "id": "manifestation:manifest_echo",
-    "signature": "awwaqwedwwdawqwea",
-    "startdir": "NORTH_EAST",
+    "signature": "qqqqqaweeee",
+    "startdir": "WEST",
     "is_per_world": false
   },
   {
     "id": "manifestation:link_intent_relay",
-    "signature": "awwaqwedwwdawdw",
-    "startdir": "NORTH_EAST",
+    "signature": "edeweqaq",
+    "startdir": "SOUTH_WEST",
     "is_per_world": false
   },
   {
     "id": "manifestation:unlink_intent_relay",
-    "signature": "awwaqwedwwdawda",
-    "startdir": "NORTH_EAST",
+    "signature": "edeweqaqq",
+    "startdir": "SOUTH_WEST",
     "is_per_world": false
   },
   {
     "id": "manifestation:open_corridor_portal",
-    "signature": "awwaqwedwwdawqwe",
+    "signature": "edqqdeew",
+    "startdir": "NORTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:destroy_manifestation",
+    "signature": "eweeewedww",
     "startdir": "NORTH_EAST",
     "is_per_world": false
   }

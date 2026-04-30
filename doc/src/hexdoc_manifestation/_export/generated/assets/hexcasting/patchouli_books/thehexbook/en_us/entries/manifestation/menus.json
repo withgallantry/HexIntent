@@ -61,9 +61,17 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:open_corridor_portal",
       "anchor": "manifestation:open_corridor_portal",
-      "input": "vec, presenceIntent, num, num?",
+      "input": "vec, presenceIntent, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:destroy_manifestation",
+      "anchor": "manifestation:destroy_manifestation",
+      "input": "vec, num",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.destroy_manifestation"
     }
   ]
 }
