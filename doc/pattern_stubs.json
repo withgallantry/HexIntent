@@ -48,18 +48,6 @@
     "is_per_world": false
   },
   {
-    "id": "manifestation:presence_intent",
-    "signature": "edewqaqdeeeweee",
-    "startdir": "NORTH_WEST",
-    "is_per_world": false
-  },
-  {
-    "id": "manifestation:manifest_echo",
-    "signature": "qqqqqaweeee",
-    "startdir": "WEST",
-    "is_per_world": false
-  },
-  {
     "id": "manifestation:link_intent_relay",
     "signature": "edeweqaq",
     "startdir": "SOUTH_WEST",
@@ -75,6 +63,18 @@
     "id": "manifestation:open_corridor_portal",
     "signature": "edqqdeew",
     "startdir": "NORTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:presence_intent",
+    "signature": "edewqaqdeeeweee",
+    "startdir": "NORTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:manifest_echo",
+    "signature": "qqqqqaweeee",
+    "startdir": "WEST",
     "is_per_world": false
   },
   {

@@ -3,7 +3,7 @@
 Manifestation is a Fabric companion mod for Hex Casting.
 Current release version: 2.0.0.
 
-This README is intentionally minimal. Full usage and pattern details live in the docs.
+Usage details and pattern reference documentation are available on the docs site.
 
 ## Example
 
@@ -27,11 +27,8 @@ The built jar is written to `build/libs/`.
 
 ## Config
 
-Runtime config is at `config/manifestation.json`.
+Server config is in `config/manifestation.json`.
 
 - `intentRelayMaxRangeBlocks`: max link distance in blocks (`-1` means unlimited).
 - `intentRelayCooldownTicks`: cooldown between successful trigger activations.
 - `intentRelayStepTriggerEnabled`: enables floor-mounted "step on" activation for players.
-
-For discoverability, this README is a good place for a short summary like this.
-Detailed behavior and examples can live in the docs site.
