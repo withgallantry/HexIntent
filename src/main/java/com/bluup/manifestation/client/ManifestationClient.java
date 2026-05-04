@@ -54,6 +54,8 @@ public final class ManifestationClient implements ClientModInitializer {
         );
         IntentShifterLensOverlay.register();
         IntentShifterRuneEffects.register();
+        SplinterVisuals.register();
+        HexTrailVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,

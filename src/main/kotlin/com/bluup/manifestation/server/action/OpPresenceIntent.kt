@@ -3,11 +3,14 @@ package com.bluup.manifestation.server.action
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.eval.OperationResult
+import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
+import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
+import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.iota.PresenceIntentIota
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
@@ -21,6 +24,8 @@ import net.minecraft.server.level.ServerLevel
  *   position vector
  */
 object OpPresenceIntent : Action {
+    private const val PRESENCE_COST_AMETHYST = 5L
+
     override fun operate(
         env: CastingEnvironment,
         image: CastingImage,
@@ -54,12 +59,25 @@ object OpPresenceIntent : Action {
             throw MishapInvalidIota.ofType(positionIota, 1, "vector")
         }
 
+        // Presence intent target must be within caster ambit.
+        env.assertVecInRange(position)
+
         val level = env.castingEntity?.level() as? ServerLevel
             ?: throw MishapRequiresCasterWill()
+
+        val mediaCost = PRESENCE_COST_AMETHYST * MediaConstants.CRYSTAL_UNIT
+        if (env.extractMedia(mediaCost, true) > 0) {
+            throw MishapNotEnoughMedia(mediaCost)
+        }
 
         stack.add(PresenceIntentIota(position, facing, level.dimension().location().toString()))
 
         val image2 = image.withUsedOp().copy(stack = stack)
-        return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
+        return OperationResult(
+            image2,
+            listOf(OperatorSideEffect.ConsumeMedia(mediaCost)),
+            continuation,
+            HexEvalSounds.NORMAL_EXECUTE
+        )
     }
 }

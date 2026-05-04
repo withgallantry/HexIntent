@@ -79,7 +79,37 @@
   },
   {
     "id": "manifestation:destroy_manifestation",
-    "signature": "eweeewedww",
+    "signature": "edeeedwwaq",
+    "startdir": "NORTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:manifest_splinter",
+    "signature": "dedade",
+    "startdir": "SOUTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:destroy_splinters",
+    "signature": "dedadeaqaww",
+    "startdir": "SOUTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:get_splinter_location",
+    "signature": "dedadeeweewewewee",
+    "startdir": "SOUTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:renew_splinter",
+    "signature": "dedaded",
+    "startdir": "SOUTH_WEST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:hex_trail",
+    "signature": "qaqead",
     "startdir": "NORTH_EAST",
     "is_per_world": false
   }

@@ -14,6 +14,11 @@ import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpDestroyManifestation
+import com.bluup.manifestation.server.action.OpDestroySplinters
+import com.bluup.manifestation.server.action.OpGetSplinterLocation
+import com.bluup.manifestation.server.action.OpHexTrail
+import com.bluup.manifestation.server.action.OpManifestSplinter
+import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
@@ -27,6 +32,7 @@ import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
+import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
@@ -86,8 +92,23 @@ object ManifestationServer : ModInitializer {
     private const val MANIFEST_ECHO_SIG = "qqqqqaweeee"
     private val MANIFEST_ECHO_DIR = HexDir.WEST
 
-    private const val DESTROY_MANIFESTATION_SIG = "eweeewedww"
-    private val DESTROY_MANIFESTATION_DIR = HexDir.NORTH_EAST
+    private const val DESTROY_MANIFESTATION_SIG = "edeeedwwaq"
+    private val DESTROY_MANIFESTATION_DIR = HexDir.NORTH_WEST
+
+    private const val MANIFEST_SPLINTER_SIG = "dedade"
+    private val MANIFEST_SPLINTER_DIR = HexDir.SOUTH_WEST
+
+    private const val DESTROY_SPLINTERS_SIG = "dedadeaqaww"
+    private val DESTROY_SPLINTERS_DIR = HexDir.SOUTH_WEST
+
+    private const val GET_SPLINTER_LOCATION_SIG = "dedadeeweewewewee"
+    private val GET_SPLINTER_LOCATION_DIR = HexDir.SOUTH_WEST
+
+    private const val RENEW_SPLINTER_SIG = "dedaded"
+    private val RENEW_SPLINTER_DIR = HexDir.SOUTH_WEST
+
+    private const val HEX_TRAIL_SIG = "qaqead"
+    private val HEX_TRAIL_DIR = HexDir.NORTH_EAST
 
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
@@ -99,6 +120,7 @@ object ManifestationServer : ModInitializer {
         registerActions()
         registerC2SReceivers()
         EchoRuntime.register()
+        SplinterRuntime.register()
 
         Manifestation.LOGGER.info(
             "Manifestation: registered menu constructors, menu actions, ui iota types, and dispatch receiver."
@@ -223,6 +245,46 @@ object ManifestationServer : ModInitializer {
                 OpDestroyManifestation
             )
         )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("manifest_splinter"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(MANIFEST_SPLINTER_SIG, MANIFEST_SPLINTER_DIR),
+                OpManifestSplinter
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("destroy_splinters"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(DESTROY_SPLINTERS_SIG, DESTROY_SPLINTERS_DIR),
+                OpDestroySplinters
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("get_splinter_location"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(GET_SPLINTER_LOCATION_SIG, GET_SPLINTER_LOCATION_DIR),
+                OpGetSplinterLocation
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("renew_splinter"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(RENEW_SPLINTER_SIG, RENEW_SPLINTER_DIR),
+                OpRenewSplinter
+            )
+        )
+        Registry.register(
+            HexActions.REGISTRY,
+            Manifestation.id("hex_trail"),
+            ActionRegistryEntry(
+                HexPattern.fromAngles(HEX_TRAIL_SIG, HEX_TRAIL_DIR),
+                OpHexTrail
+            )
+        )
     }
 
     /**
@@ -317,5 +379,32 @@ object ManifestationServer : ModInitializer {
             buf.writeVarInt(durationTicks)
             ServerPlayNetworking.send(player, ManifestationNetworking.INTENT_SHIFTER_RUNES_S2C, buf)
         }
+    }
+
+    @JvmStatic
+    fun sendHexTrailTo(
+        player: ServerPlayer,
+        position: net.minecraft.world.phys.Vec3,
+        colorStart: net.minecraft.world.phys.Vec3,
+        colorEnd: net.minecraft.world.phys.Vec3,
+        transitionTicks: Int,
+        trailId: Long,
+        particleType: Int
+    ) {
+        val buf = PacketByteBufs.create()
+        buf.writeUtf(player.serverLevel().dimension().location().toString())
+        buf.writeLong(trailId)
+        buf.writeDouble(position.x)
+        buf.writeDouble(position.y)
+        buf.writeDouble(position.z)
+        buf.writeFloat(colorStart.x.toFloat())
+        buf.writeFloat(colorStart.y.toFloat())
+        buf.writeFloat(colorStart.z.toFloat())
+        buf.writeFloat(colorEnd.x.toFloat())
+        buf.writeFloat(colorEnd.y.toFloat())
+        buf.writeFloat(colorEnd.z.toFloat())
+        buf.writeVarInt(transitionTicks.coerceAtLeast(1))
+        buf.writeVarInt(particleType.coerceIn(0, 14))
+        ServerPlayNetworking.send(player, ManifestationNetworking.HEX_TRAIL_S2C, buf)
     }
 }

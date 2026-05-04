@@ -28,11 +28,19 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Ensure gradlew is executable
         run: chmod +x gradlew
+
+      - name: Verify pattern stubs are synced
+        run: python doc/src/hexdoc_manifestation/pattern_sync.py --check
 
       - name: Build
         run: ./gradlew build

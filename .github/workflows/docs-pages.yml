@@ -39,6 +39,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[dev]
 
+      - name: Verify pattern stubs are synced
+        run: python doc/src/hexdoc_manifestation/pattern_sync.py --check
+
       - name: Normalize exported hexdoc URLs for Pages
         run: |
           python - <<'PY'
