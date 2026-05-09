@@ -27,7 +27,7 @@ include = [
 ]
 
 [template.args]
-mod_name = "Manifestation"
+mod_name = "HexIntent"
 author = "withgallantry"
 show_landing_text = true
 

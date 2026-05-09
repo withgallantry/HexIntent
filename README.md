@@ -1,6 +1,6 @@
-# Manifestation
+# HexIntent
 
-Manifestation is a Fabric companion mod for Hex Casting.
+HexIntent is a Fabric companion mod for Hex Casting.
 Current release version: 2.0.0.
 
 Usage details and pattern reference documentation are available on the docs site.
@@ -13,9 +13,9 @@ Example menu built using inputs, sections and buttons. Executes a teleport to a 
 
 ## Documentation
 
-- Start here: [Docs Home](https://withgallantry.github.io/HexManifestation/)
-- Pattern reference: [patterns.html](https://withgallantry.github.io/HexManifestation/patterns.html)
-- Pattern scribe: [hex-pattern-scribe.html](https://withgallantry.github.io/HexManifestation/hex-pattern-scribe.html)
+- Start here: [Docs Home](https://withgallantry.github.io/HexIntent/)
+- Pattern reference: [patterns.html](https://withgallantry.github.io/HexIntent/patterns.html)
+- Pattern scribe: [hex-pattern-scribe.html](https://withgallantry.github.io/HexIntent/hex-pattern-scribe.html)
 
 ## Build
 

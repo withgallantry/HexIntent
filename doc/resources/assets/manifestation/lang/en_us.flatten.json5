@@ -1,8 +1,8 @@
 {
   hexdoc: {
     manifestation: {
-      title: "Manifestation Book",
-      description: "The Manifestation Hex Casting addon documentation.",
+      title: "HexIntent Book",
+      description: "The HexIntent Hex Casting addon documentation.",
     },
   },
 }

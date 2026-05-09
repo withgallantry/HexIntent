@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "manifestation",
   "version": "${version}",
-  "name": "Manifestation",
-  "description": "A companion mod for Hex Casting that adds menu-creation patterns. Stack up a menu definition, cast CREATE_LIST_MENU or CREATE_GRID_MENU, and an interactive HUD opens — click a button to cast its stored pattern list as a normal Hex.",
+  "name": "HexIntent",
+  "description": "HexIntent is a companion mod for Hex Casting focused on interactive menus and delegated casting. Stack up a menu definition, cast CREATE_LIST_MENU or CREATE_GRID_MENU, and an interactive HUD opens so each choice can dispatch stored patterns as a normal Hex.",
   "authors": [
     "You"
   ],

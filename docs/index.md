@@ -1,13 +1,13 @@
-# Manifestation Documentation
+# HexIntent Documentation
 
-Welcome to the docs site for **Manifestation**, a Hex Casting companion mod for Fabric.
+Welcome to the docs site for **HexIntent**, a Hex Casting companion mod for Fabric.
 
-For the hosted docs homepage, use https://withgallantry.github.io/HexManifestation/.
+For the hosted docs homepage, use https://withgallantry.github.io/HexIntent/.
 
 ## Live pages
 
-- [Pattern Reference](https://withgallantry.github.io/HexManifestation/patterns.html) - signatures, stack contracts, returns, and direct scribe links.
-- [Hex Pattern Scribe](https://withgallantry.github.io/HexManifestation/hex-pattern-scribe.html) - Renders and animates patterns.
+- [Pattern Reference](https://withgallantry.github.io/HexIntent/patterns.html) - signatures, stack contracts, returns, and direct scribe links.
+- [Hex Pattern Scribe](https://withgallantry.github.io/HexIntent/hex-pattern-scribe.html) - Renders and animates patterns.
 
 ## In this project
 

@@ -1,6 +1,6 @@
 # hexdoc-manifestation
 
-Python web book docgen and hexdoc plugin for Manifestation.
+Python web book docgen and hexdoc plugin for HexIntent.
 Current release version: 2.0.0.
 
 ## Setup (Windows)
@@ -16,9 +16,9 @@ pip install -e .[dev]
 Create a file named `.env` in the repo root:
 
 ```sh
-GITHUB_REPOSITORY=withgallantry/HexManifestation
+GITHUB_REPOSITORY=withgallantry/HexIntent
 GITHUB_SHA=main
-GITHUB_PAGES_URL=https://withgallantry.github.io/HexManifestation
+GITHUB_PAGES_URL=https://withgallantry.github.io/HexIntent
 ```
 
 Run docs commands from the repo root:
