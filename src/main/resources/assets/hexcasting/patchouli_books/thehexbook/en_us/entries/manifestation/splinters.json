@@ -13,7 +13,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:manifest_splinter",
       "anchor": "manifestation:manifest_splinter",
-      "input": "vec, num, [iotas]",
+      "input": "position vec, delay_ticks num, payload [iotas]",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.manifest_splinter"
     },
@@ -21,7 +21,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:renew_splinter",
       "anchor": "manifestation:renew_splinter",
-      "input": "vec, num",
+      "input": "position vec, delay_ticks num",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.renew_splinter"
     },
@@ -45,7 +45,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:hex_trail",
       "anchor": "manifestation:hex_trail",
-      "input": "vec, vec, vec, num, num, num?",
+      "input": "position vec, color_from vec, color_to vec, ticks num, id num, type? num",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.hex_trail"
     }
