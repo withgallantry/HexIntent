@@ -39,6 +39,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[dev]
 
+      - name: Install headless GL dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
       - name: Verify pattern stubs are synced
         run: python doc/src/hexdoc_manifestation/pattern_sync.py --check
 
@@ -81,7 +86,7 @@ jobs:
       - name: Build docs
         run: |
           python -m hexdoc_manifestation.pattern_sync
-          hexdoc build --release
+          xvfb-run -a hexdoc build --release
           hexdoc merge
 
       - name: Upload docs artifact
