@@ -19,6 +19,11 @@ REGISTRATION_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 
+REGISTER_ACTION_RE = re.compile(
+    r'registerAction\(\s*"([^"]+)"\s*,\s*(\w+)\s*,\s*(\w+)\s*,',
+    re.MULTILINE,
+)
+
 
 def _load_server_source() -> str:
     return SERVER_SOURCE.read_text(encoding="utf-8")
@@ -28,8 +33,12 @@ def _build_pattern_stubs(source: str) -> list[dict[str, object]]:
     signatures = dict(SIGNATURE_RE.findall(source))
     directions = dict(DIRECTION_RE.findall(source))
 
+    registrations = REGISTRATION_RE.findall(source)
+    if not registrations:
+        registrations = REGISTER_ACTION_RE.findall(source)
+
     stubs: list[dict[str, object]] = []
-    for pattern_id, signature_name, direction_name in REGISTRATION_RE.findall(source):
+    for pattern_id, signature_name, direction_name in registrations:
         signature = signatures.get(signature_name)
         direction = directions.get(direction_name)
         if signature is None or direction is None:
