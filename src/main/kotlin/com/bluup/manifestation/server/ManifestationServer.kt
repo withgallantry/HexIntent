@@ -82,7 +82,7 @@ object ManifestationServer : ModInitializer {
     private const val UI_CHECKBOX_SIG = "awwaqwedwwdadee"
     private val UI_CHECKBOX_DIR = HexDir.NORTH_EAST
 
-    private const val UI_SELECT_LIST_SIG = "awwaqwedwwdawaq"
+    private const val UI_SELECT_LIST_SIG = "awwaqwedwwdaaedd"
     private val UI_SELECT_LIST_DIR = HexDir.NORTH_EAST
 
     private const val UI_SECTION_SIG = "awwaqwedwwdawde"
