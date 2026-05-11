@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server.block
 
 import at.petrak.hexcasting.api.block.circle.BlockCircleComponent
+import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.CompoundTag
@@ -58,6 +59,18 @@ class SplinterCasterBlockEntity(
         val state = level.getBlockState(worldPosition)
         if (state.block !is SplinterCasterBlock) {
             return
+        }
+
+        if (!ManifestationConfig.splinterCasterEnabled()) {
+            val removed = SplinterRuntime.removeAnchoredAt(
+                level.server,
+                level.dimension().location().toString(),
+                worldPosition
+            )
+            if (removed > 0 || waitingForSplinter) {
+                waitingForSplinter = false
+                markUpdated()
+            }
         }
 
         if (level.hasNeighborSignal(worldPosition)) {

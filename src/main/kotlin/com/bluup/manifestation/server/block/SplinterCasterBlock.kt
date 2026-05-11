@@ -9,6 +9,7 @@ import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.api.casting.mishaps.Mishap
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.xplat.IXplatAbstractions
+import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.mishap.MishapSplinterCasterNeedsFocus
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import com.mojang.datafixers.util.Pair
@@ -87,6 +88,16 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
     ): ControlFlow {
         val be = world.getBlockEntity(pos) as? SplinterCasterBlockEntity ?: return ControlFlow.Stop()
         val active = SplinterRuntime.hasAnchoredSplinterAt(world.server, world.dimension().location().toString(), pos)
+
+        if (!ManifestationConfig.splinterCasterEnabled()) {
+            if (active) {
+                SplinterRuntime.removeAnchoredAt(world.server, world.dimension().location().toString(), pos)
+            }
+            if (be.isWaitingForSplinter()) {
+                be.setWaitingForSplinter(false)
+            }
+            return ControlFlow.Continue(imageIn, listOf(exitPositionFromDirection(pos, enterDir)))
+        }
 
         if (world.hasNeighborSignal(pos)) {
             if (active) {
@@ -208,6 +219,20 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
             level.dimension().location().toString(),
             pos
         )
+
+        if (!ManifestationConfig.splinterCasterEnabled()) {
+            if (!existingFocus.isEmpty && held.isEmpty) {
+                be.popFocus()
+                player.setItemInHand(hand, existingFocus)
+                level.playSound(null, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 0.8f, 1.0f)
+                return InteractionResult.CONSUME
+            }
+            if (!held.isEmpty) {
+                level.playSound(null, pos, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.BLOCKS, 0.5f, 0.8f)
+                return InteractionResult.CONSUME
+            }
+            return InteractionResult.PASS
+        }
 
         if (active && (!existingFocus.isEmpty || !held.isEmpty)) {
             level.playSound(null, pos, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.BLOCKS, 0.5f, 0.8f)

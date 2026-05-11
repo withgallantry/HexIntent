@@ -332,7 +332,7 @@ object SplinterRuntime {
                 val anchorPos = record.anchorPosition
                 if (anchorPos != null) {
                     val anchorBlock = BlockPos.containing(anchorPos.x, anchorPos.y - 1.0, anchorPos.z)
-                    if (level.getBlockState(anchorBlock).block !is SplinterCasterBlock) {
+                    if (!ManifestationConfig.splinterCasterEnabled() || level.getBlockState(anchorBlock).block !is SplinterCasterBlock) {
                         store.remove(owner, record.id)
                         markOwnerDirty(owner)
                         continue
