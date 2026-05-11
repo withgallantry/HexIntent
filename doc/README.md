@@ -1,7 +1,7 @@
 # hexdoc-manifestation
 
 Python web book docgen and hexdoc plugin for HexIntent.
-Current release version: 2.0.0.
+Current release version: 2.1.1.
 
 ## Setup (Windows)
 

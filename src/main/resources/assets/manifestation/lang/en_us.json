@@ -44,7 +44,7 @@
 
   "block.manifestation.corridor_portal": "Manifest Threshold",
   "block.manifestation.intent_relay": "Manifest Relay",
-  "block.manifestation.splinter_caster": "Splinter Caster",
+  "block.manifestation.splinter_caster": "Contained Splinter",
 
   "hexcasting.category.manifestation_menus": "General Manifestation",
   "hexcasting.category.manifestation_menus.desc": "Pattern constructors for list, grid, and radial manifestations.",
@@ -98,5 +98,5 @@
   "hexcasting.mishap.manifestation.intent_relay_no_space": "Manifest Relay cannot manifest on that face; the space is blocked or unsupported.",
   "hexcasting.mishap.manifestation.intent_relay_signal_range": "Manifest Relay signal strength must be between 0 and 15.",
   "hexcasting.mishap.manifestation.portal_no_space": "Manifest Threshold cannot manifest. The space is occupied.",
-  "hexcasting.mishap.manifestation.splinter_caster_needs_focus": "Splinter Caster requires a focus before the circle can proceed."
+  "hexcasting.mishap.manifestation.splinter_caster_needs_focus": "Contained Splinter requires a focus before the circle can proceed."
 }
