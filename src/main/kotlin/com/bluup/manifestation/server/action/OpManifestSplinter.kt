@@ -12,6 +12,7 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
+import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.minecraft.server.level.ServerPlayer
@@ -89,7 +90,12 @@ object OpManifestSplinter : Action {
             throw e
         } catch (e: IllegalStateException) {
             if (e.message == "too_many_splinters") {
-                throw MishapInvalidIota.ofType(posIota, 2, "fewer than ${SplinterRuntime.MAX_ACTIVE_SPLINTERS_PER_OWNER} active splinters")
+                val configured = ManifestationConfig.splinterMaxActivePerOwner()
+                val expected = if (configured < 0) "server-configured active splinter limit" else "fewer than $configured active splinters"
+                throw MishapInvalidIota.ofType(posIota, 2, expected)
+            }
+            if (e.message == "anchored_relocation") {
+                throw MishapInvalidIota.ofType(posIota, 2, "vector equal to splinter anchor")
             }
             throw e
         }

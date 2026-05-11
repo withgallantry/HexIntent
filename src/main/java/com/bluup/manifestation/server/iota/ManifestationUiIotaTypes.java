@@ -95,6 +95,104 @@ public final class ManifestationUiIotaTypes {
         }
     };
 
+    public static final IotaType<UiNumericInputIota> UI_NUMERIC_INPUT = new IotaType<>() {
+        @Nullable
+        @Override
+        public UiNumericInputIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            Iota label = IotaType.deserialize(labelTag, world);
+            boolean hasCurrent = ctag.getBoolean("has_current");
+            Double current = hasCurrent ? DoubleIota.deserialize(ctag.get("current")).getDouble() : null;
+            return new UiNumericInputIota(label, current);
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            boolean hasCurrent = ctag.getBoolean("has_current");
+
+            var out = displayWithQuotedLabel("IntentNumericInput", labelTag, ChatFormatting.DARK_AQUA);
+            if (hasCurrent) {
+                double current = DoubleIota.deserialize(ctag.get("current")).getDouble();
+                out.append(Component.literal(", " + formatDouble(current)).withStyle(ChatFormatting.GRAY));
+            }
+
+            return out
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+        }
+
+        @Override
+        public int color() {
+            return 0xff_4fa7b5;
+        }
+    };
+
+    public static final IotaType<UiCheckboxIota> UI_CHECKBOX = new IotaType<>() {
+        @Nullable
+        @Override
+        public UiCheckboxIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            Iota label = IotaType.deserialize(labelTag, world);
+            boolean checked = ctag.getBoolean("checked");
+            return new UiCheckboxIota(label, checked);
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            boolean checked = ctag.getBoolean("checked");
+            return displayWithQuotedLabel("IntentCheckbox", labelTag, ChatFormatting.DARK_GREEN)
+                .append(Component.literal(", " + checked).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+        }
+
+        @Override
+        public int color() {
+            return 0xff_68ba5c;
+        }
+    };
+
+    public static final IotaType<UiSelectListIota> UI_SELECT_LIST = new IotaType<>() {
+        @Nullable
+        @Override
+        public UiSelectListIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            Iota label = IotaType.deserialize(labelTag, world);
+
+            var optionsTag = HexUtils.downcast(ctag.get("options"), ListTag.TYPE);
+            var options = new ArrayList<Iota>(optionsTag.size());
+            for (Tag optionTag : optionsTag) {
+                options.add(IotaType.deserialize(HexUtils.downcast(optionTag, CompoundTag.TYPE), world));
+            }
+
+            int maxRows = HexUtils.downcast(ctag.get("max_rows"), IntTag.TYPE).getAsInt();
+            boolean multiSelect = ctag.getBoolean("multi_select");
+            return new UiSelectListIota(label, options, maxRows, multiSelect);
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var labelTag = HexUtils.downcast(ctag.get("label"), CompoundTag.TYPE);
+            var optionsTag = HexUtils.downcast(ctag.get("options"), ListTag.TYPE);
+            int maxRows = HexUtils.downcast(ctag.get("max_rows"), IntTag.TYPE).getAsInt();
+            boolean multiSelect = ctag.getBoolean("multi_select");
+            return displayWithQuotedLabel("IntentSelectList", labelTag, ChatFormatting.DARK_BLUE)
+                .append(Component.literal(", options=" + optionsTag.size() + ", rows=" + maxRows + ", multi=" + multiSelect).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+        }
+
+        @Override
+        public int color() {
+            return 0xff_4f77c8;
+        }
+    };
+
     public static final IotaType<UiSliderIota> UI_SLIDER = new IotaType<>() {
         @Nullable
         @Override
@@ -226,7 +324,10 @@ public final class ManifestationUiIotaTypes {
     public static void register() {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_button"), UI_BUTTON);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_input"), UI_INPUT);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_numeric_input"), UI_NUMERIC_INPUT);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_slider"), UI_SLIDER);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_checkbox"), UI_CHECKBOX);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_select_list"), UI_SELECT_LIST);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_section"), UI_SECTION);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("presence_intent"), PRESENCE_INTENT);

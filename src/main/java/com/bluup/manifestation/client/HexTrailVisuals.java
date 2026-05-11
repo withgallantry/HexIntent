@@ -23,9 +23,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.UUID;
 
 public final class HexTrailVisuals {
-    private static final Map<Long, TrailState> ACTIVE = new HashMap<>();
+    private static final Map<TrailKey, TrailState> ACTIVE = new HashMap<>();
 
     private static final double MAX_SEGMENT_GAP_SQ = 10.0 * 10.0;
     private static final int TRAIL_TTL_TICKS = 40;
@@ -40,6 +41,7 @@ public final class HexTrailVisuals {
             ManifestationNetworking.HEX_TRAIL_S2C,
             (client, handler, buf, responseSender) -> {
                 String dimensionId = buf.readUtf();
+                UUID sourceId = buf.readUUID();
                 long id = buf.readLong();
                 Vec3 position = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 Vec3 colorStart = new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat());
@@ -49,7 +51,8 @@ public final class HexTrailVisuals {
 
                 client.execute(() -> {
                     long now = client.level != null ? client.level.getGameTime() : 0L;
-                    TrailState state = ACTIVE.computeIfAbsent(id, ignored -> new TrailState());
+                    TrailKey key = new TrailKey(sourceId, id);
+                    TrailState state = ACTIVE.computeIfAbsent(key, ignored -> new TrailState());
                     state.applyUpdate(dimensionId, position, colorStart, colorEnd, transitionTicks, particleType, now);
                 });
             }
@@ -67,10 +70,10 @@ public final class HexTrailVisuals {
         long now = mc.level.getGameTime();
         String currentDimension = mc.level.dimension().location().toString();
 
-        Iterator<Map.Entry<Long, TrailState>> it = ACTIVE.entrySet().iterator();
+        Iterator<Map.Entry<TrailKey, TrailState>> it = ACTIVE.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Long, TrailState> entry = it.next();
-            long trailId = entry.getKey();
+            Map.Entry<TrailKey, TrailState> entry = it.next();
+            long trailId = entry.getKey().id();
             TrailState state = entry.getValue();
 
             if (now - state.lastUpdateTick > TRAIL_TTL_TICKS) {
@@ -262,8 +265,8 @@ public final class HexTrailVisuals {
         poseStack.pushPose();
         poseStack.translate(-camera.x, -camera.y, -camera.z);
         try {
-            for (Map.Entry<Long, TrailState> entry : ACTIVE.entrySet()) {
-                long trailId = entry.getKey();
+            for (Map.Entry<TrailKey, TrailState> entry : ACTIVE.entrySet()) {
+                long trailId = entry.getKey().id();
                 TrailState state = entry.getValue();
                 if (now - state.lastUpdateTick > TRAIL_TTL_TICKS) {
                     continue;
@@ -604,6 +607,9 @@ public final class HexTrailVisuals {
                 default -> new Style(8, 8, 84, 15.0, 0.003, 0.000, 1.15f, 0.030, null, false, RenderMode.RIBBON); // hex_dust
             };
         }
+    }
+
+    private record TrailKey(UUID sourceId, long id) {
     }
 
     private HexTrailVisuals() {

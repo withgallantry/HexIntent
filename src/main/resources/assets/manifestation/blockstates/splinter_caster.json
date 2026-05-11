@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "active=false,energized=false": {
+      "model": "manifestation:block/splinter_caster"
+    },
+    "active=false,energized=true": {
+      "model": "manifestation:block/splinter_caster_ready"
+    },
+    "active=true,energized=false": {
+      "model": "manifestation:block/splinter_caster_active"
+    },
+    "active=true,energized=true": {
+      "model": "manifestation:block/splinter_caster_active"
+    }
+  }
+}

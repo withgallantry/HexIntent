@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server
 
 import at.petrak.hexcasting.api.casting.ActionRegistryEntry
+import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.math.HexDir
@@ -23,8 +24,11 @@ import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
 import com.bluup.manifestation.server.action.OpUiButton
+import com.bluup.manifestation.server.action.OpUiCheckbox
 import com.bluup.manifestation.server.action.OpUiDropdown
 import com.bluup.manifestation.server.action.OpUiInput
+import com.bluup.manifestation.server.action.OpUiNumericInput
+import com.bluup.manifestation.server.action.OpUiSelectList
 import com.bluup.manifestation.server.action.OpLinkIntentRelay
 import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
@@ -51,6 +55,7 @@ object ManifestationServer : ModInitializer {
 
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
+    private const val MAX_INPUT_LIST_ITEMS = 128
     private const val MAX_INPUT_STRING_CHARS = 256
 
     private const val LIST_MENU_SIG = "awwaqwedwwd"
@@ -68,8 +73,17 @@ object ManifestationServer : ModInitializer {
     private const val UI_INPUT_SIG = "awwaqwedwwdad"
     private val UI_INPUT_DIR = HexDir.NORTH_EAST
 
+    private const val UI_NUMERIC_INPUT_SIG = "awwaqwedwwdadq"
+    private val UI_NUMERIC_INPUT_DIR = HexDir.NORTH_EAST
+
     private const val UI_SLIDER_SIG = "awwaqwedwwdaw"
     private val UI_SLIDER_DIR = HexDir.NORTH_EAST
+
+    private const val UI_CHECKBOX_SIG = "awwaqwedwwdadee"
+    private val UI_CHECKBOX_DIR = HexDir.NORTH_EAST
+
+    private const val UI_SELECT_LIST_SIG = "awwaqwedwwdadew"
+    private val UI_SELECT_LIST_DIR = HexDir.NORTH_EAST
 
     private const val UI_SECTION_SIG = "awwaqwedwwdawde"
     private val UI_SECTION_DIR = HexDir.NORTH_EAST
@@ -132,158 +146,52 @@ object ManifestationServer : ModInitializer {
     }
 
     private fun registerActions() {
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("create_list_menu"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(LIST_MENU_SIG, LIST_MENU_DIR),
-                OpCreateListMenu
+        registerAction("create_list_menu", LIST_MENU_SIG, LIST_MENU_DIR, OpCreateListMenu)
+        registerAction("create_grid_menu", GRID_MENU_SIG, GRID_MENU_DIR, OpCreateGridMenu)
+        registerAction("create_radial_menu", RADIAL_MENU_SIG, RADIAL_MENU_DIR, OpCreateRadialMenu)
+
+        registerAction("intent_button", UI_BUTTON_SIG, UI_BUTTON_DIR, OpUiButton)
+        registerAction("intent_input", UI_INPUT_SIG, UI_INPUT_DIR, OpUiInput)
+        registerAction("intent_numeric_input", UI_NUMERIC_INPUT_SIG, UI_NUMERIC_INPUT_DIR, OpUiNumericInput)
+        registerAction("intent_slider", UI_SLIDER_SIG, UI_SLIDER_DIR, OpUiSlider)
+        registerAction("intent_checkbox", UI_CHECKBOX_SIG, UI_CHECKBOX_DIR, OpUiCheckbox)
+        registerAction("intent_select_list", UI_SELECT_LIST_SIG, UI_SELECT_LIST_DIR, OpUiSelectList)
+        registerAction("intent_section", UI_SECTION_SIG, UI_SECTION_DIR, OpUiSection)
+        registerAction("intent_dropdown", UI_DROPDOWN_SIG, UI_DROPDOWN_DIR, OpUiDropdown)
+
+        registerAction("link_intent_relay", LINK_INTENT_RELAY_SIG, LINK_INTENT_RELAY_DIR, OpLinkIntentRelay)
+        registerAction("unlink_intent_relay", UNLINK_INTENT_RELAY_SIG, UNLINK_INTENT_RELAY_DIR, OpUnlinkIntentRelay)
+        registerAction("open_corridor_portal", OPEN_CORRIDOR_PORTAL_SIG, OPEN_CORRIDOR_PORTAL_DIR, OpOpenCorridorPortal)
+
+        registerAction("presence_intent", PRESENCE_INTENT_SIG, PRESENCE_INTENT_DIR, OpPresenceIntent)
+        registerAction("manifest_echo", MANIFEST_ECHO_SIG, MANIFEST_ECHO_DIR, OpManifestEcho)
+        registerAction("destroy_manifestation", DESTROY_MANIFESTATION_SIG, DESTROY_MANIFESTATION_DIR, OpDestroyManifestation)
+
+        registerAction("manifest_splinter", MANIFEST_SPLINTER_SIG, MANIFEST_SPLINTER_DIR, OpManifestSplinter)
+        registerAction("destroy_splinters", DESTROY_SPLINTERS_SIG, DESTROY_SPLINTERS_DIR, OpDestroySplinters)
+        registerAction("get_splinter_location", GET_SPLINTER_LOCATION_SIG, GET_SPLINTER_LOCATION_DIR, OpGetSplinterLocation)
+        registerAction("renew_splinter", RENEW_SPLINTER_SIG, RENEW_SPLINTER_DIR, OpRenewSplinter)
+        registerAction("hex_trail", HEX_TRAIL_SIG, HEX_TRAIL_DIR, OpHexTrail)
+    }
+
+    private fun registerAction(idPath: String, signature: String, startDir: HexDir, action: Action) {
+        val pattern = try {
+            HexPattern.fromAngles(signature, startDir)
+        } catch (e: IllegalStateException) {
+            Manifestation.LOGGER.error(
+                "Skipping action registration for {} because pattern '{}' from {} is invalid.",
+                idPath,
+                signature,
+                startDir,
+                e
             )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("create_grid_menu"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(GRID_MENU_SIG, GRID_MENU_DIR),
-                OpCreateGridMenu
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("create_radial_menu"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(RADIAL_MENU_SIG, RADIAL_MENU_DIR),
-                OpCreateRadialMenu
-            )
-        )
+            return
+        }
 
         Registry.register(
             HexActions.REGISTRY,
-            Manifestation.id("intent_button"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UI_BUTTON_SIG, UI_BUTTON_DIR),
-                OpUiButton
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("intent_input"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UI_INPUT_SIG, UI_INPUT_DIR),
-                OpUiInput
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("intent_slider"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UI_SLIDER_SIG, UI_SLIDER_DIR),
-                OpUiSlider
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("intent_section"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UI_SECTION_SIG, UI_SECTION_DIR),
-                OpUiSection
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("intent_dropdown"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UI_DROPDOWN_SIG, UI_DROPDOWN_DIR),
-                OpUiDropdown
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("link_intent_relay"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(LINK_INTENT_RELAY_SIG, LINK_INTENT_RELAY_DIR),
-                OpLinkIntentRelay
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("unlink_intent_relay"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(UNLINK_INTENT_RELAY_SIG, UNLINK_INTENT_RELAY_DIR),
-                OpUnlinkIntentRelay
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("open_corridor_portal"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(OPEN_CORRIDOR_PORTAL_SIG, OPEN_CORRIDOR_PORTAL_DIR),
-                OpOpenCorridorPortal
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("presence_intent"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(PRESENCE_INTENT_SIG, PRESENCE_INTENT_DIR),
-                OpPresenceIntent
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("manifest_echo"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(MANIFEST_ECHO_SIG, MANIFEST_ECHO_DIR),
-                OpManifestEcho
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("destroy_manifestation"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(DESTROY_MANIFESTATION_SIG, DESTROY_MANIFESTATION_DIR),
-                OpDestroyManifestation
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("manifest_splinter"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(MANIFEST_SPLINTER_SIG, MANIFEST_SPLINTER_DIR),
-                OpManifestSplinter
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("destroy_splinters"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(DESTROY_SPLINTERS_SIG, DESTROY_SPLINTERS_DIR),
-                OpDestroySplinters
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("get_splinter_location"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(GET_SPLINTER_LOCATION_SIG, GET_SPLINTER_LOCATION_DIR),
-                OpGetSplinterLocation
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("renew_splinter"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(RENEW_SPLINTER_SIG, RENEW_SPLINTER_DIR),
-                OpRenewSplinter
-            )
-        )
-        Registry.register(
-            HexActions.REGISTRY,
-            Manifestation.id("hex_trail"),
-            ActionRegistryEntry(
-                HexPattern.fromAngles(HEX_TRAIL_SIG, HEX_TRAIL_DIR),
-                OpHexTrail
-            )
+            Manifestation.id(idPath),
+            ActionRegistryEntry(pattern, action)
         )
     }
 
@@ -323,6 +231,33 @@ object ManifestationServer : ModInitializer {
                     MenuActionSender.InputKind.DOUBLE -> {
                         val value = buf.readDouble()
                         inputs.add(MenuActionDispatcher.InputDatum.number(order, value))
+                    }
+
+                    MenuActionSender.InputKind.IOTA_LIST -> {
+                        val selectedCount = buf.readVarInt()
+                        if (selectedCount < 0 || selectedCount > MAX_INPUT_LIST_ITEMS) {
+                            Manifestation.LOGGER.warn(
+                                "Manifestation dispatch: rejecting packet from {} due to invalid selectedCount {} (max {})",
+                                player.name.string,
+                                selectedCount,
+                                MAX_INPUT_LIST_ITEMS
+                            )
+                            return@registerGlobalReceiver
+                        }
+
+                        val tags = mutableListOf<net.minecraft.nbt.CompoundTag>()
+                        repeat(selectedCount) {
+                            val tag = buf.readNbt()
+                            if (tag == null) {
+                                Manifestation.LOGGER.warn(
+                                    "Manifestation dispatch: rejecting packet from {} due to null selected iota tag",
+                                    player.name.string
+                                )
+                                return@registerGlobalReceiver
+                            }
+                            tags.add(tag)
+                        }
+                        inputs.add(MenuActionDispatcher.InputDatum.iotaList(order, tags))
                     }
                 }
             }
@@ -383,7 +318,7 @@ object ManifestationServer : ModInitializer {
 
     @JvmStatic
     fun sendHexTrailTo(
-        player: ServerPlayer,
+        player: ServerPlayer?, // nullable for backward compat, but unused
         position: net.minecraft.world.phys.Vec3,
         colorStart: net.minecraft.world.phys.Vec3,
         colorEnd: net.minecraft.world.phys.Vec3,
@@ -391,20 +326,29 @@ object ManifestationServer : ModInitializer {
         trailId: Long,
         particleType: Int
     ) {
-        val buf = PacketByteBufs.create()
-        buf.writeUtf(player.serverLevel().dimension().location().toString())
-        buf.writeLong(trailId)
-        buf.writeDouble(position.x)
-        buf.writeDouble(position.y)
-        buf.writeDouble(position.z)
-        buf.writeFloat(colorStart.x.toFloat())
-        buf.writeFloat(colorStart.y.toFloat())
-        buf.writeFloat(colorStart.z.toFloat())
-        buf.writeFloat(colorEnd.x.toFloat())
-        buf.writeFloat(colorEnd.y.toFloat())
-        buf.writeFloat(colorEnd.z.toFloat())
-        buf.writeVarInt(transitionTicks.coerceAtLeast(1))
-        buf.writeVarInt(particleType.coerceIn(0, 14))
-        ServerPlayNetworking.send(player, ManifestationNetworking.HEX_TRAIL_S2C, buf)
+        val source = player ?: return
+        val level = source.serverLevel()
+        // Broadcast to all players within 32 blocks of the trail position
+        val radius = 128.0
+        for (other in level.server.playerList.players) {
+            if (other.serverLevel() == level && other.position().distanceTo(position) <= radius) {
+                val buf = PacketByteBufs.create()
+                buf.writeUtf(level.dimension().location().toString())
+                buf.writeUUID(source.uuid)
+                buf.writeLong(trailId)
+                buf.writeDouble(position.x)
+                buf.writeDouble(position.y)
+                buf.writeDouble(position.z)
+                buf.writeFloat(colorStart.x.toFloat())
+                buf.writeFloat(colorStart.y.toFloat())
+                buf.writeFloat(colorStart.z.toFloat())
+                buf.writeFloat(colorEnd.x.toFloat())
+                buf.writeFloat(colorEnd.y.toFloat())
+                buf.writeFloat(colorEnd.z.toFloat())
+                buf.writeVarInt(transitionTicks.coerceAtLeast(1))
+                buf.writeVarInt(particleType.coerceIn(0, 14))
+                ServerPlayNetworking.send(other, ManifestationNetworking.HEX_TRAIL_S2C, buf)
+            }
+        }
     }
 }

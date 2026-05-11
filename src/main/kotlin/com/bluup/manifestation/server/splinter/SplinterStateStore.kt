@@ -15,6 +15,8 @@ class SplinterStateStore : SavedData() {
         val owner: UUID,
         var dimensionId: String,
         var position: Vec3,
+        var anchorPosition: Vec3?,
+        var circleImpetusPos: Vec3?,
         var castAtGameTime: Long,
         var castingHand: InteractionHand,
         val payloadTags: MutableList<CompoundTag>,
@@ -69,6 +71,16 @@ class SplinterStateStore : SavedData() {
                 out.putDouble("x", record.position.x)
                 out.putDouble("y", record.position.y)
                 out.putDouble("z", record.position.z)
+                if (record.anchorPosition != null) {
+                    out.putDouble("anchor_x", record.anchorPosition!!.x)
+                    out.putDouble("anchor_y", record.anchorPosition!!.y)
+                    out.putDouble("anchor_z", record.anchorPosition!!.z)
+                }
+                if (record.circleImpetusPos != null) {
+                    out.putDouble("circle_impetus_x", record.circleImpetusPos!!.x)
+                    out.putDouble("circle_impetus_y", record.circleImpetusPos!!.y)
+                    out.putDouble("circle_impetus_z", record.circleImpetusPos!!.z)
+                }
                 out.putLong("cast_at", record.castAtGameTime)
                 out.putString("hand", record.castingHand.name)
 
@@ -108,9 +120,25 @@ class SplinterStateStore : SavedData() {
                 val owner = t.getUUID("owner")
                 val dimension = t.getString("dimension")
                 val pos = Vec3(t.getDouble("x"), t.getDouble("y"), t.getDouble("z"))
+                val anchorPos = if (t.contains("anchor_x", Tag.TAG_DOUBLE.toInt())
+                    && t.contains("anchor_y", Tag.TAG_DOUBLE.toInt())
+                    && t.contains("anchor_z", Tag.TAG_DOUBLE.toInt())
+                ) {
+                    Vec3(t.getDouble("anchor_x"), t.getDouble("anchor_y"), t.getDouble("anchor_z"))
+                } else {
+                    null
+                }
                 val castAt = t.getLong("cast_at")
                 val handName = t.getString("hand")
                 val hand = runCatching { InteractionHand.valueOf(handName) }.getOrElse { InteractionHand.MAIN_HAND }
+                val circleImpetusPos = if (t.contains("circle_impetus_x", Tag.TAG_DOUBLE.toInt())
+                    && t.contains("circle_impetus_y", Tag.TAG_DOUBLE.toInt())
+                    && t.contains("circle_impetus_z", Tag.TAG_DOUBLE.toInt())
+                ) {
+                    Vec3(t.getDouble("circle_impetus_x"), t.getDouble("circle_impetus_y"), t.getDouble("circle_impetus_z"))
+                } else {
+                    null
+                }
 
                 val payload = mutableListOf<CompoundTag>()
                 if (t.contains("payload", Tag.TAG_LIST.toInt())) {
@@ -130,6 +158,8 @@ class SplinterStateStore : SavedData() {
                     owner = owner,
                     dimensionId = dimension,
                     position = pos,
+                    anchorPosition = anchorPos,
+                    circleImpetusPos = circleImpetusPos,
                     castAtGameTime = castAt,
                     castingHand = hand,
                     payloadTags = payload,

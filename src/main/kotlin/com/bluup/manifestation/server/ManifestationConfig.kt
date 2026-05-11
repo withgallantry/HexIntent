@@ -25,6 +25,9 @@ object ManifestationConfig {
     private const val DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS = 15_000L
     private const val DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS = 500L
     private const val DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS = 8_000L
+    private const val DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 25.0
+    private const val DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES = 5
+    private const val DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
 
     private const val MIN_MENU_LOOP_WINDOW_MS = 200L
     private const val MAX_MENU_LOOP_WINDOW_MS = 10_000L
@@ -50,6 +53,12 @@ object ManifestationConfig {
     private const val MAX_MENU_DISPATCH_BASE_COOLDOWN_MS = 5_000L
     private const val MIN_MENU_DISPATCH_MAX_COOLDOWN_MS = 250L
     private const val MAX_MENU_DISPATCH_MAX_COOLDOWN_MS = 60_000L
+    private const val MIN_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 5.0
+    private const val MAX_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 250.0
+    private const val MIN_SPLINTER_WATCHDOG_MAX_BREACHES = 1
+    private const val MAX_SPLINTER_WATCHDOG_MAX_BREACHES = 64
+    private const val MIN_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
+    private const val MAX_SPLINTER_MAX_ACTIVE_PER_OWNER = 4096
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val configPath = FabricLoader.getInstance().configDir.resolve("manifestation.json")
@@ -96,6 +105,15 @@ object ManifestationConfig {
     @Volatile
     private var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS
 
+    @Volatile
+    private var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS
+
+    @Volatile
+    private var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES
+
+    @Volatile
+    private var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER
+
     fun load() {
         val loaded = readOrNull()
         val effective = sanitize(loaded ?: RawConfig())
@@ -114,6 +132,9 @@ object ManifestationConfig {
         menuDispatchViolationDecayMs = effective.menuDispatchViolationDecayMs
         menuDispatchBaseCooldownMs = effective.menuDispatchBaseCooldownMs
         menuDispatchMaxCooldownMs = effective.menuDispatchMaxCooldownMs
+        splinterWatchdogMaxAvgExecMs = effective.splinterWatchdogMaxAvgExecMs
+        splinterWatchdogMaxBreaches = effective.splinterWatchdogMaxBreaches
+        splinterMaxActivePerOwner = effective.splinterMaxActivePerOwner
 
         if (loaded == null || loaded != effective) {
             write(effective)
@@ -124,7 +145,8 @@ object ManifestationConfig {
                 "intentRelayMaxRangeBlocks={}, intentRelayCooldownTicks={}, intentRelayStepTriggerEnabled={}, " +
                 "portalLiveViewEnabled={}, portalLiveViewCols={}, portalLiveViewRows={}, portalLiveViewDistanceBlocks={}, " +
                 "menuDispatchRefillPerSecond={}, menuDispatchBurstTokens={}, menuDispatchViolationDecayMs={}, " +
-                "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}",
+                "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}, " +
+                "splinterWatchdogMaxAvgExecMs={}, splinterWatchdogMaxBreaches={}, splinterMaxActivePerOwner={}",
             menuLoopWindowMs,
             menuLoopTriggerCount,
             intentRelayMaxRangeBlocks,
@@ -138,7 +160,10 @@ object ManifestationConfig {
             menuDispatchBurstTokens,
             menuDispatchViolationDecayMs,
             menuDispatchBaseCooldownMs,
-            menuDispatchMaxCooldownMs
+            menuDispatchMaxCooldownMs,
+            splinterWatchdogMaxAvgExecMs,
+            splinterWatchdogMaxBreaches,
+            splinterMaxActivePerOwner
         )
     }
 
@@ -169,6 +194,12 @@ object ManifestationConfig {
     fun menuDispatchBaseCooldownMs(): Long = menuDispatchBaseCooldownMs
 
     fun menuDispatchMaxCooldownMs(): Long = menuDispatchMaxCooldownMs
+
+    fun splinterWatchdogMaxAvgExecMs(): Double = splinterWatchdogMaxAvgExecMs
+
+    fun splinterWatchdogMaxBreaches(): Int = splinterWatchdogMaxBreaches
+
+    fun splinterMaxActivePerOwner(): Int = splinterMaxActivePerOwner
 
     private fun readOrNull(): RawConfig? {
         if (!Files.exists(configPath)) {
@@ -253,6 +284,18 @@ object ManifestationConfig {
             menuDispatchMaxCooldownMs = raw.menuDispatchMaxCooldownMs.coerceIn(
                 MIN_MENU_DISPATCH_MAX_COOLDOWN_MS,
                 MAX_MENU_DISPATCH_MAX_COOLDOWN_MS
+            ),
+            splinterWatchdogMaxAvgExecMs = raw.splinterWatchdogMaxAvgExecMs.coerceIn(
+                MIN_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
+                MAX_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS
+            ),
+            splinterWatchdogMaxBreaches = raw.splinterWatchdogMaxBreaches.coerceIn(
+                MIN_SPLINTER_WATCHDOG_MAX_BREACHES,
+                MAX_SPLINTER_WATCHDOG_MAX_BREACHES
+            ),
+            splinterMaxActivePerOwner = raw.splinterMaxActivePerOwner.coerceIn(
+                MIN_SPLINTER_MAX_ACTIVE_PER_OWNER,
+                MAX_SPLINTER_MAX_ACTIVE_PER_OWNER
             )
         ).let { sanitized ->
             if (sanitized.menuDispatchMaxCooldownMs < sanitized.menuDispatchBaseCooldownMs) {
@@ -277,6 +320,9 @@ object ManifestationConfig {
         var menuDispatchBurstTokens: Double = DEFAULT_MENU_DISPATCH_BURST_TOKENS,
         var menuDispatchViolationDecayMs: Long = DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS,
         var menuDispatchBaseCooldownMs: Long = DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS,
-        var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS
+        var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS,
+        var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
+        var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES,
+        var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER
     )
 }

@@ -60,7 +60,14 @@ object OpRenewSplinter : Action {
         }
 
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresSplinterWill()
-        val summonResult = SplinterRuntime.prepareRenew(splinterEnv, caster, summonPos, delayTicks, image)
+        val summonResult = try {
+            SplinterRuntime.prepareRenew(splinterEnv, caster, summonPos, delayTicks, image)
+        } catch (e: IllegalStateException) {
+            if (e.message == "anchored_relocation") {
+                throw MishapInvalidIota.ofType(posIota, 1, "vector equal to splinter anchor")
+            }
+            throw e
+        }
 
         if (summonResult.mediaCost > 0L && env.extractMedia(summonResult.mediaCost, true) > 0) {
             throw MishapNotEnoughMedia(summonResult.mediaCost)

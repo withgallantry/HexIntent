@@ -1,0 +1,15 @@
+{
+  "type": "hexcasting:brainsweep",
+  "blockIn": {
+    "type": "block",
+    "block": "hexcasting:slate_block"
+  },
+  "cost": 1000000,
+  "entityIn": {
+    "type": "villager",
+    "minLevel": 1
+  },
+  "result": {
+    "name": "manifestation:splinter_caster"
+  }
+}

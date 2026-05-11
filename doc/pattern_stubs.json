@@ -30,8 +30,26 @@
     "is_per_world": false
   },
   {
+    "id": "manifestation:intent_numeric_input",
+    "signature": "awwaqwedwwdadq",
+    "startdir": "NORTH_EAST",
+    "is_per_world": false
+  },
+  {
     "id": "manifestation:intent_slider",
     "signature": "awwaqwedwwdaw",
+    "startdir": "NORTH_EAST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:intent_checkbox",
+    "signature": "awwaqwedwwdadee",
+    "startdir": "NORTH_EAST",
+    "is_per_world": false
+  },
+  {
+    "id": "manifestation:intent_select_list",
+    "signature": "awwaqwedwwdadew",
     "startdir": "NORTH_EAST",
     "is_per_world": false
   },

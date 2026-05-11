@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
+import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.api.casting.eval.env.StaffCastEnv
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
@@ -48,20 +49,26 @@ object MenuActionDispatcher {
         val order: Int,
         val kind: Kind,
         val stringValue: String,
-        val doubleValue: Double
+        val doubleValue: Double,
+        val iotaTags: List<CompoundTag>
     ) {
         enum class Kind {
             STRING,
-            DOUBLE
+            DOUBLE,
+            IOTA_LIST
         }
 
         companion object {
             fun string(order: Int, value: String): InputDatum {
-                return InputDatum(order, Kind.STRING, value, 0.0)
+                return InputDatum(order, Kind.STRING, value, 0.0, listOf())
             }
 
             fun number(order: Int, value: Double): InputDatum {
-                return InputDatum(order, Kind.DOUBLE, "", value)
+                return InputDatum(order, Kind.DOUBLE, "", value, listOf())
+            }
+
+            fun iotaList(order: Int, tags: List<CompoundTag>): InputDatum {
+                return InputDatum(order, Kind.IOTA_LIST, "", 0.0, tags)
             }
         }
     }
@@ -320,6 +327,21 @@ object MenuActionDispatcher {
 
                     InputDatum.Kind.DOUBLE -> {
                         out.add(DoubleIota(input.doubleValue))
+                    }
+
+                    InputDatum.Kind.IOTA_LIST -> {
+                        val selected = mutableListOf<Iota>()
+                        for (tag in input.iotaTags) {
+                            try {
+                                selected.add(IotaType.deserialize(tag.copy(), world))
+                            } catch (t: Throwable) {
+                                Manifestation.LOGGER.warn(
+                                    "MenuActionDispatcher: failed to deserialize selected list iota input, skipping item",
+                                    t
+                                )
+                            }
+                        }
+                        out.add(ListIota(selected))
                     }
                 }
             } catch (t: Throwable) {

@@ -38,16 +38,21 @@ public final class MenuActionSender {
 
     public enum InputKind {
         STRING,
-        DOUBLE
+        DOUBLE,
+        IOTA_LIST
     }
 
-    public record InputDatum(int order, InputKind kind, String stringValue, double doubleValue) {
+    public record InputDatum(int order, InputKind kind, String stringValue, double doubleValue, List<StoredIota> iotaValues) {
         public static InputDatum string(int order, String value) {
-            return new InputDatum(order, InputKind.STRING, value, 0.0);
+            return new InputDatum(order, InputKind.STRING, value, 0.0, List.of());
         }
 
         public static InputDatum number(int order, double value) {
-            return new InputDatum(order, InputKind.DOUBLE, "", value);
+            return new InputDatum(order, InputKind.DOUBLE, "", value, List.of());
+        }
+
+        public static InputDatum iotaList(int order, List<StoredIota> values) {
+            return new InputDatum(order, InputKind.IOTA_LIST, "", 0.0, List.copyOf(values));
         }
     }
 
@@ -83,8 +88,13 @@ public final class MenuActionSender {
             buf.writeEnum(input.kind());
             if (input.kind() == InputKind.STRING) {
                 buf.writeUtf(input.stringValue());
-            } else {
+            } else if (input.kind() == InputKind.DOUBLE) {
                 buf.writeDouble(input.doubleValue());
+            } else {
+                buf.writeVarInt(input.iotaValues().size());
+                for (StoredIota stored : input.iotaValues()) {
+                    stored.write(buf);
+                }
             }
         }
         buf.writeVarInt(actions.size());

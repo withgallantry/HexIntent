@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "manifestation:block/splinter_caster_front_focused",
+    "down": "manifestation:block/splinter_caster_bottom_focused",
+    "up": "manifestation:block/splinter_caster_top_focused",
+    "north": "manifestation:block/splinter_caster_front_focused",
+    "south": "manifestation:block/splinter_caster_back_focused",
+    "east": "manifestation:block/splinter_caster_right_focused",
+    "west": "manifestation:block/splinter_caster_left_focused"
+  }
+}

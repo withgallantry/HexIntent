@@ -9,8 +9,11 @@ import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.menu.MenuEntry
 import com.bluup.manifestation.common.menu.StoredIota
 import com.bluup.manifestation.server.iota.UiButtonIota
+import com.bluup.manifestation.server.iota.UiCheckboxIota
 import com.bluup.manifestation.server.iota.UiDropdownIota
 import com.bluup.manifestation.server.iota.UiInputIota
+import com.bluup.manifestation.server.iota.UiNumericInputIota
+import com.bluup.manifestation.server.iota.UiSelectListIota
 import com.bluup.manifestation.server.iota.UiSectionIota
 import com.bluup.manifestation.server.iota.UiSliderIota
 import net.minecraft.network.chat.Component
@@ -26,7 +29,10 @@ import net.minecraft.network.chat.Component
  * Entry model:
  *   * UiButtonIota(label, actions)
  *   * UiInputIota(label)
+ *   * UiNumericInputIota(label, current)
  *   * UiSliderIota(label, min, max, current?)
+ *   * UiCheckboxIota(label, checked)
+ *   * UiSelectListIota(label, options, maxRows, multi)
  *   * UiDropdownIota(label, options)
  *   * UiSectionIota(label)
  *
@@ -119,6 +125,27 @@ internal object MenuReader {
             is UiSliderIota -> {
                 val current = if (entryIota.hasCurrent()) entryIota.current else null
                 MenuEntry.slider(entryIota.label.display(), entryIota.min, entryIota.max, current)
+            }
+
+            is UiNumericInputIota -> {
+                val current = if (entryIota.hasCurrent()) entryIota.current else null
+                MenuEntry.numericInput(entryIota.label.display(), current)
+            }
+
+            is UiCheckboxIota -> {
+                MenuEntry.checkbox(entryIota.label.display(), entryIota.isChecked)
+            }
+
+            is UiSelectListIota -> {
+                val options = entryIota.options.map { StoredIota.of(it) }
+                val labels = entryIota.options.map { it.display() }
+                MenuEntry.selectList(
+                    entryIota.label.display(),
+                    options,
+                    labels,
+                    entryIota.maxRows,
+                    entryIota.isMultiSelect
+                )
             }
 
             is UiButtonIota -> {

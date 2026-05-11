@@ -10,10 +10,13 @@ import com.bluup.manifestation.client.ActiveMenuState;
 import com.bluup.manifestation.client.menu.execution.MenuActionSender;
 import com.bluup.manifestation.common.menu.MenuEntry;
 import com.bluup.manifestation.common.menu.MenuPayload;
+import com.bluup.manifestation.common.menu.StoredIota;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.particles.ParticleTypes;
@@ -37,6 +40,7 @@ public final class MenuScreen extends Screen {
 
     // Shared layout constants.
     private static final int BUTTON_HEIGHT = 20;
+    private static final int SELECT_LIST_ROW_HEIGHT = 20;
     private static final int SECTION_HEIGHT = 26;
     private static final int BUTTON_SPACING = 4;
     private static final int TITLE_MARGIN = 8;
@@ -67,7 +71,11 @@ public final class MenuScreen extends Screen {
     private final InteractionHand hand;
     private boolean closeAfterSelection;
     private final Map<Integer, EditBox> inputBoxes = new LinkedHashMap<>();
+    private final Map<Integer, EditBox> numericInputBoxes = new LinkedHashMap<>();
     private final Map<Integer, MenuSlider> sliderBoxes = new LinkedHashMap<>();
+    private final Map<Integer, MenuCheckbox> checkboxBoxes = new LinkedHashMap<>();
+    private final Map<Integer, MenuSelectList> selectListBoxes = new LinkedHashMap<>();
+    private final Map<Integer, List<StoredIota>> selectListPayloads = new LinkedHashMap<>();
     private final Map<Integer, MenuDropdown> dropdownBoxes = new LinkedHashMap<>();
     private final Map<Integer, EntryBounds> entryBounds = new LinkedHashMap<>();
     private final Map<Integer, Component> radialTruncatedTooltips = new LinkedHashMap<>();
@@ -171,6 +179,151 @@ public final class MenuScreen extends Screen {
         }
     }
 
+    private final class MenuCheckbox {
+        private final Component label;
+        private boolean checked;
+        private final Button button;
+
+        MenuCheckbox(int x, int y, int width, int height, Component label, boolean checked) {
+            this.label = label;
+            this.checked = checked;
+            this.button = Button.builder(Component.empty(), btn -> {
+                this.checked = !this.checked;
+                updateMessage();
+            }).bounds(x, y, width, height).build();
+            updateMessage();
+        }
+
+        private void updateMessage() {
+            this.button.setMessage(
+                Component.empty()
+                    .append(label)
+                    .append(Component.literal(checked ? ": [x]" : ": [ ]"))
+            );
+        }
+
+        boolean checked() {
+            return checked;
+        }
+
+        Button button() {
+            return button;
+        }
+    }
+
+    private final class MenuSelectList extends AbstractWidget {
+        private final List<Component> options;
+        private final int visibleRows;
+        private final boolean multiSelect;
+        private final java.util.LinkedHashSet<Integer> selectedIndices = new java.util.LinkedHashSet<>();
+        private int scrollOffset;
+
+        MenuSelectList(int x, int y, int width, Component label, List<Component> options, int maxRows, boolean multiSelect) {
+            super(x, y, width, Math.max(SELECT_LIST_ROW_HEIGHT, Math.min(maxRows, 12) * SELECT_LIST_ROW_HEIGHT), label);
+            this.options = List.copyOf(options);
+            this.visibleRows = Math.max(1, Math.min(maxRows, 12));
+            this.multiSelect = multiSelect;
+            this.scrollOffset = 0;
+        }
+
+        private int maxScroll() {
+            return Math.max(0, options.size() - visibleRows);
+        }
+
+        List<Integer> selectedSorted() {
+            List<Integer> out = new ArrayList<>(selectedIndices);
+            out.sort(Integer::compareTo);
+            return out;
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+            if (!this.isHoveredOrFocused()) {
+                return false;
+            }
+            if (delta > 0.0) {
+                scrollOffset = Math.max(0, scrollOffset - 1);
+            } else if (delta < 0.0) {
+                scrollOffset = Math.min(maxScroll(), scrollOffset + 1);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (button != 0 || !this.isMouseOver(mouseX, mouseY)) {
+                return false;
+            }
+
+            int localY = (int) mouseY - getY();
+            int row = localY / SELECT_LIST_ROW_HEIGHT;
+            int optionIndex = scrollOffset + row;
+            if (row < 0 || row >= visibleRows || optionIndex < 0 || optionIndex >= options.size()) {
+                return false;
+            }
+
+            if (!multiSelect) {
+                selectedIndices.clear();
+                selectedIndices.add(optionIndex);
+            } else {
+                if (selectedIndices.contains(optionIndex)) {
+                    selectedIndices.remove(optionIndex);
+                } else {
+                    selectedIndices.add(optionIndex);
+                }
+            }
+            return true;
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            int x = getX();
+            int y = getY();
+            int w = width;
+            int h = height;
+
+            graphics.fill(x, y, x + w, y + h, themed(0xAA1B122D, 0xAA11303E));
+            graphics.fill(x, y, x + w, y + 1, themed(0xFF9DC8FF, 0xFF8EE8FF));
+            graphics.fill(x, y + h - 1, x + w, y + h, themed(0xFF9DC8FF, 0xFF8EE8FF));
+            graphics.fill(x, y, x + 1, y + h, themed(0xFF9DC8FF, 0xFF8EE8FF));
+            graphics.fill(x + w - 1, y, x + w, y + h, themed(0xFF9DC8FF, 0xFF8EE8FF));
+
+            for (int row = 0; row < visibleRows; row++) {
+                int optionIndex = scrollOffset + row;
+                if (optionIndex >= options.size()) {
+                    break;
+                }
+
+                int rowY = y + row * SELECT_LIST_ROW_HEIGHT;
+                boolean selected = selectedIndices.contains(optionIndex);
+                int rowColor = selected ? themed(0xAA3A2B67, 0xAA245F7E) : themed(0x5530254A, 0x55304B59);
+                graphics.fill(x + 1, rowY + 1, x + w - 1, rowY + SELECT_LIST_ROW_HEIGHT - 1, rowColor);
+
+                String prefix = selected ? (multiSelect ? "[x] " : "> ") : (multiSelect ? "[ ] " : "  ");
+                String optionText = prefix + options.get(optionIndex).getString();
+                String fitted = font.plainSubstrByWidth(optionText, Math.max(10, w - 8));
+                graphics.drawString(font, fitted, x + 4, rowY + 6, themed(0xFFE2D6FF, 0xFFD2F3FF), false);
+            }
+
+            if (maxScroll() > 0) {
+                int railX0 = x + w - 4;
+                int railX1 = x + w - 2;
+                graphics.fill(railX0, y + 2, railX1, y + h - 2, themed(0x77443062, 0x77407086));
+
+                float ratio = visibleRows / (float) options.size();
+                int thumbH = Math.max(8, (int) ((h - 4) * ratio));
+                int range = (h - 4) - thumbH;
+                int thumbY = y + 2 + (maxScroll() == 0 ? 0 : Math.round(range * (scrollOffset / (float) maxScroll())));
+                graphics.fill(railX0, thumbY, railX1, thumbY + thumbH, themed(0xFFC1A2FF, 0xFF9DEBFF));
+            }
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+            // Intentionally minimal until accessibility strings are designed for menu widgets.
+        }
+    }
+
     public MenuScreen(MenuPayload menu, InteractionHand hand) {
         super(menu.title());
         this.menu = menu;
@@ -180,7 +333,11 @@ public final class MenuScreen extends Screen {
     @Override
     protected void init() {
         inputBoxes.clear();
+        numericInputBoxes.clear();
         sliderBoxes.clear();
+        checkboxBoxes.clear();
+        selectListBoxes.clear();
+        selectListPayloads.clear();
         dropdownBoxes.clear();
         entryBounds.clear();
         radialTruncatedTooltips.clear();
@@ -355,12 +512,24 @@ public final class MenuScreen extends Screen {
             return;
         }
 
-        entryBounds.put(index, new EntryBounds(x, y, width, BUTTON_HEIGHT));
+        entryBounds.put(index, new EntryBounds(x, y, width, entryHeight(entry)));
 
         if (entry.isInput()) {
             EditBox box = new EditBox(this.font, x, y, width, BUTTON_HEIGHT, entry.label());
             box.setHint(entry.label());
             inputBoxes.put(index, box);
+            this.addRenderableWidget(box);
+            return;
+        }
+
+        if (entry.isNumericInput()) {
+            EditBox box = new EditBox(this.font, x, y, width, BUTTON_HEIGHT, entry.label());
+            box.setHint(entry.label());
+            box.setFilter(MenuScreen::isPotentialNumericText);
+            if (entry.numericHasCurrent()) {
+                box.setValue(formatValue(entry.numericCurrent()));
+            }
+            numericInputBoxes.put(index, box);
             this.addRenderableWidget(box);
             return;
         }
@@ -378,6 +547,36 @@ public final class MenuScreen extends Screen {
             );
             sliderBoxes.put(index, slider);
             this.addRenderableWidget(slider);
+            return;
+        }
+
+        if (entry.isCheckbox()) {
+            MenuCheckbox checkbox = new MenuCheckbox(
+                x,
+                y,
+                width,
+                BUTTON_HEIGHT,
+                entry.label(),
+                entry.checkboxChecked()
+            );
+            checkboxBoxes.put(index, checkbox);
+            this.addRenderableWidget(checkbox.button());
+            return;
+        }
+
+        if (entry.isSelectList()) {
+            MenuSelectList selectList = new MenuSelectList(
+                x,
+                y,
+                width,
+                entry.label(),
+                entry.selectOptionLabels(),
+                entry.selectMaxRows(),
+                entry.selectMulti()
+            );
+            selectListBoxes.put(index, selectList);
+            selectListPayloads.put(index, entry.selectOptions());
+            this.addRenderableWidget(selectList);
             return;
         }
 
@@ -456,6 +655,34 @@ public final class MenuScreen extends Screen {
                 MenuActionSender.InputDatum.number(entry.getKey(), entry.getValue().getActualValue())
             ));
 
+        numericInputBoxes.entrySet().stream()
+            .sorted(Comparator.comparingInt(Map.Entry::getKey))
+            .forEach(entry -> {
+                Double parsed = parseStrictDouble(entry.getValue().getValue());
+                if (parsed != null) {
+                    values.add(MenuActionSender.InputDatum.number(entry.getKey(), parsed));
+                }
+            });
+
+        checkboxBoxes.entrySet().stream()
+            .sorted(Comparator.comparingInt(Map.Entry::getKey))
+            .forEach(entry -> values.add(
+                MenuActionSender.InputDatum.number(entry.getKey(), entry.getValue().checked() ? 1.0 : 0.0)
+            ));
+
+        selectListBoxes.entrySet().stream()
+            .sorted(Comparator.comparingInt(Map.Entry::getKey))
+            .forEach(entry -> {
+                List<StoredIota> options = selectListPayloads.getOrDefault(entry.getKey(), List.of());
+                List<StoredIota> selected = new ArrayList<>();
+                for (int selectedIndex : entry.getValue().selectedSorted()) {
+                    if (selectedIndex >= 0 && selectedIndex < options.size()) {
+                        selected.add(options.get(selectedIndex));
+                    }
+                }
+                values.add(MenuActionSender.InputDatum.iotaList(entry.getKey(), selected));
+            });
+
         dropdownBoxes.entrySet().stream()
             .sorted(Comparator.comparingInt(Map.Entry::getKey))
             .forEach(entry -> {
@@ -474,6 +701,28 @@ public final class MenuScreen extends Screen {
             return Integer.toString((int) Math.rint(value));
         }
         return String.format(java.util.Locale.ROOT, "%.2f", value);
+    }
+
+    private static boolean isPotentialNumericText(String text) {
+        if (text == null || text.isEmpty()) {
+            return true;
+        }
+        return text.matches("[-+]?((\\d+\\.?\\d*)|(\\.\\d*))([eE][-+]?\\d*)?");
+    }
+
+    private static Double parseStrictDouble(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            double parsed = Double.parseDouble(text);
+            if (!Double.isFinite(parsed)) {
+                return null;
+            }
+            return parsed;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private static double normalize(double min, double max, double current) {
@@ -894,6 +1143,12 @@ public final class MenuScreen extends Screen {
 
             int base = entry.isSection()
                 ? themed(0x442A1A49, 0x44162F45)
+                : entry.isSelectList()
+                    ? themed(0x66302A5A, 0x661E3D61)
+                : entry.isCheckbox()
+                    ? themed(0x66334F34, 0x66224A2F)
+                : entry.isNumericInput()
+                    ? themed(0x66303251, 0x66253A52)
                 : entry.isDropdown()
                     ? themed(0x6630405F, 0x66223F63)
                 : entry.isInput()
@@ -901,6 +1156,12 @@ public final class MenuScreen extends Screen {
                     : themed(0x55331752, 0x55274E66);
             int frame = entry.isSection()
                 ? themed(0xFFD8B2FF, 0xFFB7EAFF)
+                : entry.isSelectList()
+                    ? themed(0xFF98B6FF, 0xFF8ED8FF)
+                : entry.isCheckbox()
+                    ? themed(0xFFA4E3A0, 0xFF89DDA3)
+                : entry.isNumericInput()
+                    ? themed(0xFF9BB6FF, 0xFF9ACFFB)
                 : entry.isDropdown()
                     ? themed(0xFF92BFFF, 0xFF89DAFF)
                 : entry.isInput()
@@ -908,6 +1169,12 @@ public final class MenuScreen extends Screen {
                     : themed(0xFFC59BFF, 0xFF8FCFFF);
             int rune = entry.isSection()
                 ? themed(0xAAA97BFF, 0xAA8EDCFF)
+                : entry.isSelectList()
+                    ? themed(0xAA9DBBFF, 0xAA8ED9FF)
+                : entry.isCheckbox()
+                    ? themed(0xAA9FE39A, 0xAA87DEA1)
+                : entry.isNumericInput()
+                    ? themed(0xAA9FB7FF, 0xAA9AD0FA)
                 : entry.isDropdown()
                     ? themed(0xAA9CC5FF, 0xAA9BE7FF)
                 : entry.isInput()
@@ -1216,7 +1483,7 @@ public final class MenuScreen extends Screen {
         int height = 0;
         int col = 0;
         for (MenuEntry entry : entries) {
-            if (entry.isSection()) {
+            if (entry.isSection() || entry.isSelectList()) {
                 if (col > 0) {
                     if (height > 0) {
                         height += BUTTON_SPACING;
@@ -1227,7 +1494,7 @@ public final class MenuScreen extends Screen {
                 if (height > 0) {
                     height += BUTTON_SPACING;
                 }
-                height += SECTION_HEIGHT;
+                height += entryHeight(entry);
                 continue;
             }
 
@@ -1280,16 +1547,16 @@ public final class MenuScreen extends Screen {
         int col = 0;
         for (int i = 0; i < entries.size(); i++) {
             MenuEntry entry = entries.get(i);
-            if (entry.isSection()) {
+            if (entry.isSection() || entry.isSelectList()) {
                 if (col > 0) {
                     y += BUTTON_HEIGHT + BUTTON_SPACING;
                     col = 0;
                 }
 
                 placements.add(
-                    new PositionedEntry(i, entry, new EntryBounds(panelX + PANEL_PADDING, y, fullWidth, SECTION_HEIGHT))
+                    new PositionedEntry(i, entry, new EntryBounds(panelX + PANEL_PADDING, y, fullWidth, entryHeight(entry)))
                 );
-                y += SECTION_HEIGHT + BUTTON_SPACING;
+                y += entryHeight(entry) + BUTTON_SPACING;
                 continue;
             }
 
@@ -1386,7 +1653,14 @@ public final class MenuScreen extends Screen {
     }
 
     private int entryHeight(MenuEntry entry) {
-        return entry.isSection() ? SECTION_HEIGHT : BUTTON_HEIGHT;
+        if (entry.isSection()) {
+            return SECTION_HEIGHT;
+        }
+        if (entry.isSelectList()) {
+            int rows = Math.max(1, Math.min(entry.selectMaxRows(), 12));
+            return rows * SELECT_LIST_ROW_HEIGHT;
+        }
+        return BUTTON_HEIGHT;
     }
 
     private int themed(int ritual, int scholar) {

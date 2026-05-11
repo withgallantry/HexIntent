@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "#manifestation:intent_shifter"
+    "#manifestation:intent_shifter",
+    "manifestation:splinter_caster"
   ]
 }

@@ -63,6 +63,21 @@ object MenuOpenLoopGuard {
                 sig = 31 * sig + java.lang.Double.hashCode(entry.sliderMax())
                 sig = 31 * sig + java.lang.Double.hashCode(entry.sliderCurrent())
             }
+            if (entry.isNumericInput()) {
+                sig = 31 * sig + if (entry.numericHasCurrent()) 1 else 0
+                sig = 31 * sig + java.lang.Double.hashCode(entry.numericCurrent())
+            }
+            if (entry.isCheckbox()) {
+                sig = 31 * sig + if (entry.checkboxChecked()) 1 else 0
+            }
+            if (entry.isSelectList()) {
+                sig = 31 * sig + entry.selectMaxRows()
+                sig = 31 * sig + if (entry.selectMulti()) 1 else 0
+                sig = 31 * sig + entry.selectOptions().size
+                for (stored in entry.selectOptions()) {
+                    sig = 31 * sig + stored.tag().hashCode()
+                }
+            }
             if (entry.isDropdown()) {
                 sig = 31 * sig + entry.dropdownSelected()
                 for (option in entry.dropdownOptions()) {
