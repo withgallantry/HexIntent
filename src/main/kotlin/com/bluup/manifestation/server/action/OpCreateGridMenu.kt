@@ -10,8 +10,10 @@ import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.server.ManifestationServer
 import com.bluup.manifestation.server.MenuSessionRegistry
+import com.bluup.manifestation.server.mishap.MishapMenuFromSplinter
 import com.bluup.manifestation.server.mishap.MishapMenuOpenLoop
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
+import com.bluup.manifestation.server.splinter.SplinterCastEnv
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -35,6 +37,10 @@ object OpCreateGridMenu : Action {
         image: CastingImage,
         continuation: SpellContinuation
     ): OperationResult {
+        if (env is SplinterCastEnv) {
+            throw MishapMenuFromSplinter()
+        }
+
         val stack = image.stack.toMutableList()
 
         val columns = MenuReader.readColumnCount(stack)

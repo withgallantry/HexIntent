@@ -94,6 +94,7 @@
 
   "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will.",
   "hexcasting.mishap.manifestation.menu_open_loop": "Manifestation backlash: this menu is being reopened too quickly.",
+  "hexcasting.mishap.manifestation.menu_from_splinter": "Manifestation menus cannot be opened from a splinter cast.",
   "hexcasting.mishap.manifestation.radial_menu_buttons_only": "Radial manifestation only accepts button intents.",
   "hexcasting.mishap.manifestation.intent_relay_no_space": "Manifest Relay cannot manifest on that face; the space is blocked or unsupported.",
   "hexcasting.mishap.manifestation.intent_relay_signal_range": "Manifest Relay signal strength must be between 0 and 15.",
