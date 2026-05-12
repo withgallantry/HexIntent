@@ -44,7 +44,8 @@ object SplinterRuntime {
 
     private data class OwnerPerfState(
         val avgExecMs: Double,
-        val breachCount: Int
+        val breachCount: Int,
+        val sampleCount: Int
     )
 
     private val dirtyOwners: MutableSet<UUID> = mutableSetOf()
@@ -399,14 +400,18 @@ object SplinterRuntime {
         } else {
             previous.avgExecMs + PERF_MOVING_AVG_ALPHA * (elapsedMs - previous.avgExecMs)
         }
+        val nextSampleCount = (previous?.sampleCount ?: 0) + 1
 
-        val breaches = if (nextAvg > ManifestationConfig.splinterWatchdogMaxAvgExecMs()) {
+        // Ignore initial warmup samples so first-use classloading/JIT spikes don't trip protection.
+        val canBreach = nextSampleCount > PERF_WARMUP_SAMPLES
+
+        val breaches = if (canBreach && nextAvg > ManifestationConfig.splinterWatchdogMaxAvgExecMs()) {
             (previous?.breachCount ?: 0) + 1
         } else {
             0
         }
 
-        ownerPerfStates[owner] = OwnerPerfState(nextAvg, breaches)
+        ownerPerfStates[owner] = OwnerPerfState(nextAvg, breaches, nextSampleCount)
         return breaches >= ManifestationConfig.splinterWatchdogMaxBreaches()
     }
 
@@ -557,6 +562,7 @@ object SplinterRuntime {
     private const val SPLINTER_SUMMON_DUST_COST = 5L
     private const val SPLINTER_MOVE_MEDIA_COST = MediaConstants.DUST_UNIT / 2L
     private const val PERF_MOVING_AVG_ALPHA = 0.2
+    private const val PERF_WARMUP_SAMPLES = 6
     private const val CIRCLE_CASTER_NAME = "Manifestation Circle"
     const val MAX_PAYLOAD_IOTAS = 512
     const val MAX_EXECUTIONS_PER_TICK = 64

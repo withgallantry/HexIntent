@@ -6,6 +6,7 @@ import net.minecraft.world.InteractionHand;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * The full menu definition as it travels over the wire from server to client.
@@ -29,6 +30,8 @@ public final class MenuPayload {
 
     public enum DispatchSource {
         STAFF,
+        PACKAGED_ITEM,
+        CIRCLE,
         HEXICAL_CHARM
     }
 
@@ -39,6 +42,7 @@ public final class MenuPayload {
     private final int columns;
     private final InteractionHand hand;
     private final DispatchSource dispatchSource;
+    private final UUID sessionToken;
 
     public MenuPayload(
             Component title,
@@ -49,6 +53,19 @@ public final class MenuPayload {
             InteractionHand hand,
             DispatchSource dispatchSource
     ) {
+        this(title, entries, layout, theme, columns, hand, dispatchSource, UUID.randomUUID());
+    }
+
+    public MenuPayload(
+            Component title,
+            List<MenuEntry> entries,
+            Layout layout,
+            Theme theme,
+            int columns,
+            InteractionHand hand,
+            DispatchSource dispatchSource,
+            UUID sessionToken
+    ) {
         this.title = Objects.requireNonNull(title, "title");
         this.entries = List.copyOf(entries);
         this.layout = Objects.requireNonNull(layout, "layout");
@@ -56,6 +73,7 @@ public final class MenuPayload {
         this.columns = Math.max(1, columns);
         this.hand = Objects.requireNonNull(hand, "hand");
         this.dispatchSource = Objects.requireNonNull(dispatchSource, "dispatchSource");
+        this.sessionToken = Objects.requireNonNull(sessionToken, "sessionToken");
     }
 
     public Component title() {
@@ -86,6 +104,14 @@ public final class MenuPayload {
         return dispatchSource;
     }
 
+    public UUID sessionToken() {
+        return sessionToken;
+    }
+
+    public MenuPayload withSessionToken(UUID token) {
+        return new MenuPayload(title, entries, layout, theme, columns, hand, dispatchSource, token);
+    }
+
     public void write(FriendlyByteBuf buf) {
         buf.writeComponent(title);
         buf.writeEnum(layout);
@@ -93,6 +119,7 @@ public final class MenuPayload {
         buf.writeVarInt(columns);
         buf.writeEnum(hand);
         buf.writeEnum(dispatchSource);
+        buf.writeUUID(sessionToken);
         buf.writeVarInt(entries.size());
         for (MenuEntry e : entries) {
             e.write(buf);
@@ -106,11 +133,12 @@ public final class MenuPayload {
         int columns = buf.readVarInt();
         InteractionHand hand = buf.readEnum(InteractionHand.class);
         DispatchSource dispatchSource = buf.readEnum(DispatchSource.class);
+        UUID sessionToken = buf.readUUID();
         int n = buf.readVarInt();
         MenuEntry[] entries = new MenuEntry[n];
         for (int i = 0; i < n; i++) {
             entries[i] = MenuEntry.read(buf);
         }
-        return new MenuPayload(title, List.of(entries), layout, theme, columns, hand, dispatchSource);
+        return new MenuPayload(title, List.of(entries), layout, theme, columns, hand, dispatchSource, sessionToken);
     }
 }

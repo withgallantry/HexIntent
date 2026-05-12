@@ -15,11 +15,17 @@ import java.util.UUID
 object MenuOpenLoopGuard {
     private data class PlayerOpenState(
         val menuSignature: Int,
+        val dimensionId: String,
         val firstSeenAtMs: Long,
         val count: Int
     )
 
     private val recentByPlayer: MutableMap<UUID, PlayerOpenState> = mutableMapOf()
+
+    @JvmStatic
+    fun clearForPlayer(playerId: UUID) {
+        recentByPlayer.remove(playerId)
+    }
 
     /**
      * @return true if this open attempt should mishap due to burst repeats.
@@ -27,12 +33,18 @@ object MenuOpenLoopGuard {
     fun shouldMishap(player: ServerPlayer, payload: MenuPayload, nowMs: Long = System.currentTimeMillis()): Boolean {
         val key = player.uuid
         val menuSig = signatureOf(payload)
+        val dimId = player.serverLevel().dimension().location().toString()
         val windowMs = ManifestationConfig.menuOpenLoopWindowMs()
         val triggerCount = ManifestationConfig.menuOpenLoopTriggerCount()
         val previous = recentByPlayer[key]
 
-        if (previous == null || previous.menuSignature != menuSig || nowMs - previous.firstSeenAtMs > windowMs) {
-            recentByPlayer[key] = PlayerOpenState(menuSig, nowMs, 1)
+        if (
+            previous == null ||
+            previous.menuSignature != menuSig ||
+            previous.dimensionId != dimId ||
+            nowMs - previous.firstSeenAtMs > windowMs
+        ) {
+            recentByPlayer[key] = PlayerOpenState(menuSig, dimId, nowMs, 1)
             return false
         }
 

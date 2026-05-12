@@ -630,7 +630,7 @@ public final class MenuScreen extends Screen {
 
         // Clear first in case dispatch re-enters the screen loop.
         ActiveMenuState.get().clear();
-        MenuActionSender.send(entry, this.hand, menu.dispatchSource(), collectInputValues());
+        MenuActionSender.send(entry, this.hand, menu.dispatchSource(), menu.sessionToken(), collectInputValues());
         if (this.minecraft != null) {
             closeAfterSelection = true;
             this.minecraft.setScreen(null);

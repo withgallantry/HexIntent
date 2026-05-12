@@ -18,6 +18,10 @@ object MenuDispatchAbuseGuard {
     private var checksSinceCleanup = 0
     private val states = HashMap<UUID, State>()
 
+    fun clearForPlayer(playerId: UUID) {
+        states.remove(playerId)
+    }
+
     fun shouldAllow(player: ServerPlayer): Boolean {
         val now = System.nanoTime()
         val refillPerSecond = ManifestationConfig.menuDispatchRefillPerSecond()

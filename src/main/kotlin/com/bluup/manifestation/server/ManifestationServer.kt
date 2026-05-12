@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server
 
 import at.petrak.hexcasting.api.casting.ActionRegistryEntry
+import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
@@ -33,19 +34,24 @@ import com.bluup.manifestation.server.action.OpLinkIntentRelay
 import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
+import com.bluup.manifestation.server.action.MenuOpenLoopGuard
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Registry
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
+import java.util.UUID
 
 /**
  * Server entrypoint for Manifestation.
@@ -133,12 +139,39 @@ object ManifestationServer : ModInitializer {
         registerIotaTypes()
         registerActions()
         registerC2SReceivers()
+        registerLifecycleCleanup()
         EchoRuntime.register()
         SplinterRuntime.register()
 
         Manifestation.LOGGER.info(
             "Manifestation: registered menu constructors, menu actions, ui iota types, and dispatch receiver."
         )
+    }
+
+    private fun registerLifecycleCleanup() {
+        ServerPlayConnectionEvents.JOIN.register(ServerPlayConnectionEvents.Join { handler, _, _ ->
+            val playerId = handler.player.uuid
+            MenuSessionRegistry.clearForPlayer(playerId)
+            MenuDispatchAbuseGuard.clearForPlayer(playerId)
+            MenuOpenLoopGuard.clearForPlayer(playerId)
+        })
+
+        ServerPlayConnectionEvents.DISCONNECT.register(ServerPlayConnectionEvents.Disconnect { handler, _ ->
+            val playerId = handler.player.uuid
+            MenuSessionRegistry.clearForPlayer(playerId)
+            MenuDispatchAbuseGuard.clearForPlayer(playerId)
+            MenuOpenLoopGuard.clearForPlayer(playerId)
+        })
+
+        ServerPlayerEvents.AFTER_RESPAWN.register(ServerPlayerEvents.AfterRespawn { oldPlayer, newPlayer, _ ->
+            MenuSessionRegistry.clearForPlayer(oldPlayer.uuid)
+            MenuDispatchAbuseGuard.clearForPlayer(oldPlayer.uuid)
+            MenuOpenLoopGuard.clearForPlayer(oldPlayer.uuid)
+
+            MenuSessionRegistry.clearForPlayer(newPlayer.uuid)
+            MenuDispatchAbuseGuard.clearForPlayer(newPlayer.uuid)
+            MenuOpenLoopGuard.clearForPlayer(newPlayer.uuid)
+        })
     }
 
     private fun registerIotaTypes() {
@@ -202,6 +235,7 @@ object ManifestationServer : ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(
             ManifestationNetworking.DISPATCH_ACTION_C2S
         ) { server, player, _, buf, _ ->
+            val sessionToken = buf.readUUID()
             val hand = buf.readEnum(InteractionHand::class.java)
             val dispatchSource = buf.readEnum(MenuPayload.DispatchSource::class.java)
             if (!MenuDispatchAbuseGuard.shouldAllow(player)) {
@@ -230,7 +264,7 @@ object ManifestationServer : ModInitializer {
 
                     MenuActionSender.InputKind.DOUBLE -> {
                         val value = buf.readDouble()
-                        inputs.add(MenuActionDispatcher.InputDatum.number(order, value))
+                        inputs.add(MenuActionDispatcher.InputDatum.double(order, value))
                     }
 
                     MenuActionSender.InputKind.IOTA_LIST -> {
@@ -276,6 +310,14 @@ object ManifestationServer : ModInitializer {
             val tags = (0 until count).map { buf.readNbt() }
             // Cast execution and session writes must run on the server thread.
             server.execute {
+                val resolved = MenuSessionRegistry.resolveAndConsume(player, sessionToken, hand, dispatchSource)
+                val dispatch = resolved.dispatch
+                if (dispatch == null) {
+                    val message = resolved.rejectMessage ?: Component.translatable("message.manifestation.menu_expired")
+                    player.displayClientMessage(message, true)
+                    return@execute
+                }
+
                 val world = player.serverLevel()
                 val iotas: List<Iota> = tags.mapNotNull { tag ->
                     tag ?: return@mapNotNull null
@@ -289,15 +331,39 @@ object ManifestationServer : ModInitializer {
                         null
                     }
                 }
-                MenuActionDispatcher.dispatch(player, hand, dispatchSource, inputs, iotas)
+                // Pass the ravenmind from the session registry to the dispatcher for non-staff sources
+                MenuActionDispatcher.dispatch(player, dispatch.hand, dispatch.source, inputs, iotas, dispatch.ravenmind)
             }
         }
     }
 
     @JvmStatic
     fun sendMenuTo(player: ServerPlayer, payload: MenuPayload) {
+        sendMenuTo(player, payload, null)
+    }
+
+    @JvmStatic
+    fun sendMenuTo(player: ServerPlayer, payload: MenuPayload, circleContext: MenuSessionRegistry.CircleContext?) {
         val buf = PacketByteBufs.create()
-        payload.write(buf)
+        // Try to capture the current ravenmind from the player's staff casting session, if available.
+        val hand = payload.hand()
+        val dispatchSource = payload.dispatchSource()
+        var sessionRavenmind: net.minecraft.nbt.CompoundTag? = null
+        if (dispatchSource == com.bluup.manifestation.common.menu.MenuPayload.DispatchSource.STAFF) {
+            // For staff, get the live image's ravenmind
+            val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
+            val userData = vm.image.userData
+            sessionRavenmind = if (userData.contains(HexAPI.RAVENMIND_USERDATA)) {
+                userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
+            } else {
+                null
+            }
+        } else {
+            // For other sources, try to get from a relevant context if possible (future extension)
+            sessionRavenmind = null
+        }
+        val payloadWithSession = MenuSessionRegistry.attachSession(player, payload, circleContext, sessionRavenmind)
+        payloadWithSession.write(buf)
         ServerPlayNetworking.send(player, ManifestationNetworking.SHOW_MENU_S2C, buf)
     }
 

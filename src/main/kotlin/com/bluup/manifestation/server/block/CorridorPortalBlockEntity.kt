@@ -701,7 +701,13 @@ class CorridorPortalBlockEntity(
             val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
             val targetLevel = level.server.getLevel(targetKey)
             if (targetLevel != null) {
-                if (targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+                val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity
+                val stillReciprocal = targetPortal?.isReciprocalLinkTo(
+                    level.dimension().location().toString(),
+                    worldPosition
+                ) == true
+
+                if (stillReciprocal && targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
                     playCollapseEffects(targetLevel, target)
                     targetLevel.removeBlock(target, false)
                 }
@@ -719,10 +725,22 @@ class CorridorPortalBlockEntity(
 
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
         val targetLevel = level.server.getLevel(targetKey) ?: return
-        if (targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+        val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity ?: return
+        val stillReciprocal = targetPortal.isReciprocalLinkTo(
+            level.dimension().location().toString(),
+            worldPosition
+        )
+        if (stillReciprocal && targetLevel.getBlockState(target).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
             playCollapseEffects(targetLevel, target)
             targetLevel.removeBlock(target, false)
         }
+    }
+
+    private fun isReciprocalLinkTo(dimensionId: String, pos: BlockPos): Boolean {
+        if (thresholdMode) {
+            return false
+        }
+        return targetDimensionId == dimensionId && targetPos == pos
     }
 
     private fun playCollapseEffects(level: ServerLevel, pos: BlockPos) {

@@ -11,6 +11,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.InteractionHand;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Client-side handler for "the player clicked a menu button."
@@ -59,7 +60,7 @@ public final class MenuActionSender {
     private MenuActionSender() {
     }
 
-    public static void send(MenuEntry entry, InteractionHand hand, MenuPayload.DispatchSource dispatchSource, List<InputDatum> inputs) {
+    public static void send(MenuEntry entry, InteractionHand hand, MenuPayload.DispatchSource dispatchSource, UUID sessionToken, List<InputDatum> inputs) {
         if (!entry.isButton()) {
             Manifestation.LOGGER.debug(
                     "MenuActionSender: entry '{}' is not a button, ignoring send",
@@ -80,6 +81,7 @@ public final class MenuActionSender {
                 entry.label().getString(), actions.size(), hand);
 
         FriendlyByteBuf buf = PacketByteBufs.create();
+        buf.writeUUID(sessionToken);
         buf.writeEnum(hand);
         buf.writeEnum(dispatchSource);
         buf.writeVarInt(inputs.size());

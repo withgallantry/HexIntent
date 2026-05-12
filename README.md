@@ -1,7 +1,7 @@
 # HexIntent
 
 HexIntent is a Fabric companion mod for Hex Casting.
-Current release version: 2.1.1.
+Current release version: 2.1.3.
 
 Usage details and pattern reference documentation are available on the docs site.
 

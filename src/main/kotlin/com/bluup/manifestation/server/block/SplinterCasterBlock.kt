@@ -96,7 +96,7 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
             if (be.isWaitingForSplinter()) {
                 be.setWaitingForSplinter(false)
             }
-            return ControlFlow.Continue(imageIn, listOf(exitPositionFromDirection(pos, enterDir)))
+            return continueAlongCircle(imageIn, enterDir, pos, bs, world)
         }
 
         if (world.hasNeighborSignal(pos)) {
@@ -106,7 +106,7 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
             if (be.isWaitingForSplinter()) {
                 be.setWaitingForSplinter(false)
             }
-            return ControlFlow.Continue(imageIn, listOf(exitPositionFromDirection(pos, enterDir)))
+            return continueAlongCircle(imageIn, enterDir, pos, bs, world)
         }
 
         if (be.isWaitingForSplinter()) {
@@ -115,7 +115,7 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
             }
 
             be.setWaitingForSplinter(false)
-            return ControlFlow.Continue(imageIn, listOf(exitPositionFromDirection(pos, enterDir)))
+            return continueAlongCircle(imageIn, enterDir, pos, bs, world)
         }
 
         if (active) {
@@ -163,6 +163,18 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
         SplinterRuntime.commitSummon(world.server, pending)
         be.setWaitingForSplinter(true)
         return ControlFlow.Continue(imageIn, listOf(Pair.of(pos, enterDir)))
+    }
+
+    private fun continueAlongCircle(
+        imageIn: CastingImage,
+        enterDir: Direction,
+        pos: BlockPos,
+        bs: BlockState,
+        world: ServerLevel
+    ): ControlFlow {
+        val exits = possibleExitDirections(pos, bs, world)
+        exits.remove(enterDir.opposite)
+        return ControlFlow.Continue(imageIn, exits.map { dir -> exitPositionFromDirection(pos, dir) })
     }
 
     private fun readFocusPayload(be: SplinterCasterBlockEntity, level: ServerLevel): List<Iota> {
