@@ -77,7 +77,7 @@
       <ul class="nav navbar-nav navbar-right">
             <li>
     <a
-      href="https://github.com/withgallantry/HexIntent/tree/0cfb4474988017118a8db55109bbc40cd9b4c7ef"
+      href="https://github.com/withgallantry/HexIntent/tree/e41415dd54917f5e1a467735a737774ec61ed835"
         target="_blank"
       class="navbar-link"
       role="button"
@@ -1418,10 +1418,10 @@
     class="permalink small"
     title="Permalink"
   ><i class="bi bi-link-45deg"></i></a></h3>
-    <p>Splinters are delayed manifestations: seeded now, cast later. They can be renewed, tracked, and cleared as your work evolves.</p>
+    <p>In trying to recreate Greater Sentinel, I first hypothosised that strong intent was the key. Instead I split away unstable slivers of my own will: brief-minded splinters that wait, cast once, and perish.</p><p>A splinter casts as me and draws on my media, yet its ambit is only sixteen blocks from its own position. If its cast mishaps, the splinter simply collapses rather than rebounding upon me.</p>
 <br />
   <div id="manifestation/splinters@manifestation:manifest_splinter" class="">
-<h4 class="pattern-title">Manifest Splinter (position vec, delay_ticks num, payload [iotas] → none)<a
+<h4 class="pattern-title">Manifest Splinter (vec, num, [pattern] → none)<a
     href="#manifestation/splinters@manifestation:manifest_splinter"
     class="permalink small"
     title="Permalink"
@@ -1473,11 +1473,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedade</canvas>
   </details>
-      <p>Queues a splinter at a position with a delay in ticks and a payload list of iotas to execute when it resolves.</p>
+      <p>Schedules a new splinter that will execute a stored payload after a delay. Player-cast splinters must begin within my own ambit and snap to the nearest half-block.</p><p>Inputs:<br />position: world-space vector to summon at.<br />delay ticks: non-negative delay before execution.<br />payload: non-empty list of iotas to store and execute.</p><p>Cost: 5 dust times (active splinters + 1).</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:renew_splinter" class="">
-<h4 class="pattern-title">Renew Splinter (position vec, delay_ticks num → none)<a
+<h4 class="pattern-title">Renew Splinter (vec, num → none)<a
     href="#manifestation/splinters@manifestation:renew_splinter"
     class="permalink small"
     title="Permalink"
@@ -1529,7 +1529,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedaded</canvas>
   </details>
-      <p>Rebuilds an existing splinter at a new position and delay, preserving its payload.</p>
+      <p>Cast only by a splinter. Creates a successor splinter using the current splinter&#39;s stored payload and ravenmind.</p><p>Inputs:<br />position: world-space vector for the successor.<br />delay ticks: non-negative delay before the successor executes.</p><p>Cost: replacing at the same snapped position is free; moving to a new position costs 0.5 dust.</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:get_splinter_location" class="">
@@ -1585,7 +1585,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedadeeweewewewee</canvas>
   </details>
-      <p>Returns the location of the currently executing splinter as a vector.</p>
+      <p>Cast only by a splinter. Returns the origin vector of the currently casting splinter. Useful for self-renewal, local offsets, and checking whether a successor remained in place.</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:destroy_splinters" class="">
@@ -1641,11 +1641,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedadeaqaww</canvas>
   </details>
-      <p>Destroys all active splinters bound to your will.</p>
+      <p>Dismisses all active splinters owned by the caster.</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:hex_trail" class="">
-<h4 class="pattern-title">Hex Trail (position vec, color_from vec, color_to vec, ticks num, id num, type? num → none)<a
+<h4 class="pattern-title">Hex Trail (vec, vec, vec, num, num, num? → none)<a
     href="#manifestation/splinters@manifestation:hex_trail"
     class="permalink small"
     title="Permalink"
@@ -1697,7 +1697,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: qaqead</canvas>
   </details>
-      <p>Creates a temporary visual trail at a position, blending from one color vector to another over a tick duration. The id groups updates and type optionally selects the particle style.</p>
+      <p>Creates a smooth, stateful trail channel keyed by id. Each cast appends one new point at position; the prior point is remembered automatically. Segments longer than 10 blocks do not connect.</p><p>Inputs:<br />position: world-space vector for the new point.<br />color from: RGB vector (0..1) at the start of the color cycle.<br />color to: RGB vector (0..1) at the end of the color cycle.<br />ticks: positive transition duration for color ping-pong.<br />id: numeric trail channel key; reuse to continue the same trail.<br />type?: optional style index, rounded and clamped to 0..14 (default 0).</p><p>Types: 0 dust ribbon, 1 sparks, 2 trail, 3 pulse beads, 4 end rod, 5 witch plume, 6 enchant flecks, 7 soul flame beads, 8 solid beam, 9 ring lattice, 10 lightning arc, 11 hex conjure ribbon, 12 hex conjure sparks, 13 hex conjure trail, 14 dual-helix.<br />Color vectors tint types 0-3 and 8-14; types 4-7 use native particle colors.</p>
   </div>
 <br />
 </div>
