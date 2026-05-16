@@ -1,0 +1,79 @@
+name: Build the web book
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Release this version
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  HEXDOC_BRANCHES: '["main"]'
+
+jobs:
+  build-hexdoc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      pages-url: ${{ steps.build.outputs.pages-url }}
+      deploy: ${{ github.event_name != 'pull_request' && contains(fromJson(env.HEXDOC_BRANCHES), github.ref_name) || inputs.release == true }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - id: build
+        uses: hexdoc-dev/actions/build@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release: ${{ inputs.release == true }}
+
+  deploy-pages:
+    needs: build-hexdoc
+    if: needs.build-hexdoc.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: hexdoc-deploy-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Merge new hexdoc build into existing book
+        uses: hexdoc-dev/actions/merge@v1
+        with:
+          release: ${{ inputs.release == true }}
+          site-url: ${{ needs.build-hexdoc.outputs.pages-url }}
+
+      - name: Deploy to Pages
+        uses: hexdoc-dev/actions/deploy-pages@v1
+        with:
+          release: ${{ inputs.release == true }}
+          merge: false
