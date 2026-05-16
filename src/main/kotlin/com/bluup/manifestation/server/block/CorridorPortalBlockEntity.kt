@@ -136,18 +136,18 @@ class CorridorPortalBlockEntity(
 
     fun renderEnvelope(partialTick: Float): Float {
         val world = level ?: return 1.0f
-        val now = world.gameTime + partialTick
+        val now = world.gameTime.toDouble() + partialTick.toDouble()
 
         val open = if (openedAtGameTime <= 0L) {
             1.0f
         } else {
-            smoothstep(((now - openedAtGameTime) / OPEN_ANIM_TICKS.toFloat()).coerceIn(0.0f, 1.0f))
+            smoothstep(progress(now, openedAtGameTime, OPEN_ANIM_TICKS))
         }
 
         val close = if (collapseStartedAtGameTime < 0L) {
             1.0f
         } else {
-            1.0f - smoothstep(((now - collapseStartedAtGameTime) / CLOSE_ANIM_TICKS.toFloat()).coerceIn(0.0f, 1.0f))
+            1.0f - smoothstep(progress(now, collapseStartedAtGameTime, CLOSE_ANIM_TICKS))
         }
 
         return (open * close).coerceIn(0.0f, 1.0f)
@@ -160,8 +160,8 @@ class CorridorPortalBlockEntity(
             return 0.0f
         }
 
-        val now = world.gameTime + partialTick
-        return ((now - start) / CLOSE_ANIM_TICKS.toFloat()).coerceIn(0.0f, 1.0f)
+        val now = world.gameTime.toDouble() + partialTick.toDouble()
+        return progress(now, start, CLOSE_ANIM_TICKS)
     }
 
     fun getRenderTargetPos(): BlockPos? = targetPos
@@ -630,14 +630,22 @@ class CorridorPortalBlockEntity(
         // 2 dust/sec = 20,000 media/sec at one drain step per second.
         private const val MEDIA_DRAIN_PER_STEP = 20_000L
         private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 20_000L
-        private const val OPEN_ANIM_TICKS = 12L
-        private const val CLOSE_ANIM_TICKS = 12L
+        private const val OPEN_ANIM_TICKS = 18L
+        private const val CLOSE_ANIM_TICKS = 18L
         private const val FLOW_PARTICLE_INTERVAL_TICKS = 5L
         private const val FLOW_PARTICLES_PER_BURST = 1
 
         private fun normalFromYaw(yawDegrees: Float): Vec3 {
             val radians = Math.toRadians(yawDegrees.toDouble())
             return Vec3(-kotlin.math.sin(radians), 0.0, kotlin.math.cos(radians))
+        }
+
+        private fun progress(nowTicks: Double, startTick: Long, durationTicks: Long): Float {
+            if (durationTicks <= 0L) {
+                return 1.0f
+            }
+            val raw = (nowTicks - startTick.toDouble()) / durationTicks.toDouble()
+            return raw.toFloat().coerceIn(0.0f, 1.0f)
         }
 
         private fun smoothstep(t: Float): Float = t * t * (3.0f - 2.0f * t)

@@ -4,7 +4,8 @@
   "package": "com.bluup.manifestation.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "BlockEntityRedstoneImpetusMixin"
+    "BlockEntityRedstoneImpetusMixin",
+    "PatternIotaMixin"
   ],
   "injectors": {
     "defaultRequire": 1

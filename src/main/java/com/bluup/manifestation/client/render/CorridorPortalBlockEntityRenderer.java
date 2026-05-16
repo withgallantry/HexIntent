@@ -57,8 +57,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
-        float worldTicks = blockEntity.getLevel() == null ? 0f : (blockEntity.getLevel().getGameTime() + partialTick);
-        float time = worldTicks * 0.042f;
+        double worldTicks = blockEntity.getLevel() == null
+            ? 0.0
+            : (blockEntity.getLevel().getGameTime() + (double) partialTick);
+        float time = (float) ((worldTicks % 24000.0) * 0.042);
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
 
@@ -507,7 +509,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float envelope,
         float scale,
         float time,
-        float worldTicks
+        double worldTicks
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();

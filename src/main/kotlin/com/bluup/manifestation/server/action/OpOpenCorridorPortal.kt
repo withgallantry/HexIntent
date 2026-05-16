@@ -51,9 +51,6 @@ object OpOpenCorridorPortal : Action {
         if (stack.size < 3) {
             throw MishapNotEnoughArgs(3, stack.size)
         }
-        if (stack.size > 3) {
-            throw MishapInvalidIota.ofType(stack[stack.lastIndex], 0, "no optional arguments")
-        }
 
         var scale = 1.0f
 
@@ -123,13 +120,13 @@ object OpOpenCorridorPortal : Action {
         val sourceYaw = Mth.wrapDegrees(caster.yRot)
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
 
+        if (env.extractMedia(mediaBudget, true) > 0) {
+            throw MishapNotEnoughMedia(mediaBudget)
+        }
+
         if (thresholdPayload != null) {
             placePortal(sourceLevel, aPos, sourceAxis)
             val threshold = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
-
-            if (env.extractMedia(mediaBudget, true) > 0) {
-                throw MishapNotEnoughMedia(mediaBudget)
-            }
 
             threshold.configureThresholdTrigger(
                 sourceLevel,
@@ -167,10 +164,6 @@ object OpOpenCorridorPortal : Action {
         val bPortal = targetLevel.getBlockEntity(bPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
 
         val previousPair = ownershipStore.get(caster.uuid)
-
-        if (env.extractMedia(mediaBudget, true) > 0) {
-            throw MishapNotEnoughMedia(mediaBudget)
-        }
 
         aPortal.linkTo(
             sourceLevel,

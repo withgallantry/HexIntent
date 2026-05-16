@@ -130,5 +130,11 @@
     "signature": "qaqead",
     "startdir": "NORTH_EAST",
     "is_per_world": false
+  },
+  {
+    "id": "manifestation:silence_next_cast",
+    "signature": "qaqeadwq",
+    "startdir": "NORTH_EAST",
+    "is_per_world": false
   }
 ]

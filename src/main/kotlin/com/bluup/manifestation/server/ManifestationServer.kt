@@ -24,6 +24,7 @@ import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpPresenceIntent
+import com.bluup.manifestation.server.action.OpSilenceNextCastSound
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiCheckbox
 import com.bluup.manifestation.server.action.OpUiDropdown
@@ -48,6 +49,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -130,6 +132,9 @@ object ManifestationServer : ModInitializer {
     private const val HEX_TRAIL_SIG = "qaqead"
     private val HEX_TRAIL_DIR = HexDir.NORTH_EAST
 
+    private const val SILENCE_NEXT_CAST_SIG = "qaqeadwq"
+    private val SILENCE_NEXT_CAST_DIR = HexDir.NORTH_EAST
+
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
 
@@ -143,6 +148,14 @@ object ManifestationServer : ModInitializer {
         EchoRuntime.register()
         SplinterRuntime.register()
 
+        // Register a listener for all CastingEnvironment creations
+        at.petrak.hexcasting.api.casting.eval.CastingEnvironment.addCreateEventListener { env, userData ->
+            // Inject Manifestation hooks or perform environment-specific setup here
+            // Example: log or register menu actions if needed
+            Manifestation.LOGGER.info("Manifestation: Detected new CastingEnvironment of type {} (userData={})", env.javaClass.name, userData)
+            // If you need to register per-environment hooks, do it here
+        }
+
         Manifestation.LOGGER.info(
             "Manifestation: registered menu constructors, menu actions, ui iota types, and dispatch receiver."
         )
@@ -154,6 +167,7 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(playerId)
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
+            CastSoundSuppressor.clearForPlayer(playerId)
         })
 
         ServerPlayConnectionEvents.DISCONNECT.register(ServerPlayConnectionEvents.Disconnect { handler, _ ->
@@ -161,6 +175,7 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(playerId)
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
+            CastSoundSuppressor.clearForPlayer(playerId)
         })
 
         ServerPlayerEvents.AFTER_RESPAWN.register(ServerPlayerEvents.AfterRespawn { oldPlayer, newPlayer, _ ->
@@ -171,6 +186,8 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(newPlayer.uuid)
             MenuDispatchAbuseGuard.clearForPlayer(newPlayer.uuid)
             MenuOpenLoopGuard.clearForPlayer(newPlayer.uuid)
+            CastSoundSuppressor.clearForPlayer(oldPlayer.uuid)
+            CastSoundSuppressor.clearForPlayer(newPlayer.uuid)
         })
     }
 
@@ -205,6 +222,7 @@ object ManifestationServer : ModInitializer {
         registerAction("get_splinter_location", GET_SPLINTER_LOCATION_SIG, GET_SPLINTER_LOCATION_DIR, OpGetSplinterLocation)
         registerAction("renew_splinter", RENEW_SPLINTER_SIG, RENEW_SPLINTER_DIR, OpRenewSplinter)
         registerAction("hex_trail", HEX_TRAIL_SIG, HEX_TRAIL_DIR, OpHexTrail)
+        registerAction("silence_next_cast", SILENCE_NEXT_CAST_SIG, SILENCE_NEXT_CAST_DIR, OpSilenceNextCastSound)
     }
 
     private fun registerAction(idPath: String, signature: String, startDir: HexDir, action: Action) {
@@ -331,38 +349,71 @@ object ManifestationServer : ModInitializer {
                         null
                     }
                 }
-                // Pass the ravenmind from the session registry to the dispatcher for non-staff sources
-                MenuActionDispatcher.dispatch(player, dispatch.hand, dispatch.source, inputs, iotas, dispatch.ravenmind)
+                val preservedStack: List<Iota> = dispatch.stack.mapNotNull { stackTag ->
+                    try {
+                        IotaType.deserialize(stackTag.copy(), world)
+                    } catch (t: Throwable) {
+                        Manifestation.LOGGER.warn(
+                            "Manifestation dispatch: skipping preserved stack iota that failed to deserialize",
+                            t
+                        )
+                        null
+                    }
+                }
+                MenuActionDispatcher.dispatch(
+                    player,
+                    dispatch.hand,
+                    dispatch.source,
+                    inputs,
+                    iotas,
+                    preservedStack,
+                    dispatch.ravenmind
+                )
             }
         }
     }
 
     @JvmStatic
-    fun sendMenuTo(player: ServerPlayer, payload: MenuPayload) {
-        sendMenuTo(player, payload, null)
-    }
-
-    @JvmStatic
-    fun sendMenuTo(player: ServerPlayer, payload: MenuPayload, circleContext: MenuSessionRegistry.CircleContext?) {
+    fun sendMenuTo(
+        player: ServerPlayer,
+        payload: MenuPayload,
+        circleContext: MenuSessionRegistry.CircleContext?,
+        explicitSessionStack: List<Iota>?,
+        explicitSessionRavenmind: CompoundTag?
+    ) {
         val buf = PacketByteBufs.create()
-        // Try to capture the current ravenmind from the player's staff casting session, if available.
         val hand = payload.hand()
         val dispatchSource = payload.dispatchSource()
-        var sessionRavenmind: net.minecraft.nbt.CompoundTag? = null
-        if (dispatchSource == com.bluup.manifestation.common.menu.MenuPayload.DispatchSource.STAFF) {
-            // For staff, get the live image's ravenmind
+        val sessionStack: List<CompoundTag> = if (explicitSessionStack != null) {
+            explicitSessionStack.map { IotaType.serialize(it) }
+        } else if (dispatchSource == MenuPayload.DispatchSource.STAFF) {
+            val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
+            vm.image.stack.map { IotaType.serialize(it) }
+        } else {
+            listOf()
+        }
+        val sessionRavenmind: CompoundTag? = if (explicitSessionRavenmind != null) {
+            explicitSessionRavenmind.copy()
+        } else if (dispatchSource == MenuPayload.DispatchSource.STAFF) {
+            // Legacy fallback for staff callers that did not provide an explicit image ravenmind.
             val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
             val userData = vm.image.userData
-            sessionRavenmind = if (userData.contains(HexAPI.RAVENMIND_USERDATA)) {
+            if (userData.contains(HexAPI.RAVENMIND_USERDATA)) {
                 userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
             } else {
                 null
             }
         } else {
-            // For other sources, try to get from a relevant context if possible (future extension)
-            sessionRavenmind = null
+            null
         }
-        val payloadWithSession = MenuSessionRegistry.attachSession(player, payload, circleContext, sessionRavenmind)
+
+        val payloadWithSession = MenuSessionRegistry.attachSession(
+            player,
+            payload,
+            circleContext,
+            sessionStack,
+            sessionRavenmind
+        )
         payloadWithSession.write(buf)
         ServerPlayNetworking.send(player, ManifestationNetworking.SHOW_MENU_S2C, buf)
     }

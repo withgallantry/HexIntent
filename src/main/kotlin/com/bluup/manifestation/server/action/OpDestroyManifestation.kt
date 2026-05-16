@@ -10,7 +10,6 @@ import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
-import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.core.BlockPos
@@ -59,7 +58,7 @@ object OpDestroyManifestation : Action {
             throw MishapInvalidIota.ofType(radiusIota, 0, "non-negative number")
         }
 
-        val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
+        env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
         val world = env.world
         val centerPos = BlockPos.containing(center)
         val maxOffset = kotlin.math.ceil(radius).toInt()
@@ -78,15 +77,8 @@ object OpDestroyManifestation : Action {
                         continue
                     }
 
-                    if (!env.canEditBlockAt(candidate)) {
-                        continue
-                    }
-
-                    if (!IXplatAbstractions.INSTANCE.isBreakingAllowed(world, candidate, state, caster)) {
-                        continue
-                    }
-
-                    world.destroyBlock(candidate, true, caster)
+                    // Manifestation cleanup must work even inside claimed chunks.
+                    world.removeBlock(candidate, false)
                 }
             }
         }

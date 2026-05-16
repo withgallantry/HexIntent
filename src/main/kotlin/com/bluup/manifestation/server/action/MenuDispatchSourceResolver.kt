@@ -9,14 +9,11 @@ object MenuDispatchSourceResolver {
     private const val HEXICAL_CHARM_ENV_CLASS = "miyucomics.hexical.features.charms.CharmCastEnv"
 
     fun fromEnvironment(env: CastingEnvironment): MenuPayload.DispatchSource {
-        return if (env.javaClass.name == HEXICAL_CHARM_ENV_CLASS) {
-            MenuPayload.DispatchSource.HEXICAL_CHARM
-        } else if (env is CircleCastEnv) {
-            MenuPayload.DispatchSource.CIRCLE
-        } else if (env is StaffCastEnv) {
-            MenuPayload.DispatchSource.STAFF
-        } else {
-            MenuPayload.DispatchSource.PACKAGED_ITEM
+        return when {
+            env.javaClass.name == HEXICAL_CHARM_ENV_CLASS -> MenuPayload.DispatchSource.HEXICAL_CHARM
+            env is CircleCastEnv -> MenuPayload.DispatchSource.CIRCLE
+            env is StaffCastEnv -> MenuPayload.DispatchSource.STAFF
+            else -> MenuPayload.DispatchSource.PACKAGED_ITEM
         }
     }
 }

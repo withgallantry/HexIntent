@@ -6,14 +6,14 @@ import at.petrak.hexcasting.api.casting.eval.OperationResult
 import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
+import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.server.ManifestationServer
 import com.bluup.manifestation.server.MenuSessionRegistry
-import com.bluup.manifestation.server.mishap.MishapMenuFromSplinter
 import com.bluup.manifestation.server.mishap.MishapMenuOpenLoop
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
-import com.bluup.manifestation.server.splinter.SplinterCastEnv
+import net.fabricmc.fabric.api.entity.FakePlayer
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -35,31 +35,26 @@ object OpCreateListMenu : Action {
         image: CastingImage,
         continuation: SpellContinuation
     ): OperationResult {
-        if (env is SplinterCastEnv) {
-            throw MishapMenuFromSplinter()
-        }
-
         val stack = image.stack.toMutableList()
-
         val menu = MenuReader.readMenu(stack)
-
-        val caster = env.castingEntity as? ServerPlayer
-        if (caster == null) {
+        val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
+        if (caster is FakePlayer) {
             throw MishapRequiresCasterWill()
         }
-
         val payload = MenuPayload(
             menu.title,
             menu.entries,
             MenuPayload.Layout.LIST,
             MenuPayload.Theme.RITUAL,
-            1, // unused for LIST; carry a sentinel so the payload is valid
+            1,
             env.castingHand,
             MenuDispatchSourceResolver.fromEnvironment(env)
         )
-        if (MenuOpenLoopGuard.shouldMishap(caster, payload)) {
-            throw MishapMenuOpenLoop()
-        }
+        if (MenuOpenLoopGuard.shouldMishap(caster, payload)) throw MishapMenuOpenLoop()
+        val sessionStack = stack.toList()
+        val sessionRavenmind = if (image.userData.contains(HexAPI.RAVENMIND_USERDATA)) {
+            image.userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
+        } else null
         val circleContext = if (env is CircleCastEnv) {
             val imp = env.impetus
             if (imp != null) {
@@ -70,8 +65,7 @@ object OpCreateListMenu : Action {
         } else {
             null
         }
-        ManifestationServer.sendMenuTo(caster, payload, circleContext)
-
+        ManifestationServer.sendMenuTo(caster, payload, circleContext, sessionStack, sessionRavenmind)
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
     }

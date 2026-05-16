@@ -22,6 +22,7 @@ object MenuSessionRegistry {
     data class DispatchContext(
         val hand: InteractionHand,
         val source: MenuPayload.DispatchSource,
+        val stack: List<CompoundTag>,
         val ravenmind: CompoundTag?
     )
 
@@ -36,6 +37,7 @@ object MenuSessionRegistry {
         val source: MenuPayload.DispatchSource,
         val expiresAtMs: Long,
         val circleContext: CircleContext?,
+        val stack: List<CompoundTag>,
         val ravenmind: CompoundTag?
     )
 
@@ -47,7 +49,13 @@ object MenuSessionRegistry {
     }
 
     @JvmStatic
-    fun attachSession(player: ServerPlayer, payload: MenuPayload, circleContext: CircleContext?, ravenmind: CompoundTag?): MenuPayload {
+    fun attachSession(
+        player: ServerPlayer,
+        payload: MenuPayload,
+        circleContext: CircleContext?,
+        stack: List<CompoundTag>,
+        ravenmind: CompoundTag?
+    ): MenuPayload {
         val now = System.currentTimeMillis()
         pruneExpired(now)
 
@@ -58,6 +66,7 @@ object MenuSessionRegistry {
             source = payload.dispatchSource(),
             expiresAtMs = now + SESSION_TTL_MS,
             circleContext = circleContext,
+            stack = stack.map { it.copy() },
             ravenmind = ravenmind
         )
         byPlayer[player.uuid] = session
@@ -98,7 +107,15 @@ object MenuSessionRegistry {
             )
         }
 
-        return ResolveResult(DispatchContext(session.hand, session.source, session.ravenmind), null)
+        return ResolveResult(
+            DispatchContext(
+                session.hand,
+                session.source,
+                session.stack.map { it.copy() },
+                session.ravenmind?.copy()
+            ),
+            null
+        )
     }
 
     @JvmStatic

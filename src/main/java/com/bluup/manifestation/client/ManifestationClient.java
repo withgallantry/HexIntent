@@ -22,9 +22,8 @@ import com.bluup.manifestation.server.block.ManifestationBlocks;
  * and singleplayer.
  *
  * <p>Sole responsibility: subscribe to the Manifestation S2C packet. When one
- * arrives, read the {@link MenuPayload}, ensure no menu is already open (the
- * "one active menu" rule), mark the new one active, and swap the screen to
- * a fresh {@link MenuScreen}.
+ * arrives, read the {@link MenuPayload}, apply reopen suppression, mark the
+ * new one active, and swap the screen to a fresh {@link MenuScreen}.
  *
  * <p>The packet includes the casting hand used when the menu was created.
  * Reusing that hand on click keeps dispatch bound to the same staff-cast
@@ -112,26 +111,9 @@ public final class ManifestationClient implements ClientModInitializer {
     private static void openMenu(Minecraft mc, MenuPayload payload) {
         ActiveMenuState state = ActiveMenuState.get();
 
-        // Recover from stale state (e.g. dimension travel closed the screen but
-        // did not clear ActiveMenuState through normal MenuScreen onClose).
-        if (state.isActive() && !(mc.screen instanceof MenuScreen)) {
-            Manifestation.LOGGER.debug(
-                    "Manifestation: recovered stale active-menu state before opening new menu.");
-            state.clear();
-        }
-
         if (state.isReopenSuppressed(payload)) {
             Manifestation.LOGGER.debug(
                     "Manifestation: menu arrived during close-suppression window; dropping.");
-            return;
-        }
-
-        // "Only one active menu at a time." If one is already live, the
-        // incoming one is dropped. The server-side operator already succeeded
-        // (stack was consumed, op count spent), so we just don't show it.
-        if (state.isActive()) {
-            Manifestation.LOGGER.debug(
-                    "Manifestation: menu arrived while another is active; dropping.");
             return;
         }
 

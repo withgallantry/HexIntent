@@ -1,5 +1,6 @@
 package com.bluup.manifestation.client.menu.ui;
 
+import com.bluup.manifestation.Manifestation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -332,6 +333,7 @@ public final class MenuScreen extends Screen {
 
     @Override
     protected void init() {
+        this.clearWidgets();
         inputBoxes.clear();
         numericInputBoxes.clear();
         sliderBoxes.clear();
@@ -364,6 +366,35 @@ public final class MenuScreen extends Screen {
         if (totalPages > 1) {
             addPageControls(pageEntries);
         }
+
+        int expectedWidgets = expectedWidgetCountForPage(pageEntries);
+        int actualWidgets = this.children().size();
+        if (actualWidgets != expectedWidgets) {
+            Manifestation.LOGGER.warn(
+                "Manifestation: menu widget count mismatch after init (page={}/{}, expected={}, actual={}, layout={}, entriesOnPage={})",
+                currentPage + 1,
+                totalPages,
+                expectedWidgets,
+                actualWidgets,
+                menu.layout(),
+                pageEntries.size()
+            );
+        }
+    }
+
+    private int expectedWidgetCountForPage(List<MenuEntry> pageEntries) {
+        int controls = totalPages > 1 ? 2 : 0;
+        if (menu.layout() == MenuPayload.Layout.RADIAL) {
+            return controls;
+        }
+
+        int entryWidgets = 0;
+        for (MenuEntry entry : pageEntries) {
+            if (!entry.isSection()) {
+                entryWidgets++;
+            }
+        }
+        return entryWidgets + controls;
     }
 
     private void layoutList(List<MenuEntry> entries) {
