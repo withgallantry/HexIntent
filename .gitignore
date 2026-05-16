@@ -106,5 +106,5 @@ _site/
 hexpattern_javap.txt
 
 # hexdoc generated export artifacts
-doc/src/hexdoc_manifestation/_export/generated/*
-!doc/src/hexdoc_manifestation/_export/generated/__init__.py
+doc/src/hexdoc_hexintent/_export/generated/*
+!doc/src/hexdoc_hexintent/_export/generated/__init__.py

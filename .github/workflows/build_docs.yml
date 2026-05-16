@@ -74,10 +74,12 @@ jobs:
         uses: hexdoc-dev/actions/merge@v1
         with:
           release: ${{ inputs.release == true }}
-          site-url: ${{ needs.build-hexdoc.outputs.pages-url }}
+          site-url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          pages-branch: gh-pages
 
       - name: Deploy to Pages
         uses: hexdoc-dev/actions/deploy-pages@v1
         with:
           release: ${{ inputs.release == true }}
           merge: false
+          pages-branch: gh-pages

@@ -23,7 +23,7 @@ Source = "https://github.com/withgallantry/HexIntent"
 [tool.hatch.version]
 scheme = "gradle"
 source = "gradle-properties"
-py-path = "doc/src/hexdoc_manifestation/__version__.py"
+py-path = "doc/src/hexdoc_hexintent/__version__.py"
 key = "mod_version"
 
 [tool.hatch.metadata.hooks.gradle-properties]
@@ -40,23 +40,23 @@ dev = [
 
 [tool.hatch.build]
 artifacts = [
-    "/doc/src/hexdoc_manifestation/_export/generated",
-    "/doc/src/hexdoc_manifestation/__gradle_version__.py",
+    "/doc/src/hexdoc_hexintent/_export/generated",
+    "/doc/src/hexdoc_hexintent/__gradle_version__.py",
 ]
 
 [tool.hatch.build.targets.sdist]
 only-include = [
-    "doc/src/hexdoc_manifestation",
+    "doc/src/hexdoc_hexintent",
     "gradle.properties",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = [
-    "doc/src/hexdoc_manifestation",
+    "doc/src/hexdoc_hexintent",
 ]
 
 [project.entry-points.hexdoc]
-manifestation = "hexdoc_manifestation._hooks:HexIntentPlugin"
+manifestation = "hexdoc_hexintent._hooks:HexIntentPlugin"
 
 [tool.pyright]
 pythonVersion = "3.11"

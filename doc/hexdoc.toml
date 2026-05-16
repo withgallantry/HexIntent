@@ -11,7 +11,7 @@ resource_dirs = [
     { modid = "hexcasting" },
     { modid = "hexdoc" },
 ]
-export_dir = "src/hexdoc_manifestation/_export/generated"
+export_dir = "src/hexdoc_hexintent/_export/generated"
 
 [extra.hexcasting]
 _pattern_regex = { "!Raw" = 'registerAction\("(?P<name>[a-zA-Z0-9_\/]+)",\s*"(?P<signature>[qweasd]+)",\s*HexDir\.(?P<startdir>\w+),' }

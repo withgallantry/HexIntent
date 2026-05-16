@@ -3,7 +3,7 @@ from importlib.resources import Package
 from hexdoc.plugin import HookReturn, ModPlugin, ModPluginImpl, ModPluginWithBook, hookimpl
 from typing_extensions import override
 
-import hexdoc_manifestation
+import hexdoc_hexintent
 
 from .__gradle_version__ import FULL_VERSION, GRADLE_VERSION
 from .__version__ import PY_VERSION
@@ -40,15 +40,15 @@ class HexIntentModPlugin(ModPluginWithBook):
     @override
     def resource_dirs(self) -> HookReturn[Package]:
         # Import lazily because generated content may not exist at import time.
-        from hexdoc_manifestation._export import generated
+        from hexdoc_hexintent._export import generated
 
         return generated
 
     @override
     def jinja_template_root(self) -> tuple[Package, str]:
-        return hexdoc_manifestation, "_templates"
+        return hexdoc_hexintent, "_templates"
 
 
 # Backward compatibility for stale editable installs that still point to
-# hexdoc_manifestation._hooks:ManifestationPlugin.
+# hexdoc_hexintent._hooks:ManifestationPlugin.
 ManifestationPlugin = HexIntentPlugin
