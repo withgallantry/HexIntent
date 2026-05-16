@@ -1313,7 +1313,7 @@
   .texture-manifestation-textures-block-spell_circle-png {
     animation: texture-manifestation-textures-block-spell_circle-png 0.0s steps(1, start) infinite;
     background-size: 100%;
-    background-image: url("https://raw.githubusercontent.com/withgallantry/HexIntent/81e900ae268032374d6230606cc8f24025ca3350/src/main/resources/assets/manifestation/textures/block/spell_circle.png");
+    background-image: url("https://raw.githubusercontent.com/withgallantry/HexIntent/d8d4f10789b5d39f775c1058b74f61ef847155e7/src/main/resources/assets/manifestation/textures/block/spell_circle.png");
   }
   @keyframes texture-manifestation-textures-block-spell_circle-png {
   }
