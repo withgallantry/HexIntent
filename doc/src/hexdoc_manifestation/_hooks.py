@@ -9,14 +9,14 @@ from .__gradle_version__ import FULL_VERSION, GRADLE_VERSION
 from .__version__ import PY_VERSION
 
 
-class ManifestationPlugin(ModPluginImpl):
+class HexIntentPlugin(ModPluginImpl):
     @staticmethod
     @hookimpl
     def hexdoc_mod_plugin(branch: str) -> ModPlugin:
-        return ManifestationModPlugin(branch=branch)
+        return HexIntentModPlugin(branch=branch)
 
 
-class ManifestationModPlugin(ModPluginWithBook):
+class HexIntentModPlugin(ModPluginWithBook):
     @property
     @override
     def modid(self) -> str:
@@ -47,3 +47,8 @@ class ManifestationModPlugin(ModPluginWithBook):
     @override
     def jinja_template_root(self) -> tuple[Package, str]:
         return hexdoc_manifestation, "_templates"
+
+
+# Backward compatibility for stale editable installs that still point to
+# hexdoc_manifestation._hooks:ManifestationPlugin.
+ManifestationPlugin = HexIntentPlugin

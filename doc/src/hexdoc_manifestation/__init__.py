@@ -1,1 +1,1 @@
-"""hexdoc plugin package for Manifestation."""
+"""hexdoc plugin package for HexIntent."""

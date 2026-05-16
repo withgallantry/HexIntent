@@ -1,4 +1,4 @@
-# hexdoc-manifestation
+# hexdoc-hexintent
 
 Python web book docgen and hexdoc plugin for HexIntent.
 Current release version: 2.1.3.

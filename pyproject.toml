@@ -6,8 +6,8 @@ requires = [
 build-backend = "hatchling.build"
 
 [project]
-name = "hexdoc-manifestation"
-description = "hexdoc plugin for Manifestation web book docs."
+name = "hexdoc-hexintent"
+description = "hexdoc plugin for HexIntent web book docs."
 authors = [
     { name = "withgallantry" },
 ]
@@ -17,8 +17,8 @@ requires-python = ">=3.11"
 dynamic = ["version", "dependencies", "optional-dependencies"]
 
 [project.urls]
-Homepage = "https://withgallantry.github.io/HexManifestation/"
-Source = "https://github.com/withgallantry/HexManifestation"
+Homepage = "https://withgallantry.github.io/HexIntent/"
+Source = "https://github.com/withgallantry/HexIntent"
 
 [tool.hatch.version]
 scheme = "gradle"
@@ -56,7 +56,7 @@ packages = [
 ]
 
 [project.entry-points.hexdoc]
-manifestation = "hexdoc_manifestation._hooks:ManifestationPlugin"
+manifestation = "hexdoc_manifestation._hooks:HexIntentPlugin"
 
 [tool.pyright]
 pythonVersion = "3.11"
