@@ -100,3 +100,7 @@ __pycache__/
 *.egg-info/
 .env
 _site/
+
+# hexdoc generated export artifacts
+doc/src/hexdoc_manifestation/_export/generated/*
+!doc/src/hexdoc_manifestation/_export/generated/__init__.py

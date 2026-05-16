@@ -1,7 +1,0 @@
-{
-  "name": "hexcasting.category.manifestation_my_intent_with_media",
-  "description": "hexcasting.category.manifestation_my_intent_with_media.desc",
-  "icon": "minecraft:writable_book",
-  "parent": "hexcasting:basics",
-  "sortnum": 0
-}

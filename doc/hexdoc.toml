@@ -14,9 +14,11 @@ resource_dirs = [
 export_dir = "src/hexdoc_manifestation/_export/generated"
 
 [extra.hexcasting]
-pattern_stubs = [
-    { type = "json", path = "pattern_stubs.json" },
-]
+_pattern_regex = { "!Raw" = 'registerAction\("(?P<name>[a-zA-Z0-9_\/]+)",\s*"(?P<signature>[qweasd]+)",\s*HexDir\.(?P<startdir>\w+),' }
+
+[[extra.hexcasting.pattern_stubs]]
+path = "{$_common.src}/main/kotlin/com/bluup/manifestation/server/ManifestationServer.kt"
+regex = "{^_pattern_regex}"
 
 [template]
 icon = "../docs/assets/ExampleTeleportMenu.png"

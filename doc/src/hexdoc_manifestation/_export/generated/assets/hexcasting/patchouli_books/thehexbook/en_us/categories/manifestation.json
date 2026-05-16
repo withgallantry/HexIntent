@@ -1,7 +1,0 @@
-{
-  "name": "hexcasting.category.manifestation",
-  "description": "hexcasting.category.manifestation.desc",
-  "icon": "minecraft:lectern",
-  "parent": "hexcasting:patterns",
-  "sortnum": 51
-}

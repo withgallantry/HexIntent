@@ -39,9 +39,6 @@ jobs:
       - name: Ensure gradlew is executable
         run: chmod +x gradlew
 
-      - name: Verify pattern stubs are synced
-        run: python doc/src/hexdoc_manifestation/pattern_sync.py --check
-
       - name: Build
         run: ./gradlew build
 

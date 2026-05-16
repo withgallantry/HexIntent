@@ -66,75 +66,6 @@ object ManifestationServer : ModInitializer {
     private const val MAX_INPUT_LIST_ITEMS = 128
     private const val MAX_INPUT_STRING_CHARS = 256
 
-    private const val LIST_MENU_SIG = "awwaqwedwwd"
-    private val LIST_MENU_DIR = HexDir.NORTH_EAST
-
-    private const val GRID_MENU_SIG = "awwaeawwaqwddad"
-    private val GRID_MENU_DIR = HexDir.NORTH_EAST
-
-    private const val RADIAL_MENU_SIG = "awwaeawwaqwddade"
-    private val RADIAL_MENU_DIR = HexDir.NORTH_EAST
-
-    private const val UI_BUTTON_SIG = "awwaqwedwwdaa"
-    private val UI_BUTTON_DIR = HexDir.NORTH_EAST
-
-    private const val UI_INPUT_SIG = "awwaqwedwwdad"
-    private val UI_INPUT_DIR = HexDir.NORTH_EAST
-
-    private const val UI_NUMERIC_INPUT_SIG = "awwaqwedwwdadq"
-    private val UI_NUMERIC_INPUT_DIR = HexDir.NORTH_EAST
-
-    private const val UI_SLIDER_SIG = "awwaqwedwwdaw"
-    private val UI_SLIDER_DIR = HexDir.NORTH_EAST
-
-    private const val UI_CHECKBOX_SIG = "awwaqwedwwdadee"
-    private val UI_CHECKBOX_DIR = HexDir.NORTH_EAST
-
-    private const val UI_SELECT_LIST_SIG = "awwaqwedwwdaaedd"
-    private val UI_SELECT_LIST_DIR = HexDir.NORTH_EAST
-
-    private const val UI_SECTION_SIG = "awwaqwedwwdawde"
-    private val UI_SECTION_DIR = HexDir.NORTH_EAST
-
-    private const val UI_DROPDOWN_SIG = "awwaqwedwwdawaq"
-    private val UI_DROPDOWN_DIR = HexDir.NORTH_EAST
-
-    private const val LINK_INTENT_RELAY_SIG = "edeweqaq"
-    private val LINK_INTENT_RELAY_DIR = HexDir.SOUTH_WEST
-
-    private const val UNLINK_INTENT_RELAY_SIG = "edeweqaqq"
-    private val UNLINK_INTENT_RELAY_DIR = HexDir.SOUTH_WEST
-
-    private const val OPEN_CORRIDOR_PORTAL_SIG = "edqqdeew"
-    private val OPEN_CORRIDOR_PORTAL_DIR = HexDir.NORTH_WEST
-
-    private const val PRESENCE_INTENT_SIG = "edewqaqdeeeweee"
-    private val PRESENCE_INTENT_DIR = HexDir.NORTH_WEST
-
-    private const val MANIFEST_ECHO_SIG = "qqqqqaweeee"
-    private val MANIFEST_ECHO_DIR = HexDir.WEST
-
-    private const val DESTROY_MANIFESTATION_SIG = "edeeedwwaq"
-    private val DESTROY_MANIFESTATION_DIR = HexDir.NORTH_WEST
-
-    private const val MANIFEST_SPLINTER_SIG = "dedade"
-    private val MANIFEST_SPLINTER_DIR = HexDir.SOUTH_WEST
-
-    private const val DESTROY_SPLINTERS_SIG = "dedadeaqaww"
-    private val DESTROY_SPLINTERS_DIR = HexDir.SOUTH_WEST
-
-    private const val GET_SPLINTER_LOCATION_SIG = "dedadeeweewewewee"
-    private val GET_SPLINTER_LOCATION_DIR = HexDir.SOUTH_WEST
-
-    private const val RENEW_SPLINTER_SIG = "dedaded"
-    private val RENEW_SPLINTER_DIR = HexDir.SOUTH_WEST
-
-    private const val HEX_TRAIL_SIG = "qaqead"
-    private val HEX_TRAIL_DIR = HexDir.NORTH_EAST
-
-    private const val SILENCE_NEXT_CAST_SIG = "qaqeadwq"
-    private val SILENCE_NEXT_CAST_DIR = HexDir.NORTH_EAST
-
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
 
@@ -196,33 +127,33 @@ object ManifestationServer : ModInitializer {
     }
 
     private fun registerActions() {
-        registerAction("create_list_menu", LIST_MENU_SIG, LIST_MENU_DIR, OpCreateListMenu)
-        registerAction("create_grid_menu", GRID_MENU_SIG, GRID_MENU_DIR, OpCreateGridMenu)
-        registerAction("create_radial_menu", RADIAL_MENU_SIG, RADIAL_MENU_DIR, OpCreateRadialMenu)
+        registerAction("create_list_menu", "awwaqwedwwd", HexDir.NORTH_EAST, OpCreateListMenu)
+        registerAction("create_grid_menu", "awwaeawwaqwddad", HexDir.NORTH_EAST, OpCreateGridMenu)
+        registerAction("create_radial_menu", "awwaeawwaqwddade", HexDir.NORTH_EAST, OpCreateRadialMenu)
 
-        registerAction("intent_button", UI_BUTTON_SIG, UI_BUTTON_DIR, OpUiButton)
-        registerAction("intent_input", UI_INPUT_SIG, UI_INPUT_DIR, OpUiInput)
-        registerAction("intent_numeric_input", UI_NUMERIC_INPUT_SIG, UI_NUMERIC_INPUT_DIR, OpUiNumericInput)
-        registerAction("intent_slider", UI_SLIDER_SIG, UI_SLIDER_DIR, OpUiSlider)
-        registerAction("intent_checkbox", UI_CHECKBOX_SIG, UI_CHECKBOX_DIR, OpUiCheckbox)
-        registerAction("intent_select_list", UI_SELECT_LIST_SIG, UI_SELECT_LIST_DIR, OpUiSelectList)
-        registerAction("intent_section", UI_SECTION_SIG, UI_SECTION_DIR, OpUiSection)
-        registerAction("intent_dropdown", UI_DROPDOWN_SIG, UI_DROPDOWN_DIR, OpUiDropdown)
+        registerAction("intent_button", "awwaqwedwwdaa", HexDir.NORTH_EAST, OpUiButton)
+        registerAction("intent_input", "awwaqwedwwdad", HexDir.NORTH_EAST, OpUiInput)
+        registerAction("intent_numeric_input", "awwaqwedwwdadq", HexDir.NORTH_EAST, OpUiNumericInput)
+        registerAction("intent_slider", "awwaqwedwwdaw", HexDir.NORTH_EAST, OpUiSlider)
+        registerAction("intent_checkbox", "awwaqwedwwdadee", HexDir.NORTH_EAST, OpUiCheckbox)
+        registerAction("intent_select_list", "awwaqwedwwdaaedd", HexDir.NORTH_EAST, OpUiSelectList)
+        registerAction("intent_section", "awwaqwedwwdawde", HexDir.NORTH_EAST, OpUiSection)
+        registerAction("intent_dropdown", "awwaqwedwwdawaq", HexDir.NORTH_EAST, OpUiDropdown)
 
-        registerAction("link_intent_relay", LINK_INTENT_RELAY_SIG, LINK_INTENT_RELAY_DIR, OpLinkIntentRelay)
-        registerAction("unlink_intent_relay", UNLINK_INTENT_RELAY_SIG, UNLINK_INTENT_RELAY_DIR, OpUnlinkIntentRelay)
-        registerAction("open_corridor_portal", OPEN_CORRIDOR_PORTAL_SIG, OPEN_CORRIDOR_PORTAL_DIR, OpOpenCorridorPortal)
+        registerAction("link_intent_relay", "edeweqaq", HexDir.SOUTH_WEST, OpLinkIntentRelay)
+        registerAction("unlink_intent_relay", "edeweqaqq", HexDir.SOUTH_WEST, OpUnlinkIntentRelay)
+        registerAction("open_corridor_portal", "edqqdeew", HexDir.NORTH_WEST, OpOpenCorridorPortal)
 
-        registerAction("presence_intent", PRESENCE_INTENT_SIG, PRESENCE_INTENT_DIR, OpPresenceIntent)
-        registerAction("manifest_echo", MANIFEST_ECHO_SIG, MANIFEST_ECHO_DIR, OpManifestEcho)
-        registerAction("destroy_manifestation", DESTROY_MANIFESTATION_SIG, DESTROY_MANIFESTATION_DIR, OpDestroyManifestation)
+        registerAction("presence_intent", "edewqaqdeeeweee", HexDir.NORTH_WEST, OpPresenceIntent)
+        registerAction("manifest_echo", "qqqqqaweeee", HexDir.WEST, OpManifestEcho)
+        registerAction("destroy_manifestation", "edeeedwwaq", HexDir.NORTH_WEST, OpDestroyManifestation)
 
-        registerAction("manifest_splinter", MANIFEST_SPLINTER_SIG, MANIFEST_SPLINTER_DIR, OpManifestSplinter)
-        registerAction("destroy_splinters", DESTROY_SPLINTERS_SIG, DESTROY_SPLINTERS_DIR, OpDestroySplinters)
-        registerAction("get_splinter_location", GET_SPLINTER_LOCATION_SIG, GET_SPLINTER_LOCATION_DIR, OpGetSplinterLocation)
-        registerAction("renew_splinter", RENEW_SPLINTER_SIG, RENEW_SPLINTER_DIR, OpRenewSplinter)
-        registerAction("hex_trail", HEX_TRAIL_SIG, HEX_TRAIL_DIR, OpHexTrail)
-        registerAction("silence_next_cast", SILENCE_NEXT_CAST_SIG, SILENCE_NEXT_CAST_DIR, OpSilenceNextCastSound)
+        registerAction("manifest_splinter", "dedade", HexDir.SOUTH_WEST, OpManifestSplinter)
+        registerAction("destroy_splinters", "dedadeaqaww", HexDir.SOUTH_WEST, OpDestroySplinters)
+        registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
+        registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
+        registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
+        registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
     }
 
     private fun registerAction(idPath: String, signature: String, startDir: HexDir, action: Action) {

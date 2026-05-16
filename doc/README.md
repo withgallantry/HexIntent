@@ -30,13 +30,6 @@ hexdoc merge
 hexdoc serve
 ```
 
-`doc/pattern_stubs.json` is generated from `ManifestationServer.kt` during docs builds.
-To verify it is already current without rewriting it:
-
-```sh
-python -m hexdoc_manifestation.pattern_sync --check
-```
-
 Watch mode:
 
 ```sh

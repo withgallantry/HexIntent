@@ -1,22 +1,19 @@
 from importlib.resources import Package
 
-from hexdoc.core import Properties
-from hexdoc.plugin import HookReturn, ModPlugin, ModPluginImplWithProps, ModPluginWithBook, hookimpl
+from hexdoc.plugin import HookReturn, ModPlugin, ModPluginImpl, ModPluginWithBook, hookimpl
 from typing_extensions import override
 
 import hexdoc_manifestation
 
 from .__gradle_version__ import FULL_VERSION, GRADLE_VERSION
-from .pattern_sync import sync_pattern_stubs
 from .__version__ import PY_VERSION
 
 
-class ManifestationPlugin(ModPluginImplWithProps):
+class ManifestationPlugin(ModPluginImpl):
     @staticmethod
     @hookimpl
-    def hexdoc_mod_plugin(branch: str, props: Properties) -> ModPlugin:
-        sync_pattern_stubs()
-        return ManifestationModPlugin(branch=branch, props=props)
+    def hexdoc_mod_plugin(branch: str) -> ModPlugin:
+        return ManifestationModPlugin(branch=branch)
 
 
 class ManifestationModPlugin(ModPluginWithBook):
