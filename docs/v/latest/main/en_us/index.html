@@ -77,7 +77,7 @@
       <ul class="nav navbar-nav navbar-right">
             <li>
     <a
-      href="https://github.com/withgallantry/HexIntent/tree/6a9a1a6cfe3c23b71dc85f14a1fe2a1e67ad4e57"
+      href="https://github.com/withgallantry/HexIntent/tree/0226db249fd8b97908b2a7d83163e12bcc1bf65f"
         target="_blank"
       class="navbar-link"
       role="button"
@@ -169,12 +169,12 @@
     > Items</a></summary>
       <ul>
           <li><a href="#manifestation/contained_splinter" class="toc-elem "><img
-      title="Contained Splinter"
-      alt="Contained Splinter"
+      title="item.manifestation.splinter_caster"
+      alt="item.manifestation.splinter_caster"
       src="https://withgallantry.github.io/HexIntent/v/latest/main/assets/manifestation/textures/block/splinter_caster.png"
       loading="lazy"
       class="item-texture  texture "
-    > Contained Splinter</a></li>
+    > hexcasting.entry.manifestation_contained_splinter</a></li>
       </ul>
     </details>
     <details class="toc-category">
@@ -217,7 +217,7 @@
       src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/amethyst_dust.png"
       loading="lazy"
       class="item-texture  texture pixelated"
-    > Splinters</a></li>
+    > hexcasting.entry.manifestation_splinters</a></li>
       </ul>
     </details>
 </nav>
@@ -257,7 +257,7 @@
     class="permalink small"
     title="Permalink"
   ><i class="bi bi-link-45deg"></i></a></h3>
-    <p>I have long suspected that media and mind are not so separate as they seem. Only now do I begin to see how thought may be given form.</p><p>By constraining media with intent, I can compel it to manifest in the world around me. These manifestations may be perceived, and more curiously, they may accept further intent, carrying thought forward until it becomes action.</p>
+    <p>I&#39;ve long suspected a link between media and the mind, but only recently have I begun to understand its depths. Constraining the media into patterns with intent makes it manifest, forming structures that can be perceived.</p><p>More curious still, these constructs seem capable of accepting intent. By imposing order upon them, I can compel them to carry thought forward, translating decision into action.</p>
 <br />
 </div>
 </section>
@@ -282,12 +282,12 @@
 <div id="manifestation/contained_splinter" class="entry">
     <h3 class="entry-title page-header">
     <img
-      title="Contained Splinter"
-      alt="Contained Splinter"
+      title="item.manifestation.splinter_caster"
+      alt="item.manifestation.splinter_caster"
       src="https://withgallantry.github.io/HexIntent/v/latest/main/assets/manifestation/textures/block/splinter_caster.png"
       loading="lazy"
       class="item-texture  texture "
-    >Contained Splinter<a
+    >hexcasting.entry.manifestation_contained_splinter<a
     href="#table-of-contents"
     class="permalink small"
     title="Jump to top"
@@ -303,16 +303,16 @@
       src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
     >
     <img
-      title="Contained Splinter"
-      alt="Contained Splinter"
+      title="item.manifestation.splinter_caster"
+      alt="item.manifestation.splinter_caster"
       src="https://withgallantry.github.io/HexIntent/v/latest/main/assets/manifestation/textures/block/splinter_caster.png"
       loading="lazy"
       class="item-texture  texture "
     >
   </div>
-      <p>Planting a villager&#39;s mind into a box etched to channel the caster&#39;s will creates a Contained Splinter. It is made by flaying a novice villager into a block of slate.</p><p>The Contained Splinter can hold a focus. Insert a focus carrying a hex, and when the circle reaches the block it manifests a splinter and waits for that splinter to finish before the circle proceeds.</p>
+      <p>hexcasting.page.manifestation.contained_splinter.lore</p>
 <br />
-    <p>While active, the contained splinter casts as part of the circle and uses circle and splinter ambit rules. Using Renew Splinter with Locate Splinter&#39;s current position can create unusual self-looping behavior.</p><p>A redstone signal works as an interrupt: it immediately dispels the active anchored splinter and allows the spell circle to continue.</p>
+    <p>hexcasting.page.manifestation.contained_splinter.usage</p>
 <br />
 </div>
 </section>
@@ -351,7 +351,7 @@
     class="permalink small"
     title="Permalink"
   ><i class="bi bi-link-45deg"></i></a></h3>
-    <p>An Intent is an imposition of will on the media, shaping it into a vessel awaiting a spark of interaction to awaken it.</p><p>By themselves, intents are inert. A button waits for a press, an input for text, a numeric input for precise values, a slider for a nudge, a checkbox for a simple toggle, a selectable list for choosing iotas, and a dropdown for a selection. But once roused, they execute their patterns with the fervor of a cast hex.</p>
+    <p>An Intent is an imposition of will on the media, shaping it into a vessel awaiting a spark of interaction to awaken it.</p><p>By themselves, intents are inert. A button waits for a press, an input for text, a slider for a nudge, and a dropdown for a selection. But once roused, they execute their patterns with the fervor of a cast hex.</p>
 <br />
   <div id="manifestation/intents@manifestation:intent_button" class="">
 <h4 class="pattern-title">Intent Button ([pattern], string | text → intent)<a
@@ -574,7 +574,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: awwaqwedwwdawde</canvas>
   </details>
-      <p>Creates a section heading from a label.</p>
+      <p>Creates a non-interactive section from a label, acting as a sub heading.</p>
   </div>
 <br />
   <div id="manifestation/intents@manifestation:intent_dropdown" class="">
@@ -634,7 +634,7 @@
   </div>
 <br />
   <div id="manifestation/intents@manifestation:presence_intent" class="">
-<h4 class="pattern-title">Presence Intent (vec, vec facing → presenceIntent)<a
+<h4 class="pattern-title">Presence Intent (vec position, vec facing → presenceIntent)<a
     href="#manifestation/intents@manifestation:presence_intent"
     class="permalink small"
     title="Permalink"
@@ -686,7 +686,231 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: edewqaqdeeeweee</canvas>
   </details>
-      <p>Formed from a position and direction vector. A focusing of the mind upon a place, impressed until presence is recognised there.</p>
+      <p>A shaped will to be present at a distant place, bound to a position and facing.</p>
+  </div>
+<br />
+  <div id="manifestation/intents@manifestation:manifest_echo" class="">
+<h4 class="pattern-title">Manifest Echo (vec, num → none)<a
+    href="#manifestation/intents@manifestation:manifest_echo"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qqqqqaweeee"
+        data-start="west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qqqqqaweeee</canvas>
+  </details>
+      <p>Manifests or refreshes an Echo at a target position in one of three slots (0..2). The second argument selects the slot number. Each action costs one dust-equivalent media, hits against the echo remove 5 media, and when media is depleted the echo shatters with amethyst resonance.</p>
+  </div>
+<br />
+  <div id="manifestation/intents@manifestation:link_intent_relay" class="">
+<h4 class="pattern-title">Manifest Relay (vec support, vec target, num? → none)<a
+    href="#manifestation/intents@manifestation:link_intent_relay"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edeweqaq"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edeweqaq</canvas>
+  </details>
+      <p>Manifests a Relay linked from a destination vector to a target vector. It manifests on the face of the destination vector cast is looking at. Optionally takes a redstone signal strength (0-15) to emit when the relay is activated.</p>
+  </div>
+<br />
+  <div id="manifestation/intents@manifestation:unlink_intent_relay" class="">
+<h4 class="pattern-title">Unlink Intent Relay (vec → none)<a
+    href="#manifestation/intents@manifestation:unlink_intent_relay"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edeweqaqq"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edeweqaqq</canvas>
+  </details>
+      <p>Clears an existing link from a Manifest Relay block.</p>
+  </div>
+<br />
+  <div id="manifestation/intents@manifestation:open_corridor_portal" class="">
+<h4 class="pattern-title">Manifest Threshold (vec, presenceIntent, num, num?&lt;=3 → none)<a
+    href="#manifestation/intents@manifestation:open_corridor_portal"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edqqdeew"
+        data-start="north_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edqqdeew</canvas>
+  </details>
+      <p>A threshold is a boundary where intent manifests. To cross it is to make the caster&#39;s will real.</p>
   </div>
 <br />
 </div>
@@ -726,10 +950,10 @@
     class="permalink small"
     title="Permalink"
   ><i class="bi bi-link-45deg"></i></a></h3>
-    <p>I have long suspected that media and mind are not so separate as they seem. Only now do I begin to see how thought may be given form.</p><p>By constraining media with intent, I can compel it to manifest in the world around me. These manifestations may be perceived, and more curiously, they may accept further intent, carrying thought forward until it becomes action.</p>
+    <p>I&#39;ve long suspected a link between media and the mind, but only recently have I begun to understand its depths. Constraining the media into patterns with intent makes it manifest, forming structures that can be perceived.</p><p>More curious still, these constructs seem capable of accepting intent. By imposing order upon them, I can compel them to carry thought forward, translating decision into action.</p>
 <br />
   <div id="manifestation/menus@manifestation:create_list_menu" class="">
-<h4 class="pattern-title">Manifest List ([intents], string | text →)<a
+<h4 class="pattern-title">Manifest List Menu ([intents], string | text →)<a
     href="#manifestation/menus@manifestation:create_list_menu"
     class="permalink small"
     title="Permalink"
@@ -785,7 +1009,7 @@
   </div>
 <br />
   <div id="manifestation/menus@manifestation:create_grid_menu" class="">
-<h4 class="pattern-title">Manifest Grid ([intents], string | text, num →)<a
+<h4 class="pattern-title">Manifest Grid Menu ([intents], string | text, num →)<a
     href="#manifestation/menus@manifestation:create_grid_menu"
     class="permalink small"
     title="Permalink"
@@ -841,7 +1065,7 @@
   </div>
 <br />
   <div id="manifestation/menus@manifestation:create_radial_menu" class="">
-<h4 class="pattern-title">Manifest Radial (list, string | text →)<a
+<h4 class="pattern-title">Manifest Radial Menu (list, string | text →)<a
     href="#manifestation/menus@manifestation:create_radial_menu"
     class="permalink small"
     title="Permalink"
@@ -949,7 +1173,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: qqqqqaweeee</canvas>
   </details>
-      <p>Anchors a fragment of the caster&#39;s will to the impetus at the vector allowing it to cast some spells that would usually require the caster to be present. Can fracture mind up to 3 times.</p>
+      <p>Manifests or refreshes an Echo at a target position in one of three slots (0..2). The second argument selects the slot number. Each action costs one dust-equivalent media, hits against the echo remove 5 media, and when media is depleted the echo shatters with amethyst resonance.</p>
   </div>
 <br />
   <div id="manifestation/menus@manifestation:link_intent_relay" class="">
@@ -1185,7 +1409,7 @@
       src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/amethyst_dust.png"
       loading="lazy"
       class="item-texture  texture pixelated"
-    >Splinters<a
+    >hexcasting.entry.manifestation_splinters<a
     href="#table-of-contents"
     class="permalink small"
     title="Jump to top"
@@ -1194,10 +1418,10 @@
     class="permalink small"
     title="Permalink"
   ><i class="bi bi-link-45deg"></i></a></h3>
-    <p>In trying to recreate Greater Sentinel, I first hypothosised that strong intent was the key. Instead I split away unstable slivers of my own will: brief-minded splinters that wait, cast once, and perish.</p><p>A splinter casts as me and draws on my media, yet its ambit is only sixteen blocks from its own position. If its cast mishaps, the splinter simply collapses rather than rebounding upon me.</p>
+    <p>hexcasting.page.manifestation.splinters_intro</p>
 <br />
   <div id="manifestation/splinters@manifestation:manifest_splinter" class="">
-<h4 class="pattern-title">Manifest Splinter (position vec, delay_ticks num, payload [iotas] → none)<a
+<h4 class="pattern-title">hexcasting.action.book.manifestation:manifest_splinter (position vec, delay_ticks num, payload [iotas] → none)<a
     href="#manifestation/splinters@manifestation:manifest_splinter"
     class="permalink small"
     title="Permalink"
@@ -1249,11 +1473,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedade</canvas>
   </details>
-      <p>Schedules a new splinter that will execute a stored payload after a delay. Player-cast splinters must begin within my own ambit and snap to the nearest half-block.</p><p>Inputs:<br />position: world-space vector to summon at.<br />delay ticks: non-negative delay before execution.<br />payload: non-empty list of iotas to store and execute.</p><p>Cost: 5 dust times (active splinters + 1).</p>
+      <p>hexcasting.page.manifestation.splinters.manifest_splinter</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:renew_splinter" class="">
-<h4 class="pattern-title">Renew Splinter (position vec, delay_ticks num → none)<a
+<h4 class="pattern-title">hexcasting.action.book.manifestation:renew_splinter (position vec, delay_ticks num → none)<a
     href="#manifestation/splinters@manifestation:renew_splinter"
     class="permalink small"
     title="Permalink"
@@ -1305,11 +1529,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedaded</canvas>
   </details>
-      <p>Cast only by a splinter. Creates a successor splinter using the current splinter&#39;s stored payload and ravenmind.</p><p>Inputs:<br />position: world-space vector for the successor.<br />delay ticks: non-negative delay before the successor executes.</p><p>Cost: replacing at the same snapped position is free; moving to a new position costs 0.5 dust.</p>
+      <p>hexcasting.page.manifestation.splinters.renew_splinter</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:get_splinter_location" class="">
-<h4 class="pattern-title">Locate Splinter (→ vec)<a
+<h4 class="pattern-title">hexcasting.action.book.manifestation:get_splinter_location (→ vec)<a
     href="#manifestation/splinters@manifestation:get_splinter_location"
     class="permalink small"
     title="Permalink"
@@ -1361,11 +1585,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedadeeweewewewee</canvas>
   </details>
-      <p>Cast only by a splinter. Returns the origin vector of the currently casting splinter. Useful for self-renewal, local offsets, and checking whether a successor remained in place.</p>
+      <p>hexcasting.page.manifestation.splinters.get_splinter_location</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:destroy_splinters" class="">
-<h4 class="pattern-title">Dismiss Splinters (→ none)<a
+<h4 class="pattern-title">hexcasting.action.book.manifestation:destroy_splinters (→ none)<a
     href="#manifestation/splinters@manifestation:destroy_splinters"
     class="permalink small"
     title="Permalink"
@@ -1417,11 +1641,11 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: dedadeaqaww</canvas>
   </details>
-      <p>Dismisses all active splinters owned by the caster.</p>
+      <p>hexcasting.page.manifestation.splinters.destroy_splinters</p>
   </div>
 <br />
   <div id="manifestation/splinters@manifestation:hex_trail" class="">
-<h4 class="pattern-title">Hex Trail (position vec, color_from vec, color_to vec, ticks num, id num, type? num → none)<a
+<h4 class="pattern-title">hexcasting.action.book.manifestation:hex_trail (position vec, color_from vec, color_to vec, ticks num, id num, type? num → none)<a
     href="#manifestation/splinters@manifestation:hex_trail"
     class="permalink small"
     title="Permalink"
@@ -1473,7 +1697,7 @@
         data-per-world="False"
       >Your browser does not support visualizing patterns. Pattern code: qaqead</canvas>
   </details>
-      <p>Creates a smooth, stateful trail channel keyed by id. Each cast appends one new point at position; the prior point is remembered automatically. Segments longer than 10 blocks do not connect.</p><p>Inputs:<br />position: world-space vector for the new point.<br />color from: RGB vector (0..1) at the start of the color cycle.<br />color to: RGB vector (0..1) at the end of the color cycle.<br />ticks: positive transition duration for color ping-pong.<br />id: numeric trail channel key; reuse to continue the same trail.<br />type?: optional style index, rounded and clamped to 0..14 (default 0).</p><p>Types: 0 dust ribbon, 1 sparks, 2 trail, 3 pulse beads, 4 end rod, 5 witch plume, 6 enchant flecks, 7 soul flame beads, 8 solid beam, 9 ring lattice, 10 lightning arc, 11 hex conjure ribbon, 12 hex conjure sparks, 13 hex conjure trail, 14 dual-helix.<br />Color vectors tint types 0-3 and 8-14; types 4-7 use native particle colors.</p>
+      <p>hexcasting.page.manifestation.splinters.hex_trail</p>
   </div>
 <br />
 </div>
