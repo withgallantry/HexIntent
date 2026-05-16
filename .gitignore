@@ -100,6 +100,10 @@ __pycache__/
 *.egg-info/
 .env
 _site/
+.hexdoc
+.tmp-pipmeta
+.tmp_hexsrc/
+hexpattern_javap.txt
 
 # hexdoc generated export artifacts
 doc/src/hexdoc_manifestation/_export/generated/*
