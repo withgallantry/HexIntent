@@ -53,9 +53,41 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:presence_intent",
       "anchor": "manifestation:presence_intent",
-      "input": "vec, vec facing",
+      "input": "vec position, vec facing",
       "output": "presenceIntent",
       "text": "hexcasting.page.manifestation.intents.presence_intent"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:manifest_echo",
+      "anchor": "manifestation:manifest_echo",
+      "input": "vec, num",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.manifest_echo"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:link_intent_relay",
+      "anchor": "manifestation:link_intent_relay",
+      "input": "vec support, vec target, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.link_intent_relay"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:unlink_intent_relay",
+      "anchor": "manifestation:unlink_intent_relay",
+      "input": "vec",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.unlink_intent_relay"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:open_corridor_portal",
+      "anchor": "manifestation:open_corridor_portal",
+      "input": "vec, presenceIntent, num, num?<=3",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
     }
   ]
 }
