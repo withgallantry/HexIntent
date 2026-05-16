@@ -66,6 +66,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
+      - name: Remove checked-in site artifacts before merge
+        run: |
+          rm -rf _site/src _site/dst
+
       - name: Merge new hexdoc build into existing book
         uses: hexdoc-dev/actions/merge@v1
         with:
