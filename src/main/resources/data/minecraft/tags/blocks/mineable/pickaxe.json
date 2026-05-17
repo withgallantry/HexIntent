@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "#manifestation:intent_shifter",
-    "manifestation:splinter_caster"
+    "manifestation:splinter_caster",
+    "manifestation:hex_box"
   ]
 }

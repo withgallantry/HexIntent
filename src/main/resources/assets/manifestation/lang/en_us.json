@@ -45,7 +45,11 @@
   "block.manifestation.corridor_portal": "Manifest Threshold",
   "block.manifestation.intent_relay": "Manifest Relay",
   "block.manifestation.splinter_caster": "Splinter Caster",
+  "block.manifestation.hex_box": "Hex Reliquary",
+  "item.manifestation.hex_box": "Hex Reliquary",
   "item.manifestation.splinter_caster": "Splinter Caster",
+  "block.manifestation.hex_reliquary.slot_label_default": "Slot %s",
+  "message.manifestation.hex_reliquary.rename_hint": "Stored in slot %s. Rename the held focus in an anvil to set a custom label.",
 
   "hexcasting.category.manifestation_menus": "General Manifestation",
   "hexcasting.category.manifestation_menus.desc": "Pattern constructors for list, grid, and radial manifestations.",
@@ -90,6 +94,9 @@
   "hexcasting.tooltip.manifestation.intent_shifter.linked": "Manifest Relay: Linked",
   "hexcasting.tooltip.manifestation.intent_shifter.coords": "Target: %s, %s, %s",
   "hexcasting.tooltip.manifestation.intent_shifter.dimension": "Dimension: %s",
+  "hexcasting.tooltip.manifestation.hex_reliquary.selected": "Hex Reliquary Slot: %s",
+  "hexcasting.tooltip.manifestation.hex_reliquary.slot_filled": "Stored: Ready",
+  "hexcasting.tooltip.manifestation.hex_reliquary.slot_empty": "Stored: Empty",
 
   "hexcasting.rawhook.manifestation:intent_numeric_input": "Intent Numeric Input",
   "hexcasting.rawhook.manifestation:intent_checkbox": "Intent Checkbox",

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "manifestation:block/hex_box/transition_c1_t2_f5"
+  }
+}

@@ -52,24 +52,42 @@ public final class ManifestationBlocks {
             .noOcclusion()
     );
 
+    public static final HexReliquaryBlock HEX_RELIQUARY_BLOCK = new HexReliquaryBlock(
+        FabricBlockSettings.copyOf(Blocks.DEEPSLATE)
+            .strength(2.5f, 6.0f)
+            .requiresCorrectToolForDrops()
+            .lightLevel(state -> state.getValue(HexReliquaryBlock.FRAME) == 0 ? 4 : 9)
+    );
+
     public static final Item SPLINTER_CASTER_ITEM = new BlockItem(
         SPLINTER_CASTER_BLOCK,
+        new Item.Properties()
+    );
+
+    public static final Item HEX_RELIQUARY_ITEM = new BlockItem(
+        HEX_RELIQUARY_BLOCK,
         new Item.Properties()
     );
 
     public static BlockEntityType<IntentRelayBlockEntity> INTENT_RELAY_BLOCK_ENTITY;
     public static BlockEntityType<CorridorPortalBlockEntity> CORRIDOR_PORTAL_BLOCK_ENTITY;
     public static BlockEntityType<SplinterCasterBlockEntity> SPLINTER_CASTER_BLOCK_ENTITY;
+    public static BlockEntityType<HexReliquaryBlockEntity> HEX_RELIQUARY_BLOCK_ENTITY;
 
     public static void register() {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("corridor_portal"), CORRIDOR_PORTAL_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("intent_relay"), INTENT_RELAY_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("intent_relay_emitter"), INTENT_RELAY_EMITTER_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("splinter_caster"), SPLINTER_CASTER_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("hex_box"), HEX_RELIQUARY_BLOCK);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("splinter_caster"), SPLINTER_CASTER_ITEM);
+        Registry.register(BuiltInRegistries.ITEM, Manifestation.id("hex_box"), HEX_RELIQUARY_ITEM);
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries ->
-            entries.accept(SPLINTER_CASTER_ITEM)
+            {
+                entries.accept(SPLINTER_CASTER_ITEM);
+                entries.accept(HEX_RELIQUARY_ITEM);
+            }
         );
 
         CORRIDOR_PORTAL_BLOCK_ENTITY = Registry.register(
@@ -88,6 +106,12 @@ public final class ManifestationBlocks {
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
             Manifestation.id("splinter_caster"),
             FabricBlockEntityTypeBuilder.create(SplinterCasterBlockEntity::new, SPLINTER_CASTER_BLOCK).build()
+        );
+
+        HEX_RELIQUARY_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE,
+            Manifestation.id("hex_box"),
+            FabricBlockEntityTypeBuilder.create(HexReliquaryBlockEntity::new, HEX_RELIQUARY_BLOCK).build()
         );
     }
 

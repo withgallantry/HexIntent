@@ -9,7 +9,6 @@ import com.bluup.manifestation.common.menu.MenuPayload;
 import com.bluup.manifestation.server.ManifestationConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
@@ -22,8 +21,9 @@ import com.bluup.manifestation.server.block.ManifestationBlocks;
  * and singleplayer.
  *
  * <p>Sole responsibility: subscribe to the Manifestation S2C packet. When one
- * arrives, read the {@link MenuPayload}, apply reopen suppression, mark the
- * new one active, and swap the screen to a fresh {@link MenuScreen}.
+ * arrives, read the {@link MenuPayload}, ensure no menu is already open (the
+ * "one active menu" rule), mark the new one active, and swap the screen to
+ * a fresh {@link MenuScreen}.
  *
  * <p>The packet includes the casting hand used when the menu was created.
  * Reusing that hand on click keeps dispatch bound to the same staff-cast
@@ -52,10 +52,9 @@ public final class ManifestationClient implements ClientModInitializer {
             ManifestationBlocks.INTENT_RELAY_BLOCK_ENTITY,
             IntentRelayBlockEntityRenderer::new
         );
+        HexReliquaryLensOverlay.register();
         IntentShifterLensOverlay.register();
         IntentShifterRuneEffects.register();
-        SplinterVisuals.register();
-        HexTrailVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,
@@ -74,38 +73,6 @@ public final class ManifestationClient implements ClientModInitializer {
                     client.execute(() -> openMenu(client, payload));
                 }
         );
-
-        ClientPlayNetworking.registerGlobalReceiver(
-                ManifestationNetworking.MENU_INVALIDATE_S2C,
-                (client, handler, buf, responseSender) -> {
-                    final java.util.UUID token = buf.readUUID();
-                    final net.minecraft.network.chat.Component message = buf.readComponent();
-
-                    client.execute(() -> {
-                        ActiveMenuState state = ActiveMenuState.get();
-                        MenuPayload current = state.current();
-                        if (current == null || !current.sessionToken().equals(token)) {
-                            return;
-                        }
-
-                        state.clear();
-                        if (client.screen instanceof MenuScreen) {
-                            client.setScreen(null);
-                        }
-                        if (client.player != null) {
-                            client.player.displayClientMessage(message, true);
-                        }
-                    });
-                }
-        );
-
-            ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                client.execute(() -> ActiveMenuState.get().clear())
-            );
-
-            ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
-                client.execute(() -> ActiveMenuState.get().clear())
-            );
     }
 
     private static void openMenu(Minecraft mc, MenuPayload payload) {
@@ -114,6 +81,15 @@ public final class ManifestationClient implements ClientModInitializer {
         if (state.isReopenSuppressed(payload)) {
             Manifestation.LOGGER.debug(
                     "Manifestation: menu arrived during close-suppression window; dropping.");
+            return;
+        }
+
+        // "Only one active menu at a time." If one is already live, the
+        // incoming one is dropped. The server-side operator already succeeded
+        // (stack was consumed, op count spent), so we just don't show it.
+        if (state.isActive()) {
+            Manifestation.LOGGER.debug(
+                    "Manifestation: menu arrived while another is active; dropping.");
             return;
         }
 

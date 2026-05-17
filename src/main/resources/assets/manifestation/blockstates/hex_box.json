@@ -1,0 +1,1300 @@
+{
+  "variants": {
+    "current=0,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f1"
+    },
+    "current=0,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f2"
+    },
+    "current=0,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f3"
+    },
+    "current=0,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f4"
+    },
+    "current=0,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f5"
+    },
+    "current=0,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f6"
+    },
+    "current=0,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f7"
+    },
+    "current=0,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f8"
+    },
+    "current=0,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f9"
+    },
+    "current=0,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f10"
+    },
+    "current=0,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c0_t0_f11"
+    },
+    "current=0,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f1"
+    },
+    "current=0,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f2"
+    },
+    "current=0,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f3"
+    },
+    "current=0,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f4"
+    },
+    "current=0,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f5"
+    },
+    "current=0,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f6"
+    },
+    "current=0,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f7"
+    },
+    "current=0,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f8"
+    },
+    "current=0,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f9"
+    },
+    "current=0,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f10"
+    },
+    "current=0,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c0_t1_f11"
+    },
+    "current=0,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f1"
+    },
+    "current=0,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f2"
+    },
+    "current=0,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f3"
+    },
+    "current=0,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f4"
+    },
+    "current=0,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f5"
+    },
+    "current=0,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f6"
+    },
+    "current=0,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f7"
+    },
+    "current=0,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f8"
+    },
+    "current=0,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f9"
+    },
+    "current=0,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f10"
+    },
+    "current=0,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c0_t2_f11"
+    },
+    "current=0,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f1"
+    },
+    "current=0,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f2"
+    },
+    "current=0,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f3"
+    },
+    "current=0,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f4"
+    },
+    "current=0,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f5"
+    },
+    "current=0,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f6"
+    },
+    "current=0,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f7"
+    },
+    "current=0,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f8"
+    },
+    "current=0,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f9"
+    },
+    "current=0,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f10"
+    },
+    "current=0,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c0_t3_f11"
+    },
+    "current=0,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f1"
+    },
+    "current=0,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f2"
+    },
+    "current=0,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f3"
+    },
+    "current=0,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f4"
+    },
+    "current=0,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f5"
+    },
+    "current=0,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f6"
+    },
+    "current=0,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f7"
+    },
+    "current=0,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f8"
+    },
+    "current=0,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f9"
+    },
+    "current=0,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f10"
+    },
+    "current=0,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c0_t4_f11"
+    },
+    "current=0,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_0"
+    },
+    "current=0,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f1"
+    },
+    "current=0,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f2"
+    },
+    "current=0,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f3"
+    },
+    "current=0,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f4"
+    },
+    "current=0,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f5"
+    },
+    "current=0,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f6"
+    },
+    "current=0,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f7"
+    },
+    "current=0,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f8"
+    },
+    "current=0,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f9"
+    },
+    "current=0,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f10"
+    },
+    "current=0,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c0_t5_f11"
+    },
+    "current=1,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f1"
+    },
+    "current=1,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f2"
+    },
+    "current=1,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f3"
+    },
+    "current=1,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f4"
+    },
+    "current=1,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f5"
+    },
+    "current=1,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f6"
+    },
+    "current=1,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f7"
+    },
+    "current=1,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f8"
+    },
+    "current=1,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f9"
+    },
+    "current=1,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f10"
+    },
+    "current=1,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c1_t0_f11"
+    },
+    "current=1,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f1"
+    },
+    "current=1,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f2"
+    },
+    "current=1,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f3"
+    },
+    "current=1,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f4"
+    },
+    "current=1,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f5"
+    },
+    "current=1,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f6"
+    },
+    "current=1,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f7"
+    },
+    "current=1,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f8"
+    },
+    "current=1,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f9"
+    },
+    "current=1,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f10"
+    },
+    "current=1,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c1_t1_f11"
+    },
+    "current=1,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f1"
+    },
+    "current=1,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f2"
+    },
+    "current=1,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f3"
+    },
+    "current=1,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f4"
+    },
+    "current=1,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f5"
+    },
+    "current=1,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f6"
+    },
+    "current=1,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f7"
+    },
+    "current=1,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f8"
+    },
+    "current=1,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f9"
+    },
+    "current=1,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f10"
+    },
+    "current=1,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c1_t2_f11"
+    },
+    "current=1,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f1"
+    },
+    "current=1,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f2"
+    },
+    "current=1,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f3"
+    },
+    "current=1,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f4"
+    },
+    "current=1,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f5"
+    },
+    "current=1,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f6"
+    },
+    "current=1,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f7"
+    },
+    "current=1,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f8"
+    },
+    "current=1,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f9"
+    },
+    "current=1,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f10"
+    },
+    "current=1,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c1_t3_f11"
+    },
+    "current=1,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f1"
+    },
+    "current=1,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f2"
+    },
+    "current=1,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f3"
+    },
+    "current=1,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f4"
+    },
+    "current=1,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f5"
+    },
+    "current=1,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f6"
+    },
+    "current=1,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f7"
+    },
+    "current=1,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f8"
+    },
+    "current=1,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f9"
+    },
+    "current=1,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f10"
+    },
+    "current=1,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c1_t4_f11"
+    },
+    "current=1,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_1"
+    },
+    "current=1,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f1"
+    },
+    "current=1,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f2"
+    },
+    "current=1,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f3"
+    },
+    "current=1,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f4"
+    },
+    "current=1,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f5"
+    },
+    "current=1,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f6"
+    },
+    "current=1,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f7"
+    },
+    "current=1,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f8"
+    },
+    "current=1,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f9"
+    },
+    "current=1,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f10"
+    },
+    "current=1,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c1_t5_f11"
+    },
+    "current=2,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f1"
+    },
+    "current=2,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f2"
+    },
+    "current=2,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f3"
+    },
+    "current=2,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f4"
+    },
+    "current=2,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f5"
+    },
+    "current=2,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f6"
+    },
+    "current=2,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f7"
+    },
+    "current=2,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f8"
+    },
+    "current=2,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f9"
+    },
+    "current=2,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f10"
+    },
+    "current=2,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c2_t0_f11"
+    },
+    "current=2,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f1"
+    },
+    "current=2,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f2"
+    },
+    "current=2,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f3"
+    },
+    "current=2,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f4"
+    },
+    "current=2,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f5"
+    },
+    "current=2,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f6"
+    },
+    "current=2,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f7"
+    },
+    "current=2,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f8"
+    },
+    "current=2,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f9"
+    },
+    "current=2,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f10"
+    },
+    "current=2,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c2_t1_f11"
+    },
+    "current=2,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f1"
+    },
+    "current=2,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f2"
+    },
+    "current=2,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f3"
+    },
+    "current=2,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f4"
+    },
+    "current=2,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f5"
+    },
+    "current=2,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f6"
+    },
+    "current=2,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f7"
+    },
+    "current=2,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f8"
+    },
+    "current=2,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f9"
+    },
+    "current=2,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f10"
+    },
+    "current=2,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c2_t2_f11"
+    },
+    "current=2,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f1"
+    },
+    "current=2,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f2"
+    },
+    "current=2,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f3"
+    },
+    "current=2,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f4"
+    },
+    "current=2,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f5"
+    },
+    "current=2,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f6"
+    },
+    "current=2,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f7"
+    },
+    "current=2,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f8"
+    },
+    "current=2,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f9"
+    },
+    "current=2,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f10"
+    },
+    "current=2,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c2_t3_f11"
+    },
+    "current=2,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f1"
+    },
+    "current=2,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f2"
+    },
+    "current=2,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f3"
+    },
+    "current=2,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f4"
+    },
+    "current=2,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f5"
+    },
+    "current=2,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f6"
+    },
+    "current=2,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f7"
+    },
+    "current=2,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f8"
+    },
+    "current=2,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f9"
+    },
+    "current=2,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f10"
+    },
+    "current=2,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c2_t4_f11"
+    },
+    "current=2,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_2"
+    },
+    "current=2,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f1"
+    },
+    "current=2,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f2"
+    },
+    "current=2,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f3"
+    },
+    "current=2,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f4"
+    },
+    "current=2,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f5"
+    },
+    "current=2,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f6"
+    },
+    "current=2,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f7"
+    },
+    "current=2,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f8"
+    },
+    "current=2,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f9"
+    },
+    "current=2,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f10"
+    },
+    "current=2,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c2_t5_f11"
+    },
+    "current=3,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f1"
+    },
+    "current=3,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f2"
+    },
+    "current=3,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f3"
+    },
+    "current=3,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f4"
+    },
+    "current=3,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f5"
+    },
+    "current=3,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f6"
+    },
+    "current=3,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f7"
+    },
+    "current=3,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f8"
+    },
+    "current=3,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f9"
+    },
+    "current=3,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f10"
+    },
+    "current=3,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c3_t0_f11"
+    },
+    "current=3,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f1"
+    },
+    "current=3,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f2"
+    },
+    "current=3,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f3"
+    },
+    "current=3,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f4"
+    },
+    "current=3,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f5"
+    },
+    "current=3,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f6"
+    },
+    "current=3,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f7"
+    },
+    "current=3,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f8"
+    },
+    "current=3,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f9"
+    },
+    "current=3,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f10"
+    },
+    "current=3,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c3_t1_f11"
+    },
+    "current=3,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f1"
+    },
+    "current=3,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f2"
+    },
+    "current=3,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f3"
+    },
+    "current=3,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f4"
+    },
+    "current=3,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f5"
+    },
+    "current=3,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f6"
+    },
+    "current=3,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f7"
+    },
+    "current=3,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f8"
+    },
+    "current=3,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f9"
+    },
+    "current=3,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f10"
+    },
+    "current=3,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c3_t2_f11"
+    },
+    "current=3,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f1"
+    },
+    "current=3,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f2"
+    },
+    "current=3,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f3"
+    },
+    "current=3,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f4"
+    },
+    "current=3,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f5"
+    },
+    "current=3,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f6"
+    },
+    "current=3,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f7"
+    },
+    "current=3,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f8"
+    },
+    "current=3,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f9"
+    },
+    "current=3,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f10"
+    },
+    "current=3,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c3_t3_f11"
+    },
+    "current=3,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f1"
+    },
+    "current=3,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f2"
+    },
+    "current=3,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f3"
+    },
+    "current=3,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f4"
+    },
+    "current=3,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f5"
+    },
+    "current=3,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f6"
+    },
+    "current=3,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f7"
+    },
+    "current=3,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f8"
+    },
+    "current=3,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f9"
+    },
+    "current=3,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f10"
+    },
+    "current=3,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c3_t4_f11"
+    },
+    "current=3,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_3"
+    },
+    "current=3,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f1"
+    },
+    "current=3,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f2"
+    },
+    "current=3,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f3"
+    },
+    "current=3,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f4"
+    },
+    "current=3,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f5"
+    },
+    "current=3,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f6"
+    },
+    "current=3,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f7"
+    },
+    "current=3,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f8"
+    },
+    "current=3,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f9"
+    },
+    "current=3,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f10"
+    },
+    "current=3,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c3_t5_f11"
+    },
+    "current=4,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f1"
+    },
+    "current=4,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f2"
+    },
+    "current=4,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f3"
+    },
+    "current=4,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f4"
+    },
+    "current=4,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f5"
+    },
+    "current=4,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f6"
+    },
+    "current=4,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f7"
+    },
+    "current=4,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f8"
+    },
+    "current=4,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f9"
+    },
+    "current=4,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f10"
+    },
+    "current=4,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c4_t0_f11"
+    },
+    "current=4,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f1"
+    },
+    "current=4,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f2"
+    },
+    "current=4,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f3"
+    },
+    "current=4,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f4"
+    },
+    "current=4,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f5"
+    },
+    "current=4,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f6"
+    },
+    "current=4,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f7"
+    },
+    "current=4,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f8"
+    },
+    "current=4,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f9"
+    },
+    "current=4,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f10"
+    },
+    "current=4,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c4_t1_f11"
+    },
+    "current=4,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f1"
+    },
+    "current=4,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f2"
+    },
+    "current=4,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f3"
+    },
+    "current=4,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f4"
+    },
+    "current=4,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f5"
+    },
+    "current=4,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f6"
+    },
+    "current=4,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f7"
+    },
+    "current=4,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f8"
+    },
+    "current=4,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f9"
+    },
+    "current=4,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f10"
+    },
+    "current=4,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c4_t2_f11"
+    },
+    "current=4,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f1"
+    },
+    "current=4,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f2"
+    },
+    "current=4,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f3"
+    },
+    "current=4,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f4"
+    },
+    "current=4,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f5"
+    },
+    "current=4,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f6"
+    },
+    "current=4,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f7"
+    },
+    "current=4,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f8"
+    },
+    "current=4,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f9"
+    },
+    "current=4,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f10"
+    },
+    "current=4,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c4_t3_f11"
+    },
+    "current=4,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f1"
+    },
+    "current=4,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f2"
+    },
+    "current=4,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f3"
+    },
+    "current=4,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f4"
+    },
+    "current=4,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f5"
+    },
+    "current=4,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f6"
+    },
+    "current=4,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f7"
+    },
+    "current=4,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f8"
+    },
+    "current=4,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f9"
+    },
+    "current=4,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f10"
+    },
+    "current=4,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c4_t4_f11"
+    },
+    "current=4,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_4"
+    },
+    "current=4,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f1"
+    },
+    "current=4,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f2"
+    },
+    "current=4,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f3"
+    },
+    "current=4,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f4"
+    },
+    "current=4,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f5"
+    },
+    "current=4,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f6"
+    },
+    "current=4,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f7"
+    },
+    "current=4,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f8"
+    },
+    "current=4,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f9"
+    },
+    "current=4,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f10"
+    },
+    "current=4,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c4_t5_f11"
+    },
+    "current=5,frame=0,target=0": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f1"
+    },
+    "current=5,frame=2,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f2"
+    },
+    "current=5,frame=3,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f3"
+    },
+    "current=5,frame=4,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f4"
+    },
+    "current=5,frame=5,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f5"
+    },
+    "current=5,frame=6,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f6"
+    },
+    "current=5,frame=7,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f7"
+    },
+    "current=5,frame=8,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f8"
+    },
+    "current=5,frame=9,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f9"
+    },
+    "current=5,frame=10,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f10"
+    },
+    "current=5,frame=11,target=0": {
+      "model": "manifestation:block/hex_box/transition_c5_t0_f11"
+    },
+    "current=5,frame=0,target=1": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f1"
+    },
+    "current=5,frame=2,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f2"
+    },
+    "current=5,frame=3,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f3"
+    },
+    "current=5,frame=4,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f4"
+    },
+    "current=5,frame=5,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f5"
+    },
+    "current=5,frame=6,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f6"
+    },
+    "current=5,frame=7,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f7"
+    },
+    "current=5,frame=8,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f8"
+    },
+    "current=5,frame=9,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f9"
+    },
+    "current=5,frame=10,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f10"
+    },
+    "current=5,frame=11,target=1": {
+      "model": "manifestation:block/hex_box/transition_c5_t1_f11"
+    },
+    "current=5,frame=0,target=2": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f1"
+    },
+    "current=5,frame=2,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f2"
+    },
+    "current=5,frame=3,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f3"
+    },
+    "current=5,frame=4,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f4"
+    },
+    "current=5,frame=5,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f5"
+    },
+    "current=5,frame=6,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f6"
+    },
+    "current=5,frame=7,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f7"
+    },
+    "current=5,frame=8,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f8"
+    },
+    "current=5,frame=9,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f9"
+    },
+    "current=5,frame=10,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f10"
+    },
+    "current=5,frame=11,target=2": {
+      "model": "manifestation:block/hex_box/transition_c5_t2_f11"
+    },
+    "current=5,frame=0,target=3": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f1"
+    },
+    "current=5,frame=2,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f2"
+    },
+    "current=5,frame=3,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f3"
+    },
+    "current=5,frame=4,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f4"
+    },
+    "current=5,frame=5,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f5"
+    },
+    "current=5,frame=6,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f6"
+    },
+    "current=5,frame=7,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f7"
+    },
+    "current=5,frame=8,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f8"
+    },
+    "current=5,frame=9,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f9"
+    },
+    "current=5,frame=10,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f10"
+    },
+    "current=5,frame=11,target=3": {
+      "model": "manifestation:block/hex_box/transition_c5_t3_f11"
+    },
+    "current=5,frame=0,target=4": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f1"
+    },
+    "current=5,frame=2,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f2"
+    },
+    "current=5,frame=3,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f3"
+    },
+    "current=5,frame=4,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f4"
+    },
+    "current=5,frame=5,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f5"
+    },
+    "current=5,frame=6,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f6"
+    },
+    "current=5,frame=7,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f7"
+    },
+    "current=5,frame=8,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f8"
+    },
+    "current=5,frame=9,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f9"
+    },
+    "current=5,frame=10,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f10"
+    },
+    "current=5,frame=11,target=4": {
+      "model": "manifestation:block/hex_box/transition_c5_t4_f11"
+    },
+    "current=5,frame=0,target=5": {
+      "model": "manifestation:block/hex_box/hex_5"
+    },
+    "current=5,frame=1,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f1"
+    },
+    "current=5,frame=2,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f2"
+    },
+    "current=5,frame=3,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f3"
+    },
+    "current=5,frame=4,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f4"
+    },
+    "current=5,frame=5,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f5"
+    },
+    "current=5,frame=6,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f6"
+    },
+    "current=5,frame=7,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f7"
+    },
+    "current=5,frame=8,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f8"
+    },
+    "current=5,frame=9,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f9"
+    },
+    "current=5,frame=10,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f10"
+    },
+    "current=5,frame=11,target=5": {
+      "model": "manifestation:block/hex_box/transition_c5_t5_f11"
+    }
+  }
+}
