@@ -45,7 +45,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:link_intent_relay",
       "anchor": "manifestation:link_intent_relay",
-      "input": "vec, vec, num?",
+      "input": "vec support, vec target, num?",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.link_intent_relay"
     },
@@ -61,7 +61,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:open_corridor_portal",
       "anchor": "manifestation:open_corridor_portal",
-      "input": "vec, presenceIntent, num",
+      "input": "vec, presenceIntent, num, num?<=3",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
     },

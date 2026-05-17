@@ -4,7 +4,10 @@
   "hexcasting.action.manifestation:create_radial_menu": "Manifest Radial Menu",
   "hexcasting.action.manifestation:intent_button": "Intent Button",
   "hexcasting.action.manifestation:intent_input": "Intent Input",
+  "hexcasting.action.manifestation:intent_numeric_input": "Intent Numeric Input",
   "hexcasting.action.manifestation:intent_slider": "Intent Slider",
+  "hexcasting.action.manifestation:intent_checkbox": "Intent Checkbox",
+  "hexcasting.action.manifestation:intent_select_list": "Intent Select List",
   "hexcasting.action.manifestation:intent_section": "Intent Section",
   "hexcasting.action.manifestation:intent_dropdown": "Intent Dropdown",
   "hexcasting.action.manifestation:presence_intent": "Presence Intent",
@@ -21,7 +24,10 @@
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",
+  "hexcasting.action.book.manifestation:intent_numeric_input": "Intent Numeric Input",
   "hexcasting.action.book.manifestation:intent_slider": "Intent Slider",
+  "hexcasting.action.book.manifestation:intent_checkbox": "Intent Checkbox",
+  "hexcasting.action.book.manifestation:intent_select_list": "Intent Select List",
   "hexcasting.action.book.manifestation:intent_section": "Intent Section",
   "hexcasting.action.book.manifestation:intent_dropdown": "Intent Dropdown",
   "hexcasting.action.book.manifestation:presence_intent": "Presence Intent",
@@ -84,6 +90,10 @@
   "hexcasting.tooltip.manifestation.intent_shifter.linked": "Manifest Relay: Linked",
   "hexcasting.tooltip.manifestation.intent_shifter.coords": "Target: %s, %s, %s",
   "hexcasting.tooltip.manifestation.intent_shifter.dimension": "Dimension: %s",
+
+  "hexcasting.rawhook.manifestation:intent_numeric_input": "Intent Numeric Input",
+  "hexcasting.rawhook.manifestation:intent_checkbox": "Intent Checkbox",
+  "hexcasting.rawhook.manifestation:intent_select_list": "Intent Select List",
 
   "hexcasting.mishap.manifestation.requires_caster_will": "Manifestation requires a caster's will.",
   "hexcasting.mishap.manifestation.menu_open_loop": "Manifestation backlash: this menu is being reopened too quickly.",
