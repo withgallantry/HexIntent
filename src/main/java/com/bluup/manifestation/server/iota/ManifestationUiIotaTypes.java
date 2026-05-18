@@ -350,6 +350,79 @@ public final class ManifestationUiIotaTypes {
         }
     };
 
+    public static final IotaType<EquationParticleIota> EQUATION_PARTICLE = new IotaType<>() {
+        @Nullable
+        @Override
+        public EquationParticleIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            String x = ctag.getString("x");
+            String y = ctag.getString("y");
+            String z = ctag.getString("z");
+            double tMin = ctag.getDouble("t_min");
+            double tMax = ctag.getDouble("t_max");
+            double uMin = ctag.getDouble("u_min");
+            double uMax = ctag.getDouble("u_max");
+            boolean useU = ctag.getBoolean("use_u");
+            int points = ctag.getInt("points");
+            String colorMode = ctag.contains("color_mode") ? ctag.getString("color_mode") : "gradient";
+            double fixedR = ctag.contains("fixed_r") ? ctag.getDouble("fixed_r") : 1.0;
+            double fixedG = ctag.contains("fixed_g") ? ctag.getDouble("fixed_g") : 1.0;
+            double fixedB = ctag.contains("fixed_b") ? ctag.getDouble("fixed_b") : 1.0;
+            double gradStartR = ctag.contains("grad_start_r") ? ctag.getDouble("grad_start_r") : 0.96;
+            double gradStartG = ctag.contains("grad_start_g") ? ctag.getDouble("grad_start_g") : 0.56;
+            double gradStartB = ctag.contains("grad_start_b") ? ctag.getDouble("grad_start_b") : 0.64;
+            double gradEndR = ctag.contains("grad_end_r") ? ctag.getDouble("grad_end_r") : 0.88;
+            double gradEndG = ctag.contains("grad_end_g") ? ctag.getDouble("grad_end_g") : 0.78;
+            double gradEndB = ctag.contains("grad_end_b") ? ctag.getDouble("grad_end_b") : 0.96;
+            String colorExprR = ctag.contains("color_expr_r") ? ctag.getString("color_expr_r") : "1";
+            String colorExprG = ctag.contains("color_expr_g") ? ctag.getString("color_expr_g") : "1";
+            String colorExprB = ctag.contains("color_expr_b") ? ctag.getString("color_expr_b") : "1";
+
+            return new EquationParticleIota(
+                x,
+                y,
+                z,
+                tMin,
+                tMax,
+                uMin,
+                uMax,
+                useU,
+                points,
+                colorMode,
+                fixedR,
+                fixedG,
+                fixedB,
+                gradStartR,
+                gradStartG,
+                gradStartB,
+                gradEndR,
+                gradEndG,
+                gradEndB,
+                colorExprR,
+                colorExprG,
+                colorExprB
+            );
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            int points = ctag.getInt("points");
+            boolean useU = ctag.getBoolean("use_u");
+            String mode = ctag.contains("color_mode") ? ctag.getString("color_mode") : "gradient";
+            String x = ctag.getString("x");
+            return Component.literal("EquationParticle(")
+                .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", x=" + x).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+                .withStyle(ChatFormatting.LIGHT_PURPLE);
+        }
+
+        @Override
+        public int color() {
+            return 0xff_d38af5;
+        }
+    };
+
     public static void register() {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_button"), UI_BUTTON);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_input"), UI_INPUT);
@@ -361,5 +434,6 @@ public final class ManifestationUiIotaTypes {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("presence_intent"), PRESENCE_INTENT);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("particle_blob"), PARTICLE_BLOB);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("equation_particle"), EQUATION_PARTICLE);
     }
 }

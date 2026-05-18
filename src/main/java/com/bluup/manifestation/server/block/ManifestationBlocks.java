@@ -71,6 +71,12 @@ public final class ManifestationBlocks {
             .requiresCorrectToolForDrops()
     );
 
+    public static final EquationSynthBlock EQUATION_SYNTH_BLOCK = new EquationSynthBlock(
+        FabricBlockSettings.copyOf(Blocks.POLISHED_DEEPSLATE)
+            .strength(2.0f, 6.0f)
+            .requiresCorrectToolForDrops()
+    );
+
     public static final Item SPLINTER_CASTER_ITEM = new BlockItem(
         SPLINTER_CASTER_BLOCK,
         new Item.Properties()
@@ -91,12 +97,18 @@ public final class ManifestationBlocks {
         new Item.Properties()
     );
 
+    public static final Item EQUATION_SYNTH_ITEM = new BlockItem(
+        EQUATION_SYNTH_BLOCK,
+        new Item.Properties()
+    );
+
     public static BlockEntityType<IntentRelayBlockEntity> INTENT_RELAY_BLOCK_ENTITY;
     public static BlockEntityType<CorridorPortalBlockEntity> CORRIDOR_PORTAL_BLOCK_ENTITY;
     public static BlockEntityType<SplinterCasterBlockEntity> SPLINTER_CASTER_BLOCK_ENTITY;
     public static BlockEntityType<HexReliquaryBlockEntity> HEX_RELIQUARY_BLOCK_ENTITY;
     public static BlockEntityType<MindVaultBlockEntity> MIND_VAULT_BLOCK_ENTITY;
     public static BlockEntityType<ParticleImporterBlockEntity> PARTICLE_IMPORTER_BLOCK_ENTITY;
+    public static BlockEntityType<EquationSynthBlockEntity> EQUATION_SYNTH_BLOCK_ENTITY;
 
     public static void register() {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("corridor_portal"), CORRIDOR_PORTAL_BLOCK);
@@ -106,10 +118,12 @@ public final class ManifestationBlocks {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("hex_box"), HEX_RELIQUARY_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("mind_vault"), MIND_VAULT_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("particle_importer"), PARTICLE_IMPORTER_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("equation_synth"), EQUATION_SYNTH_BLOCK);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("splinter_caster"), SPLINTER_CASTER_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("hex_box"), HEX_RELIQUARY_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("mind_vault"), MIND_VAULT_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("particle_importer"), PARTICLE_IMPORTER_ITEM);
+        Registry.register(BuiltInRegistries.ITEM, Manifestation.id("equation_synth"), EQUATION_SYNTH_ITEM);
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries ->
             {
@@ -117,6 +131,7 @@ public final class ManifestationBlocks {
                 entries.accept(HEX_RELIQUARY_ITEM);
                 entries.accept(MIND_VAULT_ITEM);
                 entries.accept(PARTICLE_IMPORTER_ITEM);
+                entries.accept(EQUATION_SYNTH_ITEM);
             }
         );
 
@@ -154,6 +169,12 @@ public final class ManifestationBlocks {
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
             Manifestation.id("particle_importer"),
             FabricBlockEntityTypeBuilder.create(ParticleImporterBlockEntity::new, PARTICLE_IMPORTER_BLOCK).build()
+        );
+
+        EQUATION_SYNTH_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE,
+            Manifestation.id("equation_synth"),
+            FabricBlockEntityTypeBuilder.create(EquationSynthBlockEntity::new, EQUATION_SYNTH_BLOCK).build()
         );
     }
 

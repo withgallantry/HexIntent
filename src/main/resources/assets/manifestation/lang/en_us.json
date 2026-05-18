@@ -24,6 +24,7 @@
   "hexcasting.action.manifestation:particle_scatter": "Particle Scatter",
   "hexcasting.action.manifestation:make_particle_blob": "Compress Particle Blob",
   "hexcasting.action.manifestation:particle_blob_scatter": "Cast Particle Blob",
+  "hexcasting.action.manifestation:equation_hex_cloud": "Equation Hex Cloud",
   "hexcasting.action.manifestation:store_mind_vault": "Bind Mind Vault",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
@@ -48,6 +49,7 @@
   "hexcasting.action.book.manifestation:particle_scatter": "Particle Scatter",
   "hexcasting.action.book.manifestation:make_particle_blob": "Compress Particle Blob",
   "hexcasting.action.book.manifestation:particle_blob_scatter": "Cast Particle Blob",
+  "hexcasting.action.book.manifestation:equation_hex_cloud": "Equation Hex Cloud",
   "hexcasting.action.book.manifestation:store_mind_vault": "Bind Mind Vault",
 
   "block.manifestation.corridor_portal": "Manifest Threshold",
@@ -56,10 +58,12 @@
   "block.manifestation.hex_box": "Hex Reliquary",
   "block.manifestation.mind_vault": "Mind Vault",
   "block.manifestation.particle_importer": "Particle Importer",
+  "block.manifestation.equation_synth": "Equation Synthesizer",
   "item.manifestation.hex_box": "Hex Reliquary",
   "item.manifestation.mind_vault": "Mind Vault",
   "item.manifestation.splinter_caster": "Splinter Caster",
   "item.manifestation.particle_importer": "Particle Importer",
+  "item.manifestation.equation_synth": "Equation Synthesizer",
   "block.manifestation.hex_reliquary.slot_label_default": "Slot %s",
   "message.manifestation.hex_reliquary.rename_hint": "Stored in slot %s. Rename the held focus in an anvil to set a custom label.",
 

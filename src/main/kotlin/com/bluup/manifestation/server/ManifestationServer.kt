@@ -9,6 +9,9 @@ import at.petrak.hexcasting.api.casting.math.HexDir
 import at.petrak.hexcasting.api.casting.math.HexPattern
 import at.petrak.hexcasting.common.lib.hex.HexActions
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.common.equation.EquationEvaluator
+import com.bluup.manifestation.common.equation.EquationParticleConfig
+import com.bluup.manifestation.common.equation.EquationParticleGenerator
 import com.bluup.manifestation.common.ManifestationNetworking
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.client.menu.execution.MenuActionSender
@@ -17,6 +20,7 @@ import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpDestroyManifestation
 import com.bluup.manifestation.server.action.OpDestroySplinters
+import com.bluup.manifestation.server.action.OpEquationHexCloud
 import com.bluup.manifestation.server.action.OpGetSplinterLocation
 import com.bluup.manifestation.server.action.OpHexTrail
 import com.bluup.manifestation.server.action.OpManifestSplinter
@@ -40,8 +44,10 @@ import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.action.MenuOpenLoopGuard
 import com.bluup.manifestation.server.action.ParticleBlobCodec
+import com.bluup.manifestation.server.block.EquationSynthBlockEntity
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.block.ParticleImporterBlockEntity
+import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import com.bluup.manifestation.server.splinter.SplinterRuntime
@@ -76,6 +82,9 @@ object ManifestationServer : ModInitializer {
     private const val MAX_INPUT_LIST_ITEMS = 128
     private const val MAX_INPUT_STRING_CHARS = 256
     private const val MAX_IMPORT_JSON_CHARS = 200_000
+    private const val MAX_EQUATION_CHARS = EquationParticleConfig.MAX_EXPR_CHARS
+
+    const val MAX_EQUATION_EVAL_BUDGET_SERVER: Int = 36_000
 
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
@@ -194,6 +203,7 @@ object ManifestationServer : ModInitializer {
         registerAction("particle_scatter", "qaqeaddw", HexDir.NORTH_EAST, OpParticleScatter)
         registerAction("make_particle_blob", "qaqeaddwa", HexDir.NORTH_EAST, OpMakeParticleBlob)
         registerAction("particle_blob_scatter", "qaqeaddwe", HexDir.NORTH_EAST, OpParticleBlobScatter)
+        registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
     }
 
@@ -403,6 +413,109 @@ object ManifestationServer : ModInitializer {
                 )
             }
         }
+
+        ServerPlayNetworking.registerGlobalReceiver(
+            ManifestationNetworking.WRITE_EQUATION_PARTICLE_C2S
+        ) { server, player, _, buf, _ ->
+            val pos = buf.readBlockPos()
+            val xExpr = buf.readUtf(MAX_EQUATION_CHARS)
+            val yExpr = buf.readUtf(MAX_EQUATION_CHARS)
+            val zExpr = buf.readUtf(MAX_EQUATION_CHARS)
+            val tMin = buf.readDouble()
+            val tMax = buf.readDouble()
+            val uMin = buf.readDouble()
+            val uMax = buf.readDouble()
+            val useU = buf.readBoolean()
+            val pointCount = buf.readVarInt()
+            val colorMode = buf.readUtf(EquationParticleConfig.MAX_COLOR_MODE_CHARS)
+            val fixedR = buf.readDouble()
+            val fixedG = buf.readDouble()
+            val fixedB = buf.readDouble()
+            val gradientStartR = buf.readDouble()
+            val gradientStartG = buf.readDouble()
+            val gradientStartB = buf.readDouble()
+            val gradientEndR = buf.readDouble()
+            val gradientEndG = buf.readDouble()
+            val gradientEndB = buf.readDouble()
+            val colorExprR = buf.readUtf(MAX_EQUATION_CHARS)
+            val colorExprG = buf.readUtf(MAX_EQUATION_CHARS)
+            val colorExprB = buf.readUtf(MAX_EQUATION_CHARS)
+
+            server.execute {
+                val level = player.serverLevel()
+                if (!player.isAlive || player.blockPosition().distSqr(pos) > 8.0 * 8.0) {
+                    player.displayClientMessage(Component.literal("Equation write failed: too far from synthesizer."), false)
+                    return@execute
+                }
+
+                val be = level.getBlockEntity(pos) as? EquationSynthBlockEntity
+                if (be == null) {
+                    player.displayClientMessage(Component.literal("Equation write failed: synthesizer missing."), false)
+                    return@execute
+                }
+                if (!be.hasFocus()) {
+                    player.displayClientMessage(Component.literal("Equation write failed: no focus in synthesizer."), false)
+                    return@execute
+                }
+
+                val config = EquationParticleConfig(
+                    xExpr,
+                    yExpr,
+                    zExpr,
+                    tMin,
+                    tMax,
+                    uMin,
+                    uMax,
+                    useU,
+                    pointCount,
+                    colorMode,
+                    fixedR,
+                    fixedG,
+                    fixedB,
+                    gradientStartR,
+                    gradientStartG,
+                    gradientStartB,
+                    gradientEndR,
+                    gradientEndG,
+                    gradientEndB,
+                    colorExprR,
+                    colorExprG,
+                    colorExprB
+                )
+
+                val normalized = try {
+                    config.validateStrict()
+                    val out = config.normalized()
+                    EquationEvaluator.compile(out.xExpr())
+                    EquationEvaluator.compile(out.yExpr())
+                    EquationEvaluator.compile(out.zExpr())
+                    if (out.colorMode() == "expression") {
+                        EquationEvaluator.compile(out.colorExprR())
+                        EquationEvaluator.compile(out.colorExprG())
+                        EquationEvaluator.compile(out.colorExprB())
+                    }
+                    val evalCost = EquationParticleGenerator.estimateEvalCost(out)
+                    if (evalCost > MAX_EQUATION_EVAL_BUDGET_SERVER) {
+                        throw IllegalArgumentException("equation_budget")
+                    }
+                    out
+                } catch (e: IllegalArgumentException) {
+                    player.displayClientMessage(Component.literal("Equation write failed: ${equationError(e.message)}."), false)
+                    return@execute
+                }
+
+                val writeError = be.writeEquation(normalized)
+                if (writeError != null) {
+                    player.displayClientMessage(Component.literal("Equation write failed: $writeError"), false)
+                    return@execute
+                }
+
+                player.displayClientMessage(
+                    Component.literal("Equation write complete: ${normalized.pointCount()} points (${if (normalized.useU()) "surface" else "curve"} mode)."),
+                    false
+                )
+            }
+        }
     }
 
     @JvmStatic
@@ -410,6 +523,33 @@ object ManifestationServer : ModInitializer {
         val buf = PacketByteBufs.create()
         buf.writeBlockPos(pos)
         ServerPlayNetworking.send(player, ManifestationNetworking.OPEN_PARTICLE_IMPORTER_S2C, buf)
+    }
+
+    @JvmStatic
+    fun openEquationSynth(player: ServerPlayer, pos: BlockPos) {
+        val buf = PacketByteBufs.create()
+        buf.writeBlockPos(pos)
+        ServerPlayNetworking.send(player, ManifestationNetworking.OPEN_EQUATION_SYNTH_S2C, buf)
+    }
+
+    private fun equationError(raw: String?): String {
+        if (raw.isNullOrBlank()) {
+            return "invalid equation"
+        }
+        return when {
+            raw.startsWith("equation_too_long") -> "equation is too long"
+            raw.startsWith("color_expression_too_long") -> "color expression is too long"
+            raw.startsWith("invalid_color_mode") -> "invalid color mode"
+            raw.startsWith("missing_color_expression") -> "color expressions are required for expression mode"
+            raw.startsWith("invalid_point_count") -> "point count must be 1..${EquationParticleConfig.MAX_POINTS}"
+            raw.startsWith("invalid_range") -> "ranges must be finite"
+            raw.startsWith("equation_budget") -> "equation exceeds evaluation budget"
+            raw.startsWith("empty_expression") -> "equations cannot be empty"
+            raw.startsWith("unknown_function") -> "equation contains an unknown function"
+            raw.startsWith("bad_char") -> "equation contains invalid characters"
+            raw.startsWith("invalid_arity") -> "function argument count is invalid"
+            else -> "invalid equation"
+        }
     }
 
     private data class ParsedParticleResult(
@@ -850,6 +990,56 @@ object ManifestationServer : ModInitializer {
             buf.writeByteArray(blob)
             buf.writeVarInt(lifetimeTicks.coerceAtLeast(1))
             ServerPlayNetworking.send(other, ManifestationNetworking.PARTICLE_BLOB_CAST_S2C, buf)
+        }
+    }
+
+    @JvmStatic
+    fun sendEquationCloudTo(
+        player: ServerPlayer,
+        origin: net.minecraft.world.phys.Vec3,
+        cloudId: Long,
+        equation: EquationParticleIota
+    ) {
+        val level = player.serverLevel()
+        val radius = 128.0
+        for (other in level.server.playerList.players) {
+            if (other.serverLevel() != level || other.position().distanceTo(origin) > radius) {
+                continue
+            }
+
+            val buf = PacketByteBufs.create()
+            buf.writeUtf(level.dimension().location().toString())
+            buf.writeUUID(player.uuid)
+            buf.writeLong(cloudId)
+            buf.writeDouble(origin.x)
+            buf.writeDouble(origin.y)
+            buf.writeDouble(origin.z)
+
+            buf.writeUtf(equation.xExpr, EquationParticleConfig.MAX_EXPR_CHARS)
+            buf.writeUtf(equation.yExpr, EquationParticleConfig.MAX_EXPR_CHARS)
+            buf.writeUtf(equation.zExpr, EquationParticleConfig.MAX_EXPR_CHARS)
+            buf.writeDouble(equation.tMin)
+            buf.writeDouble(equation.tMax)
+            buf.writeDouble(equation.uMin)
+            buf.writeDouble(equation.uMax)
+            buf.writeBoolean(equation.isUseU)
+            buf.writeVarInt(equation.pointCount)
+
+            buf.writeUtf(equation.colorMode, EquationParticleConfig.MAX_COLOR_MODE_CHARS)
+            buf.writeDouble(equation.fixedR)
+            buf.writeDouble(equation.fixedG)
+            buf.writeDouble(equation.fixedB)
+            buf.writeDouble(equation.gradientStartR)
+            buf.writeDouble(equation.gradientStartG)
+            buf.writeDouble(equation.gradientStartB)
+            buf.writeDouble(equation.gradientEndR)
+            buf.writeDouble(equation.gradientEndG)
+            buf.writeDouble(equation.gradientEndB)
+            buf.writeUtf(equation.colorExprR, EquationParticleConfig.MAX_EXPR_CHARS)
+            buf.writeUtf(equation.colorExprG, EquationParticleConfig.MAX_EXPR_CHARS)
+            buf.writeUtf(equation.colorExprB, EquationParticleConfig.MAX_EXPR_CHARS)
+
+            ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
         }
     }
 }

@@ -65,6 +65,7 @@ public final class ManifestationClient implements ClientModInitializer {
         // Register constellation visuals (packet + renderer)
         ConstellationVisuals.register();
         ParticleBlobVisuals.register();
+        EquationCloudVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,
@@ -89,6 +90,14 @@ public final class ManifestationClient implements ClientModInitializer {
                 (client, handler, buf, responseSender) -> {
                     final var pos = buf.readBlockPos();
                     client.execute(() -> client.setScreen(new ParticleImporterScreen(pos)));
+                }
+        );
+
+        ClientPlayNetworking.registerGlobalReceiver(
+                ManifestationNetworking.OPEN_EQUATION_SYNTH_S2C,
+                (client, handler, buf, responseSender) -> {
+                    final var pos = buf.readBlockPos();
+                    client.execute(() -> client.setScreen(new EquationSynthScreen(pos)));
                 }
         );
     }
