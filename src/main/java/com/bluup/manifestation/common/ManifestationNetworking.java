@@ -25,6 +25,8 @@ public final class ManifestationNetworking {
     public static final ResourceLocation SPLINTER_SNAPSHOT_S2C = Manifestation.id("splinter_snapshot");
     public static final ResourceLocation HEX_TRAIL_S2C = Manifestation.id("hex_trail");
 
+    public static final ResourceLocation CONSTELLATION_SNAPSHOT_S2C = Manifestation.id("constellation_snapshot");
+
     private ManifestationNetworking() {
     }
 }

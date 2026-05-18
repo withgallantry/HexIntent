@@ -92,6 +92,7 @@ object ManifestationServer : ModInitializer {
         )
     }
 
+
     private fun registerLifecycleCleanup() {
         ServerPlayConnectionEvents.JOIN.register(ServerPlayConnectionEvents.Join { handler, _, _ ->
             val playerId = handler.player.uuid
@@ -99,6 +100,32 @@ object ManifestationServer : ModInitializer {
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
             CastSoundSuppressor.clearForPlayer(playerId)
+
+            // Send constellation snapshot on join
+            val player = handler.player
+            if (ManifestationConfig.constellationFeatureEnabled()) {
+                val server = player.server
+                if (server != null) {
+                    // Add a test constellation if none exist
+                    val store = ConstellationStateStore.get(server)
+                    if (store.all().isEmpty()) {
+                        val testOwner = player.uuid
+                        val color = 0xFFAA33 // orange
+                        val stars = listOf(
+                            ConstellationStateStore.Star(0.0, 0.7, 0.0),
+                            ConstellationStateStore.Star(-0.5, 0.0, 0.0),
+                            ConstellationStateStore.Star(0.5, 0.0, 0.0)
+                        )
+                        val edges = listOf(
+                            ConstellationStateStore.Edge(0, 1),
+                            ConstellationStateStore.Edge(1, 2),
+                            ConstellationStateStore.Edge(2, 0)
+                        )
+                        store.put(ConstellationStateStore.Constellation(testOwner, color, stars, edges, true))
+                    }
+                    ConstellationSync.sendSnapshotTo(player)
+                }
+            }
         })
 
         ServerPlayConnectionEvents.DISCONNECT.register(ServerPlayConnectionEvents.Disconnect { handler, _ ->

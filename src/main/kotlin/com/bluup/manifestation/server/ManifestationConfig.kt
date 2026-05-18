@@ -30,6 +30,8 @@ object ManifestationConfig {
     private const val DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
     private const val DEFAULT_SPLINTER_CASTER_ENABLED = true
 
+    private const val DEFAULT_CONSTELLATION_FEATURE_ENABLED = true
+
     private const val MIN_MENU_LOOP_WINDOW_MS = 200L
     private const val MAX_MENU_LOOP_WINDOW_MS = 10_000L
     private const val MIN_MENU_LOOP_TRIGGER_COUNT = 2
@@ -118,6 +120,9 @@ object ManifestationConfig {
     @Volatile
     private var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
 
+    @Volatile
+    private var constellationFeatureEnabled: Boolean = DEFAULT_CONSTELLATION_FEATURE_ENABLED
+
     fun load() {
         val loaded = readOrNull()
         val effective = sanitize(loaded ?: RawConfig())
@@ -141,6 +146,8 @@ object ManifestationConfig {
         splinterMaxActivePerOwner = effective.splinterMaxActivePerOwner
         splinterCasterEnabled = effective.splinterCasterEnabled
 
+        constellationFeatureEnabled = effective.constellationFeatureEnabled
+
         if (loaded == null || loaded != effective) {
             write(effective)
         }
@@ -152,7 +159,7 @@ object ManifestationConfig {
                 "menuDispatchRefillPerSecond={}, menuDispatchBurstTokens={}, menuDispatchViolationDecayMs={}, " +
                 "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}, " +
                 "splinterWatchdogMaxAvgExecMs={}, splinterWatchdogMaxBreaches={}, " +
-                "splinterMaxActivePerOwner={}, splinterCasterEnabled={}",
+                "splinterMaxActivePerOwner={}, splinterCasterEnabled={}, constellationFeatureEnabled={}",
             menuLoopWindowMs,
             menuLoopTriggerCount,
             intentRelayMaxRangeBlocks,
@@ -170,7 +177,8 @@ object ManifestationConfig {
             splinterWatchdogMaxAvgExecMs,
             splinterWatchdogMaxBreaches,
             splinterMaxActivePerOwner,
-            splinterCasterEnabled
+            splinterCasterEnabled,
+            constellationFeatureEnabled
         )
     }
 
@@ -209,6 +217,8 @@ object ManifestationConfig {
     fun splinterMaxActivePerOwner(): Int = splinterMaxActivePerOwner
 
     fun splinterCasterEnabled(): Boolean = splinterCasterEnabled
+
+    fun constellationFeatureEnabled(): Boolean = constellationFeatureEnabled
 
     private fun readOrNull(): RawConfig? {
         if (!Files.exists(configPath)) {
@@ -334,6 +344,7 @@ object ManifestationConfig {
         var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
         var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES,
         var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER,
-        var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
+        var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED,
+        var constellationFeatureEnabled: Boolean = DEFAULT_CONSTELLATION_FEATURE_ENABLED
     )
 }

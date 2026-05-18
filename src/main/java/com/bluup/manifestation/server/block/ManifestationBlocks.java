@@ -59,6 +59,12 @@ public final class ManifestationBlocks {
             .lightLevel(state -> state.getValue(HexReliquaryBlock.FRAME) == 0 ? 4 : 9)
     );
 
+    public static final MindVaultBlock MIND_VAULT_BLOCK = new MindVaultBlock(
+        FabricBlockSettings.copyOf(Blocks.DEEPSLATE_BRICKS)
+            .strength(2.5f, 6.0f)
+            .requiresCorrectToolForDrops()
+    );
+
     public static final Item SPLINTER_CASTER_ITEM = new BlockItem(
         SPLINTER_CASTER_BLOCK,
         new Item.Properties()
@@ -69,10 +75,16 @@ public final class ManifestationBlocks {
         new Item.Properties()
     );
 
+    public static final Item MIND_VAULT_ITEM = new BlockItem(
+        MIND_VAULT_BLOCK,
+        new Item.Properties()
+    );
+
     public static BlockEntityType<IntentRelayBlockEntity> INTENT_RELAY_BLOCK_ENTITY;
     public static BlockEntityType<CorridorPortalBlockEntity> CORRIDOR_PORTAL_BLOCK_ENTITY;
     public static BlockEntityType<SplinterCasterBlockEntity> SPLINTER_CASTER_BLOCK_ENTITY;
     public static BlockEntityType<HexReliquaryBlockEntity> HEX_RELIQUARY_BLOCK_ENTITY;
+    public static BlockEntityType<MindVaultBlockEntity> MIND_VAULT_BLOCK_ENTITY;
 
     public static void register() {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("corridor_portal"), CORRIDOR_PORTAL_BLOCK);
@@ -80,13 +92,16 @@ public final class ManifestationBlocks {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("intent_relay_emitter"), INTENT_RELAY_EMITTER_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("splinter_caster"), SPLINTER_CASTER_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("hex_box"), HEX_RELIQUARY_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("mind_vault"), MIND_VAULT_BLOCK);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("splinter_caster"), SPLINTER_CASTER_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("hex_box"), HEX_RELIQUARY_ITEM);
+        Registry.register(BuiltInRegistries.ITEM, Manifestation.id("mind_vault"), MIND_VAULT_ITEM);
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries ->
             {
                 entries.accept(SPLINTER_CASTER_ITEM);
                 entries.accept(HEX_RELIQUARY_ITEM);
+                entries.accept(MIND_VAULT_ITEM);
             }
         );
 
@@ -112,6 +127,12 @@ public final class ManifestationBlocks {
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
             Manifestation.id("hex_box"),
             FabricBlockEntityTypeBuilder.create(HexReliquaryBlockEntity::new, HEX_RELIQUARY_BLOCK).build()
+        );
+
+        MIND_VAULT_BLOCK_ENTITY = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE,
+            Manifestation.id("mind_vault"),
+            FabricBlockEntityTypeBuilder.create(MindVaultBlockEntity::new, MIND_VAULT_BLOCK).build()
         );
     }
 

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "manifestation:block/mind_vault" },
+    "facing=east": { "model": "manifestation:block/mind_vault", "y": 90 },
+    "facing=south": { "model": "manifestation:block/mind_vault", "y": 180 },
+    "facing=west": { "model": "manifestation:block/mind_vault", "y": 270 }
+  }
+}

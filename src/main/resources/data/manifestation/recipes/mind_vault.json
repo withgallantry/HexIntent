@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GPG",
+    "SSS",
+    "GSG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:glowstone_dust" },
+    "P": { "item": "minecraft:ender_pearl" },
+    "S": { "item": "minecraft:deepslate" }
+  },
+  "result": {
+    "item": "manifestation:mind_vault"
+  }
+}

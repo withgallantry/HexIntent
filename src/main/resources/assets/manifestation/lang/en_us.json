@@ -21,6 +21,7 @@
   "hexcasting.action.manifestation:get_splinter_location": "Get Splinter Location",
   "hexcasting.action.manifestation:destroy_splinters": "Destroy Splinters",
   "hexcasting.action.manifestation:hex_trail": "Hex Trail",
+  "hexcasting.action.manifestation:store_mind_vault": "Bind Mind Vault",
 
   "hexcasting.action.book.manifestation:intent_button": "Intent Button",
   "hexcasting.action.book.manifestation:intent_input": "Intent Input",
@@ -41,12 +42,15 @@
   "hexcasting.action.book.manifestation:get_splinter_location": "Get Splinter Location",
   "hexcasting.action.book.manifestation:destroy_splinters": "Destroy Splinters",
   "hexcasting.action.book.manifestation:hex_trail": "Hex Trail",
+  "hexcasting.action.book.manifestation:store_mind_vault": "Bind Mind Vault",
 
   "block.manifestation.corridor_portal": "Manifest Threshold",
   "block.manifestation.intent_relay": "Manifest Relay",
   "block.manifestation.splinter_caster": "Splinter Caster",
   "block.manifestation.hex_box": "Hex Reliquary",
+  "block.manifestation.mind_vault": "Mind Vault",
   "item.manifestation.hex_box": "Hex Reliquary",
+  "item.manifestation.mind_vault": "Mind Vault",
   "item.manifestation.splinter_caster": "Splinter Caster",
   "block.manifestation.hex_reliquary.slot_label_default": "Slot %s",
   "message.manifestation.hex_reliquary.rename_hint": "Stored in slot %s. Rename the held focus in an anvil to set a custom label.",
@@ -87,6 +91,7 @@
   "hexcasting.page.manifestation.splinters.get_splinter_location": "Cast only by a splinter. Returns the origin vector of the currently casting splinter. Useful for self-renewal, local offsets, and checking whether a successor remained in place.",
   "hexcasting.page.manifestation.splinters.destroy_splinters": "Dismisses all active splinters owned by the caster.",
   "hexcasting.page.manifestation.splinters.hex_trail": "Creates a smooth, stateful trail channel keyed by id. Each cast appends one new point at position; the prior point is remembered automatically. Segments longer than 10 blocks do not connect.$(br2)Inputs:$(br)position: world-space vector for the new point.$(br)color from: RGB vector (0..1) at the start of the color cycle.$(br)color to: RGB vector (0..1) at the end of the color cycle.$(br)ticks: positive transition duration for color ping-pong.$(br)id: numeric trail channel key; reuse to continue the same trail.$(br)type?: optional style index, rounded and clamped to 0..14 (default 0).$(br2)Types: 0 dust ribbon, 1 sparks, 2 trail, 3 pulse beads, 4 end rod, 5 witch plume, 6 enchant flecks, 7 soul flame beads, 8 solid beam, 9 ring lattice, 10 lightning arc, 11 hex conjure ribbon, 12 hex conjure sparks, 13 hex conjure trail, 14 dual-helix.$(br)Color vectors tint types 0-3 and 8-14; types 4-7 use native particle colors.",
+  "hexcasting.page.manifestation.intents.store_mind_vault": "Stores a villager mind into a Mind Vault. Inputs are villager entity and Mind Vault position. The first villager profile locks the vault profile; only matching profession and level can be stored afterward.",
   "hexcasting.page.manifestation.contained_splinter.lore": "A contained splinter anchors delayed casting to a Splinter Caster, letting circles hold intent until conditions are right.",
   "hexcasting.page.manifestation.contained_splinter.usage": "Place a focus iota in the Splinter Caster, then provide circle flow to manifest and maintain the anchored splinter.",
 
@@ -97,6 +102,15 @@
   "hexcasting.tooltip.manifestation.hex_reliquary.selected": "Hex Reliquary Slot: %s",
   "hexcasting.tooltip.manifestation.hex_reliquary.slot_filled": "Stored: Ready",
   "hexcasting.tooltip.manifestation.hex_reliquary.slot_empty": "Stored: Empty",
+  "hexcasting.tooltip.manifestation.mind_vault.empty": "Mind Vault: Empty",
+  "hexcasting.tooltip.manifestation.mind_vault.profile": "Mind Vault: %s %s",
+  "hexcasting.tooltip.manifestation.mind_vault.slot_ready": "Slot %s: Ready",
+  "hexcasting.tooltip.manifestation.mind_vault.slot_cooldown": "Slot %s: Cooling (%s)",
+  "hexcasting.tooltip.manifestation.mind_vault.level.novice": "Novice",
+  "hexcasting.tooltip.manifestation.mind_vault.level.apprentice": "Apprentice",
+  "hexcasting.tooltip.manifestation.mind_vault.level.journeyman": "Journeyman",
+  "hexcasting.tooltip.manifestation.mind_vault.level.expert": "Expert",
+  "hexcasting.tooltip.manifestation.mind_vault.level.master": "Master",
 
   "hexcasting.rawhook.manifestation:intent_numeric_input": "Intent Numeric Input",
   "hexcasting.rawhook.manifestation:intent_checkbox": "Intent Checkbox",
@@ -107,5 +121,8 @@
   "hexcasting.mishap.manifestation.radial_menu_buttons_only": "Radial manifestation requires every entry to be an intent button.",
   "hexcasting.mishap.manifestation.intent_relay_no_space": "Manifest Relay cannot manifest on that face; the space is blocked or unsupported.",
   "hexcasting.mishap.manifestation.intent_relay_signal_range": "Manifest Relay signal strength must be between 0 and 15.",
-  "hexcasting.mishap.manifestation.portal_no_space": "Manifest Threshold cannot manifest. The space is occupied."
+  "hexcasting.mishap.manifestation.portal_no_space": "Manifest Threshold cannot manifest. The space is occupied.",
+  "hexcasting.mishap.manifestation.mind_vault_full": "Mind Vault cannot hold more villagers.",
+  "hexcasting.mishap.manifestation.mind_vault_type_mismatch": "Mind Vault only accepts villagers matching its locked profile.",
+  "hexcasting.mishap.manifestation.mind_vault_unavailable": "Mind Vault has no villager available; all stored minds are cooling."
 }

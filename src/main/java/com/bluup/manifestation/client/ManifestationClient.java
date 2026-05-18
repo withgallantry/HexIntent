@@ -4,6 +4,7 @@ import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.client.menu.ui.MenuScreen;
 import com.bluup.manifestation.client.render.CorridorPortalBlockEntityRenderer;
 import com.bluup.manifestation.client.render.IntentRelayBlockEntityRenderer;
+import com.bluup.manifestation.client.render.MindVaultBlockEntityRenderer;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.menu.MenuPayload;
 import com.bluup.manifestation.server.ManifestationConfig;
@@ -52,9 +53,17 @@ public final class ManifestationClient implements ClientModInitializer {
             ManifestationBlocks.INTENT_RELAY_BLOCK_ENTITY,
             IntentRelayBlockEntityRenderer::new
         );
+        BlockEntityRenderers.register(
+            ManifestationBlocks.MIND_VAULT_BLOCK_ENTITY,
+            MindVaultBlockEntityRenderer::new
+        );
         HexReliquaryLensOverlay.register();
         IntentShifterLensOverlay.register();
+        MindVaultLensOverlay.register();
         IntentShifterRuneEffects.register();
+
+        // Register constellation visuals (packet + renderer)
+        ConstellationVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,
