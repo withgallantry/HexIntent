@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "manifestation:block/particle_importer" }
+  }
+}

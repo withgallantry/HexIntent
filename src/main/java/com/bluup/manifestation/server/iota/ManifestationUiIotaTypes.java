@@ -321,6 +321,35 @@ public final class ManifestationUiIotaTypes {
         }
     };
 
+    public static final IotaType<ParticleBlobIota> PARTICLE_BLOB = new IotaType<>() {
+        @Nullable
+        @Override
+        public ParticleBlobIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            byte[] blob = ctag.getByteArray("blob");
+            int points = ctag.getInt("points");
+            int weight = ctag.getInt("weight");
+            return new ParticleBlobIota(blob, points, weight);
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            int points = ctag.getInt("points");
+            int weight = ctag.getInt("weight");
+            int bytes = ctag.getByteArray("blob").length;
+            return Component.literal("ParticleBlob(")
+                .append(Component.literal("points=" + points + ", weight=" + weight + ", bytes=" + bytes).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+                .withStyle(ChatFormatting.AQUA);
+        }
+
+        @Override
+        public int color() {
+            return 0xff_4fbfd8;
+        }
+    };
+
     public static void register() {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_button"), UI_BUTTON);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_input"), UI_INPUT);
@@ -331,5 +360,6 @@ public final class ManifestationUiIotaTypes {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_section"), UI_SECTION);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("presence_intent"), PRESENCE_INTENT);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("particle_blob"), PARTICLE_BLOB);
     }
 }

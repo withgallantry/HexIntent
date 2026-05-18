@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -65,11 +66,18 @@ public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<M
         }
         var facing = state.getValue(HorizontalDirectionalBlock.FACING);
         int iconLight = LightTexture.FULL_BRIGHT;
+        float panelYRot = switch (facing) {
+            case NORTH -> 0.0f;
+            case EAST -> 90.0f;
+            case SOUTH -> 180.0f;
+            case WEST -> 270.0f;
+            default -> 0.0f;
+        };
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
-        // Match blockstate Y rotations: north=0, east=90, south=180, west=270.
-        poseStack.mulPose(Axis.YP.rotationDegrees(facing.toYRot() + 180.0f));
+        // Match blockstate Y rotations exactly so overlays stay on the true front face.
+        poseStack.mulPose(Axis.YP.rotationDegrees(panelYRot));
 
         try {
             if (blockEntity.lockedProfessionIdString() == null) {

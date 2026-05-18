@@ -64,6 +64,7 @@ public final class ManifestationClient implements ClientModInitializer {
 
         // Register constellation visuals (packet + renderer)
         ConstellationVisuals.register();
+        ParticleBlobVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,
@@ -80,6 +81,14 @@ public final class ManifestationClient implements ClientModInitializer {
 
                     // But open the screen on the render thread.
                     client.execute(() -> openMenu(client, payload));
+                }
+        );
+
+        ClientPlayNetworking.registerGlobalReceiver(
+                ManifestationNetworking.OPEN_PARTICLE_IMPORTER_S2C,
+                (client, handler, buf, responseSender) -> {
+                    final var pos = buf.readBlockPos();
+                    client.execute(() -> client.setScreen(new ParticleImporterScreen(pos)));
                 }
         );
     }

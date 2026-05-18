@@ -23,6 +23,9 @@ import com.bluup.manifestation.server.action.OpManifestSplinter
 import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpManifestEcho
+import com.bluup.manifestation.server.action.OpMakeParticleBlob
+import com.bluup.manifestation.server.action.OpParticleScatter
+import com.bluup.manifestation.server.action.OpParticleBlobScatter
 import com.bluup.manifestation.server.action.OpPresenceIntent
 import com.bluup.manifestation.server.action.OpSilenceNextCastSound
 import com.bluup.manifestation.server.action.OpUiButton
@@ -36,10 +39,16 @@ import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.action.MenuOpenLoopGuard
+import com.bluup.manifestation.server.action.ParticleBlobCodec
 import com.bluup.manifestation.server.block.ManifestationBlocks
+import com.bluup.manifestation.server.block.ParticleImporterBlockEntity
 import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import com.bluup.manifestation.server.splinter.SplinterRuntime
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -53,6 +62,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
+import net.minecraft.world.phys.Vec3
 import java.util.UUID
 
 /**
@@ -65,6 +75,7 @@ object ManifestationServer : ModInitializer {
     private const val MAX_ACTION_IOTAS = 1024
     private const val MAX_INPUT_LIST_ITEMS = 128
     private const val MAX_INPUT_STRING_CHARS = 256
+    private const val MAX_IMPORT_JSON_CHARS = 200_000
 
     override fun onInitialize() {
         Manifestation.LOGGER.info("Manifestation server initializing.")
@@ -180,6 +191,9 @@ object ManifestationServer : ModInitializer {
         registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
+        registerAction("particle_scatter", "qaqeaddw", HexDir.NORTH_EAST, OpParticleScatter)
+        registerAction("make_particle_blob", "qaqeaddwa", HexDir.NORTH_EAST, OpMakeParticleBlob)
+        registerAction("particle_blob_scatter", "qaqeaddwe", HexDir.NORTH_EAST, OpParticleBlobScatter)
         registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
     }
 
@@ -329,6 +343,393 @@ object ManifestationServer : ModInitializer {
                 )
             }
         }
+
+        ServerPlayNetworking.registerGlobalReceiver(
+            ManifestationNetworking.IMPORT_PARTICLE_BLOB_C2S
+        ) { server, player, _, buf, _ ->
+            val pos = buf.readBlockPos()
+            val rawJson = buf.readUtf(MAX_IMPORT_JSON_CHARS)
+            server.execute {
+                val level = player.serverLevel()
+                if (!player.isAlive || player.blockPosition().distSqr(pos) > 8.0 * 8.0) {
+                    player.displayClientMessage(Component.literal("Particle import failed: too far from importer."), false)
+                    return@execute
+                }
+
+                val be = level.getBlockEntity(pos) as? ParticleImporterBlockEntity
+                if (be == null) {
+                    player.displayClientMessage(Component.literal("Particle import failed: importer missing."), false)
+                    return@execute
+                }
+                if (!be.hasFocus()) {
+                    player.displayClientMessage(Component.literal("Particle import failed: no focus in importer."), false)
+                    return@execute
+                }
+
+                val parsed = parseParticlesFromJson(rawJson)
+                if (parsed.error != null) {
+                    player.displayClientMessage(Component.literal("Particle import failed: ${parsed.error}"), false)
+                    return@execute
+                }
+
+                val points = parsed.points
+                if (points.isEmpty()) {
+                    player.displayClientMessage(Component.literal("Particle import failed: particles array is empty."), false)
+                    return@execute
+                }
+
+                val blob = try {
+                    ParticleBlobCodec.encode(points, parsed.axisHint, parsed.colorSpec)
+                } catch (e: IllegalArgumentException) {
+                    val reason = when (e.message) {
+                        "too_many_points" -> "too many particles (max ${ParticleBlobCodec.MAX_POINTS})."
+                        "blob_too_large" -> "compressed blob exceeds size limit."
+                        "gradient_stops" -> "gradient requires at least two color stops."
+                        else -> "could not compress particle data."
+                    }
+                    player.displayClientMessage(Component.literal("Particle import failed: $reason"), false)
+                    return@execute
+                }
+
+                val writeError = be.writeBlob(blob, points.size)
+                if (writeError != null) {
+                    player.displayClientMessage(Component.literal("Particle import failed: $writeError"), false)
+                    return@execute
+                }
+
+                player.displayClientMessage(
+                    Component.literal("Particle import complete: ${points.size} points (${blob.size} bytes compressed)."),
+                    false
+                )
+            }
+        }
+    }
+
+    @JvmStatic
+    fun openParticleImporter(player: ServerPlayer, pos: BlockPos) {
+        val buf = PacketByteBufs.create()
+        buf.writeBlockPos(pos)
+        ServerPlayNetworking.send(player, ManifestationNetworking.OPEN_PARTICLE_IMPORTER_S2C, buf)
+    }
+
+    private data class ParsedParticleResult(
+        val points: List<ParticleBlobCodec.Point>,
+        val axisHint: String?,
+        val colorSpec: ParticleBlobCodec.ColorSpec?,
+        val error: String?
+    )
+
+    private fun parseParticlesFromJson(rawJson: String): ParsedParticleResult {
+        val rootObj = try {
+            JsonParser.parseString(rawJson).asJsonObject
+        } catch (_: Throwable) {
+            return ParsedParticleResult(listOf(), null, null, "invalid JSON")
+        }
+
+        val particles = rootObj.getAsJsonArray("particles")
+            ?: return ParsedParticleResult(listOf(), null, null, "missing particles array")
+
+        val settings = rootObj
+            .getAsJsonObject("metadata")
+            ?.getAsJsonObject("settings")
+
+        val axisHint = parseAxisHint(settings?.get("coordinateAxis")?.asStringOrNull())
+
+        val out = ArrayList<ParticleBlobCodec.Point>()
+        for (elem in particles) {
+            if (!elem.isJsonObject) {
+                continue
+            }
+
+            val obj = elem.asJsonObject
+            val x = obj.readFiniteDouble("x") ?: continue
+            val y = obj.readFiniteDouble("y") ?: continue
+            val z = obj.readFiniteDouble("z") ?: continue
+            val r = (obj.readFiniteDouble("r") ?: 1.0).coerceIn(0.0, 1.0)
+            val g = (obj.readFiniteDouble("g") ?: 1.0).coerceIn(0.0, 1.0)
+            val b = (obj.readFiniteDouble("b") ?: 1.0).coerceIn(0.0, 1.0)
+
+            out.add(ParticleBlobCodec.Point(Vec3(x, y, z), Vec3(r, g, b)))
+            if (out.size > ParticleBlobCodec.MAX_POINTS) {
+                return ParsedParticleResult(listOf(), null, null, "too many particles (max ${ParticleBlobCodec.MAX_POINTS})")
+            }
+        }
+
+        val colorSpec = parseColorSpec(rootObj, settings, out)
+        return ParsedParticleResult(out, axisHint, colorSpec, null)
+    }
+
+    private fun parseColorSpec(
+        rootObj: JsonObject,
+        settings: JsonObject?,
+        points: List<ParticleBlobCodec.Point>
+    ): ParticleBlobCodec.ColorSpec? {
+        val colorMode = settings?.get("colorMode")?.asStringOrNull()?.lowercase()
+        val colorFixed = settings?.get("colorFixed")?.asBooleanOrNull() ?: false
+
+        val fixed = readColorElement(settings?.get("fixedColor"))
+
+        if (colorMode == "gradient") {
+            val mode = parseGradientMode(settings)
+            val stops = parseGradientStops(rootObj, settings, points, mode)
+            if (stops.size >= 2) {
+                return ParticleBlobCodec.ColorSpec.Gradient(mode, stops)
+            }
+            return null
+        }
+
+        if (colorMode == "single" || colorMode == "fixed") {
+            return ParticleBlobCodec.ColorSpec.Single(fixed ?: points.firstOrNull()?.color ?: Vec3(1.0, 1.0, 1.0))
+        }
+
+        if (colorMode == "per_point" || colorMode == "per-point" || colorMode == "particle") {
+            return ParticleBlobCodec.ColorSpec.PerPoint
+        }
+
+        if (colorMode == null && colorFixed) {
+            return ParticleBlobCodec.ColorSpec.Single(fixed ?: points.firstOrNull()?.color ?: Vec3(1.0, 1.0, 1.0))
+        }
+
+        return null
+    }
+
+    private fun parseGradientMode(settings: JsonObject?): ParticleBlobCodec.GradientMode {
+        val explicit = settings?.get("gradientMode")?.asStringOrNull()?.lowercase()
+        if (explicit != null) {
+            return when (explicit) {
+                "x" -> ParticleBlobCodec.GradientMode.X
+                "y" -> ParticleBlobCodec.GradientMode.Y
+                "z" -> ParticleBlobCodec.GradientMode.Z
+                "distance" -> ParticleBlobCodec.GradientMode.DISTANCE
+                else -> ParticleBlobCodec.GradientMode.Z
+            }
+        }
+
+        val direction = settings?.get("gradientDirection")?.asStringOrNull()?.lowercase()
+        val axes = parseAxisHint(settings?.get("coordinateAxis")?.asStringOrNull())
+        val varying = when {
+            axes == null -> listOf('x', 'y', 'z')
+            else -> axes.toList().filter { it == 'x' || it == 'y' || it == 'z' }
+        }
+
+        val axis = when (direction) {
+            "vertical" -> varying.firstOrNull() ?: 'y'
+            "horizontal" -> varying.lastOrNull() ?: 'x'
+            else -> varying.lastOrNull() ?: 'z'
+        }
+
+        return when (axis) {
+            'x' -> ParticleBlobCodec.GradientMode.X
+            'y' -> ParticleBlobCodec.GradientMode.Y
+            'z' -> ParticleBlobCodec.GradientMode.Z
+            else -> ParticleBlobCodec.GradientMode.Z
+        }
+    }
+
+    private fun parseGradientStops(
+        rootObj: JsonObject,
+        settings: JsonObject?,
+        points: List<ParticleBlobCodec.Point>,
+        mode: ParticleBlobCodec.GradientMode
+    ): List<ParticleBlobCodec.GradientStop> {
+        val fromColorObject = rootObj
+            .getAsJsonObject("colour")
+            ?.getAsJsonArray("stops")
+            ?.let { readStopsArray(it) }
+        if (!fromColorObject.isNullOrEmpty()) {
+            return fromColorObject
+        }
+
+        val start = readColorElement(settings?.get("gradientStart"))
+        val end = readColorElement(settings?.get("gradientEnd"))
+        if (start != null && end != null) {
+            return listOf(
+                ParticleBlobCodec.GradientStop(0.0, start),
+                ParticleBlobCodec.GradientStop(1.0, end)
+            )
+        }
+
+        return inferGradientStopsFromPoints(points, mode)
+    }
+
+    private fun inferGradientStopsFromPoints(
+        points: List<ParticleBlobCodec.Point>,
+        mode: ParticleBlobCodec.GradientMode
+    ): List<ParticleBlobCodec.GradientStop> {
+        if (points.size < 2) {
+            return listOf()
+        }
+
+        val tValues = points.map { gradientT(it.offset, points, mode) }
+        val minT = tValues.minOrNull() ?: return listOf()
+        val maxT = tValues.maxOrNull() ?: return listOf()
+        if (maxT <= minT) {
+            val c = points.first().color
+            return listOf(
+                ParticleBlobCodec.GradientStop(0.0, c),
+                ParticleBlobCodec.GradientStop(1.0, c)
+            )
+        }
+
+        val minIdx = tValues.indices.minByOrNull { tValues[it] } ?: return listOf()
+        val maxIdx = tValues.indices.maxByOrNull { tValues[it] } ?: return listOf()
+
+        return listOf(
+            ParticleBlobCodec.GradientStop(0.0, points[minIdx].color),
+            ParticleBlobCodec.GradientStop(1.0, points[maxIdx].color)
+        )
+    }
+
+    private fun gradientT(
+        p: Vec3,
+        points: List<ParticleBlobCodec.Point>,
+        mode: ParticleBlobCodec.GradientMode
+    ): Double {
+        return when (mode) {
+            ParticleBlobCodec.GradientMode.X -> {
+                val min = points.minOf { it.offset.x }
+                val max = points.maxOf { it.offset.x }
+                normalize01(p.x, min, max)
+            }
+
+            ParticleBlobCodec.GradientMode.Y -> {
+                val min = points.minOf { it.offset.y }
+                val max = points.maxOf { it.offset.y }
+                normalize01(p.y, min, max)
+            }
+
+            ParticleBlobCodec.GradientMode.Z -> {
+                val min = points.minOf { it.offset.z }
+                val max = points.maxOf { it.offset.z }
+                normalize01(p.z, min, max)
+            }
+
+            ParticleBlobCodec.GradientMode.DISTANCE -> {
+                val d = p.length()
+                val maxD = points.maxOf { it.offset.length() }
+                normalize01(d, 0.0, maxD)
+            }
+        }
+    }
+
+    private fun normalize01(v: Double, min: Double, max: Double): Double {
+        if (max <= min) {
+            return 0.0
+        }
+        return ((v - min) / (max - min)).coerceIn(0.0, 1.0)
+    }
+
+    private fun readStopsArray(stops: JsonArray): List<ParticleBlobCodec.GradientStop> {
+        val out = ArrayList<ParticleBlobCodec.GradientStop>()
+        for (entry in stops) {
+            val arr = entry.asJsonArrayOrNull() ?: continue
+            if (arr.size() < 2) continue
+            val t = arr[0].asDoubleOrNull()?.coerceIn(0.0, 1.0) ?: continue
+            val color = readColorElement(arr[1]) ?: continue
+            out.add(ParticleBlobCodec.GradientStop(t, color))
+        }
+        return out
+    }
+
+    private fun parseAxisHint(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        val letters = raw.lowercase().filter { it == 'x' || it == 'y' || it == 'z' }
+        return if (letters.isBlank()) null else letters
+    }
+
+    private fun readColorElement(elem: JsonElement?): Vec3? {
+        if (elem == null || elem.isJsonNull) return null
+
+        elem.asJsonObjectOrNull()?.let { obj ->
+            val r = obj.readFiniteDouble("r")
+            val g = obj.readFiniteDouble("g")
+            val b = obj.readFiniteDouble("b")
+            if (r != null && g != null && b != null) {
+                return normalizeRgb(r, g, b)
+            }
+        }
+
+        elem.asJsonArrayOrNull()?.let { arr ->
+            if (arr.size() >= 3) {
+                val r = arr[0].asDoubleOrNull()
+                val g = arr[1].asDoubleOrNull()
+                val b = arr[2].asDoubleOrNull()
+                if (r != null && g != null && b != null) {
+                    return normalizeRgb(r, g, b)
+                }
+            }
+        }
+
+        val hex = elem.asStringOrNull()
+        if (hex != null && hex.startsWith("#") && (hex.length == 7 || hex.length == 9)) {
+            return try {
+                val raw = hex.substring(1)
+                val rr = raw.substring(0, 2).toInt(16) / 255.0
+                val gg = raw.substring(2, 4).toInt(16) / 255.0
+                val bb = raw.substring(4, 6).toInt(16) / 255.0
+                Vec3(rr, gg, bb)
+            } catch (_: Throwable) {
+                null
+            }
+        }
+
+        return null
+    }
+
+    private fun normalizeRgb(r: Double, g: Double, b: Double): Vec3 {
+        val looks255 = r > 1.0 || g > 1.0 || b > 1.0
+        return if (looks255) {
+            Vec3((r / 255.0).coerceIn(0.0, 1.0), (g / 255.0).coerceIn(0.0, 1.0), (b / 255.0).coerceIn(0.0, 1.0))
+        } else {
+            Vec3(r.coerceIn(0.0, 1.0), g.coerceIn(0.0, 1.0), b.coerceIn(0.0, 1.0))
+        }
+    }
+
+    private fun JsonElement.asJsonObjectOrNull(): JsonObject? {
+        if (!this.isJsonObject) return null
+        return this.asJsonObject
+    }
+
+    private fun JsonElement.asJsonArrayOrNull(): JsonArray? {
+        if (!this.isJsonArray) return null
+        return this.asJsonArray
+    }
+
+    private fun JsonElement.asStringOrNull(): String? {
+        return try {
+            this.asString
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun JsonElement.asBooleanOrNull(): Boolean? {
+        return try {
+            this.asBoolean
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun JsonElement.asDoubleOrNull(): Double? {
+        return try {
+            val d = this.asDouble
+            if (d.isFinite()) d else null
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun JsonObject.readFiniteDouble(key: String): Double? {
+        if (!this.has(key)) {
+            return null
+        }
+        val v = try {
+            this.get(key).asDouble
+        } catch (_: Throwable) {
+            return null
+        }
+        return if (v.isFinite()) v else null
     }
 
     @JvmStatic
@@ -424,6 +825,31 @@ object ManifestationServer : ModInitializer {
                 buf.writeVarInt(particleType.coerceIn(0, 14))
                 ServerPlayNetworking.send(other, ManifestationNetworking.HEX_TRAIL_S2C, buf)
             }
+        }
+    }
+
+    @JvmStatic
+    fun sendParticleBlobCastTo(
+        player: ServerPlayer,
+        origin: net.minecraft.world.phys.Vec3,
+        blob: ByteArray,
+        lifetimeTicks: Int
+    ) {
+        val level = player.serverLevel()
+        val radius = 128.0
+        for (other in level.server.playerList.players) {
+            if (other.serverLevel() != level || other.position().distanceTo(origin) > radius) {
+                continue
+            }
+
+            val buf = PacketByteBufs.create()
+            buf.writeUtf(level.dimension().location().toString())
+            buf.writeDouble(origin.x)
+            buf.writeDouble(origin.y)
+            buf.writeDouble(origin.z)
+            buf.writeByteArray(blob)
+            buf.writeVarInt(lifetimeTicks.coerceAtLeast(1))
+            ServerPlayNetworking.send(other, ManifestationNetworking.PARTICLE_BLOB_CAST_S2C, buf)
         }
     }
 }
