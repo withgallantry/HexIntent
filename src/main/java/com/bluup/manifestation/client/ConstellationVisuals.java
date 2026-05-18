@@ -7,12 +7,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.util.Mth;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.UUID;
 
 public final class ConstellationVisuals {
     public static class Star {
@@ -101,38 +100,74 @@ public final class ConstellationVisuals {
                 drawStar(poseStack, buffers, s, camera, r, g, b, 1.0f);
             }
         }
-        buffers.endBatch();
+        buffers.endBatch(RenderType.lines());
     }
 
     private static void drawLine(PoseStack poseStack, MultiBufferSource buffers, Star a, Star b, Vec3 camera, float r, float g, float b_, float alpha) {
-        var buf = buffers.getBuffer(RenderType.LINES);
+        VertexConsumer buf = buffers.getBuffer(RenderType.lines());
         double skyRadius = 120.0;
         // Project unit sphere to sky dome
         double ax = a.x * skyRadius, ay = a.y * skyRadius + 90.0, az = a.z * skyRadius;
         double bx = b.x * skyRadius, by = b.y * skyRadius + 90.0, bz = b.z * skyRadius;
-        poseStack.pushPose();
-        try {
-            buf.vertex(poseStack.last().pose(), (float)(ax - camera.x), (float)(ay - camera.y), (float)(az - camera.z)).color(r, g, b_, alpha).endVertex();
-            buf.vertex(poseStack.last().pose(), (float)(bx - camera.x), (float)(by - camera.y), (float)(bz - camera.z)).color(r, g, b_, alpha).endVertex();
-        } finally {
-            poseStack.popPose();
-        }
+        Vec3 from = new Vec3(ax - camera.x, ay - camera.y, az - camera.z);
+        Vec3 to = new Vec3(bx - camera.x, by - camera.y, bz - camera.z);
+        drawLineSegment(poseStack, buf, from, to, r, g, b_, alpha);
     }
 
     private static void drawStar(PoseStack poseStack, MultiBufferSource buffers, Star s, Vec3 camera, float r, float g, float b_, float alpha) {
-        var buf = buffers.getBuffer(RenderType.LINES);
+        VertexConsumer buf = buffers.getBuffer(RenderType.lines());
         double skyRadius = 120.0;
         double x = s.x * skyRadius, y = s.y * skyRadius + 90.0, z = s.z * skyRadius;
         float size = 1.2f;
-        poseStack.pushPose();
-        try {
-            // Simple cross
-            buf.vertex(poseStack.last().pose(), (float)(x - camera.x - size), (float)(y - camera.y), (float)(z - camera.z)).color(r, g, b_, alpha).endVertex();
-            buf.vertex(poseStack.last().pose(), (float)(x - camera.x + size), (float)(y - camera.y), (float)(z - camera.z)).color(r, g, b_, alpha).endVertex();
-            buf.vertex(poseStack.last().pose(), (float)(x - camera.x), (float)(y - camera.y - size), (float)(z - camera.z)).color(r, g, b_, alpha).endVertex();
-            buf.vertex(poseStack.last().pose(), (float)(x - camera.x), (float)(y - camera.y + size), (float)(z - camera.z)).color(r, g, b_, alpha).endVertex();
-        } finally {
-            poseStack.popPose();
+        Vec3 center = new Vec3(x - camera.x, y - camera.y, z - camera.z);
+        // Simple cross using two line segments.
+        drawLineSegment(
+            poseStack,
+            buf,
+            center.add(-size, 0.0, 0.0),
+            center.add(size, 0.0, 0.0),
+            r,
+            g,
+            b_,
+            alpha
+        );
+        drawLineSegment(
+            poseStack,
+            buf,
+            center.add(0.0, -size, 0.0),
+            center.add(0.0, size, 0.0),
+            r,
+            g,
+            b_,
+            alpha
+        );
+    }
+
+    private static void drawLineSegment(
+        PoseStack poseStack,
+        VertexConsumer lineBuffer,
+        Vec3 from,
+        Vec3 to,
+        float r,
+        float g,
+        float b,
+        float alpha
+    ) {
+        Vec3 delta = to.subtract(from);
+        double len = delta.length();
+        if (len <= 1.0e-8) {
+            return;
         }
+
+        Vec3 normal = delta.scale(1.0 / len);
+        var pose = poseStack.last();
+        lineBuffer.vertex(pose.pose(), (float) from.x, (float) from.y, (float) from.z)
+            .color(r, g, b, alpha)
+            .normal(pose.normal(), (float) normal.x, (float) normal.y, (float) normal.z)
+            .endVertex();
+        lineBuffer.vertex(pose.pose(), (float) to.x, (float) to.y, (float) to.z)
+            .color(r, g, b, alpha)
+            .normal(pose.normal(), (float) normal.x, (float) normal.y, (float) normal.z)
+            .endVertex();
     }
 }

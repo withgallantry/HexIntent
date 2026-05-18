@@ -22,18 +22,14 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<MindVaultBlockEntity> {
-    private static final ResourceLocation TEX_FRONT = Manifestation.id("block/mindvault_front");
     private static final ResourceLocation TEX_SLOT_READY = Manifestation.id("block/mindvault_slot_ready");
     private static final ResourceLocation TEX_SLOT_COOLDOWN = Manifestation.id("block/mindvault_slot_cooldown");
     private static final ResourceLocation TEX_SLOT_EMPTY = Manifestation.id("block/mindvault_slot_empty");
     private static final ResourceLocation TEX_TYPE_NONE = Manifestation.id("block/mindvault_type_icon_none");
 
-    private static final float Z_BASE = -0.5008f;
-    private static final float Z_FRONT = -0.5011f;
     private static final float Z_TYPE = -0.5014f;
     private static final float Z_TYPE_ITEM = -0.5016f;
     private static final float Z_SLOT = -0.5017f;
-    private static final float BASE_SIZE = 1.0f;
     private static final float TYPE_SIZE = 0.26f;
     private static final float SLOT_SIZE = 0.2f;
 
@@ -68,21 +64,18 @@ public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<M
             return;
         }
         var facing = state.getValue(HorizontalDirectionalBlock.FACING);
-        int faceLight = packedLight;
+        int iconLight = LightTexture.FULL_BRIGHT;
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
+        // Match blockstate Y rotations: north=0, east=90, south=180, west=270.
+        poseStack.mulPose(Axis.YP.rotationDegrees(facing.toYRot() + 180.0f));
 
         try {
-            // Draw the front overlay using world lighting (not emissive)
-            renderSprite(buffer, poseStack, TEX_FRONT, 0.0f, 0.0f, BASE_SIZE, Z_BASE, packedLight);
-
             if (blockEntity.lockedProfessionIdString() == null) {
-                renderSprite(buffer, poseStack, TEX_TYPE_NONE, 0.0f, 0.36f, TYPE_SIZE, Z_TYPE, faceLight);
+                renderSprite(buffer, poseStack, TEX_TYPE_NONE, 0.0f, 0.36f, TYPE_SIZE, Z_TYPE, iconLight);
             } else {
-                renderTypeItemIcon(blockEntity, poseStack, buffer, faceLight);
+                renderTypeItemIcon(blockEntity, poseStack, buffer, iconLight);
             }
 
             long gameTime = blockEntity.getLevel() != null ? blockEntity.getLevel().getGameTime() : 0L;
@@ -188,7 +181,7 @@ public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<M
             .uv(u, v)
             .overlayCoords(OverlayTexture.NO_OVERLAY)
             .uv2(packedLight)
-            .normal(normal, 0.0f, 0.0f, -1.0f)
+            .normal(normal, 0.0f, 0.0f, 1.0f)
             .endVertex();
     }
 }

@@ -4,7 +4,7 @@
     "particle": "manifestation:block/mindvault_front",
     "down": "manifestation:block/mindvault_bottom",
     "up": "manifestation:block/mindvault_top",
-    "north": "manifestation:block/transparent",
+    "north": "manifestation:block/mindvault_front",
     "south": "manifestation:block/mindvault_side",
     "west": "manifestation:block/mindvault_side",
     "east": "manifestation:block/mindvault_side"
