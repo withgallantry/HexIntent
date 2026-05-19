@@ -3,6 +3,7 @@ package com.bluup.manifestation.client;
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.client.menu.ui.MenuScreen;
 import com.bluup.manifestation.client.render.CorridorPortalBlockEntityRenderer;
+import com.bluup.manifestation.client.render.EquationSynthBlockEntityRenderer;
 import com.bluup.manifestation.client.render.IntentRelayBlockEntityRenderer;
 import com.bluup.manifestation.client.render.MindVaultBlockEntityRenderer;
 import com.bluup.manifestation.common.ManifestationNetworking;
@@ -45,6 +46,10 @@ public final class ManifestationClient implements ClientModInitializer {
             ManifestationBlocks.CORRIDOR_PORTAL_BLOCK,
             RenderType.translucent()
         );
+        BlockRenderLayerMap.INSTANCE.putBlock(
+            ManifestationBlocks.EQUATION_SYNTH_BLOCK,
+            RenderType.translucent()
+        );
         BlockEntityRenderers.register(
             ManifestationBlocks.CORRIDOR_PORTAL_BLOCK_ENTITY,
             CorridorPortalBlockEntityRenderer::new
@@ -56,6 +61,10 @@ public final class ManifestationClient implements ClientModInitializer {
         BlockEntityRenderers.register(
             ManifestationBlocks.MIND_VAULT_BLOCK_ENTITY,
             MindVaultBlockEntityRenderer::new
+        );
+        BlockEntityRenderers.register(
+            ManifestationBlocks.EQUATION_SYNTH_BLOCK_ENTITY,
+            EquationSynthBlockEntityRenderer::new
         );
         HexReliquaryLensOverlay.register();
         IntentShifterLensOverlay.register();

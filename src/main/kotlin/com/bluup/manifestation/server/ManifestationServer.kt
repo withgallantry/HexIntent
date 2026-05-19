@@ -202,7 +202,7 @@ object ManifestationServer : ModInitializer {
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
         registerAction("particle_scatter", "qaqeaddw", HexDir.NORTH_EAST, OpParticleScatter)
         registerAction("make_particle_blob", "qaqeaddwa", HexDir.NORTH_EAST, OpMakeParticleBlob)
-        registerAction("particle_blob_scatter", "qaqeaddwe", HexDir.NORTH_EAST, OpParticleBlobScatter)
+        registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
     }

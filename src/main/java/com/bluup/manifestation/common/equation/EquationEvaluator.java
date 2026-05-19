@@ -154,6 +154,12 @@ public final class EquationEvaluator {
                 if ("t".equals(name) || "u".equals(name)) {
                     return new VarNode(name.charAt(0));
                 }
+                if ("path".equals(name)) {
+                    return new VarNode('t');
+                }
+                if ("sweep".equals(name)) {
+                    return new VarNode('u');
+                }
                 if ("pi".equals(name)) {
                     return new NumberNode(Math.PI);
                 }

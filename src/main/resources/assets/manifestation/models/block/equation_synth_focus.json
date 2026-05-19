@@ -7,7 +7,7 @@
     "bottom": "manifestation:block/equation_synth/bottom",
     "glass": "manifestation:block/equation_synth/glass_chamber",
     "particle": "manifestation:block/equation_synth/particle_sphere_animated",
-    "focus": "manifestation:block/equation_synth/focus_socket_empty",
+    "focus": "manifestation:block/equation_synth/focus_socket_filled",
     "panel": "manifestation:block/equation_synth/control_panel_inactive",
     "trim": "manifestation:block/equation_synth/rune_trim"
   },

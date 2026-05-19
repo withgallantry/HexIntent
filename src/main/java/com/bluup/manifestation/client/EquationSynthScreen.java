@@ -18,7 +18,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class EquationSynthScreen extends Screen {
+    private static final int LABEL_GAP = 2;
     private static final int MAX_EXPR_CHARS = EquationParticleConfig.MAX_EXPR_CHARS;
+    private static final int SHAPE_MODAL_W = 260;
+    private static final int SHAPE_MODAL_H = 320;
+    private static final int SHAPE_ITEM_H = 20;
 
     private final BlockPos blockPos;
 
@@ -54,7 +58,59 @@ public final class EquationSynthScreen extends Screen {
     private int previewH;
 
     private final List<Dot> previewDots = new ArrayList<>();
+    private boolean showShapeModal = false;
+    private int shapeScroll = 0;
 
+    // --- Shape preset modal ---
+    private static class ShapePreset {
+        final String name, x, y, z, pathMin, pathMax, sweepMin, sweepMax;
+        ShapePreset(String name, String x, String y, String z, String pathMin, String pathMax, String sweepMin, String sweepMax) {
+            this.name = name; this.x = x; this.y = y; this.z = z;
+            this.pathMin = pathMin; this.pathMax = pathMax; this.sweepMin = sweepMin; this.sweepMax = sweepMax;
+        }
+    }
+    private static final ShapePreset[] SHAPES = new ShapePreset[] {
+        new ShapePreset("Ring / circle", "cos(path)", "sin(path)", "0", "0", "6.28", "0", "0"),
+        new ShapePreset("Helix / spiral", "cos(path)", "sin(path)", "path / 3", "0", "18.84", "0", "0"),
+        new ShapePreset("Sphere", "sin(sweep) * cos(path)", "sin(sweep) * sin(path)", "cos(sweep)", "0", "6.28", "0", "3.14"),
+        new ShapePreset("Torus / donut", "(2 + cos(sweep)) * cos(path)", "(2 + cos(sweep)) * sin(path)", "sin(sweep)", "0", "6.28", "0", "6.28"),
+        new ShapePreset("Wavy sheet", "path", "sweep", "sin(path) * cos(sweep)", "-3.14", "3.14", "-3.14", "3.14"),
+        new ShapePreset("Cylinder", "cos(path)", "sin(path)", "sweep", "0", "6.28", "-2", "2"),
+        new ShapePreset("Cone", "(1 - sweep) * cos(path)", "(1 - sweep) * sin(path)", "sweep * 3", "0", "6.28", "0", "1"),
+        new ShapePreset("Flat disc", "sweep * cos(path)", "sweep * sin(path)", "0", "0", "6.28", "0", "1"),
+        new ShapePreset("Bowl / dome", "sweep * cos(path)", "sweep * sin(path)", "sweep * sweep", "0", "6.28", "0", "1.5"),
+        new ShapePreset("Ripple disc", "sweep * cos(path)", "sweep * sin(path)", "sin(sweep * 8) / 4", "0", "6.28", "0", "3"),
+        new ShapePreset("Flower ring", "(1 + 0.3 * sin(path * 6)) * cos(path)", "(1 + 0.3 * sin(path * 6)) * sin(path)", "0", "0", "6.28", "0", "0"),
+        new ShapePreset("Double helix", "cos(path)", "sin(path)", "path / 4 + sin(sweep * 3) * 0.2", "0", "18.84", "0", "6.28"),
+        new ShapePreset("Magic vortex", "sweep * cos(path + sweep)", "sweep * sin(path + sweep)", "sweep", "0", "18.84", "0", "3"),
+        new ShapePreset("Saddle surface", "path", "sweep", "(path * path - sweep * sweep) / 4", "-2", "2", "-2", "2"),
+        new ShapePreset("Twisted ribbon", "cos(path) + sweep * cos(path / 2) * cos(path)", "sin(path) + sweep * cos(path / 2) * sin(path)", "sweep * sin(path / 2)", "0", "12.56", "-0.3", "0.3"),
+        new ShapePreset("Ellipse", "2 * cos(path)", "sin(path)", "0", "0", "6.28", "0", "0"),
+        new ShapePreset("Spiral ramp", "sweep * cos(path)", "sweep * sin(path)", "path / 12", "0", "18.84", "0", "1.5"),
+        new ShapePreset("Ellipsoid", "1.5 * sin(sweep) * cos(path)", "sin(sweep) * sin(path)", "0.6 * cos(sweep)", "0", "6.28", "0", "3.14"),
+        new ShapePreset("Thin torus", "(3 + 0.5 * cos(sweep)) * cos(path)", "(3 + 0.5 * cos(sweep)) * sin(path)", "0.5 * sin(sweep)", "0", "6.28", "0", "6.28"),
+        new ShapePreset("Ripple sheet", "path", "sweep", "(sin(path * 3) + cos(sweep * 3)) / 3", "-3.14", "3.14", "-3.14", "3.14"),
+        new ShapePreset("Paraboloid", "sweep * cos(path)", "sweep * sin(path)", "(sweep * sweep) / 2", "0", "6.28", "0", "2"),
+        new ShapePreset("Möbius strip", "(1 + sweep * cos(path / 2)) * cos(path)", "(1 + sweep * cos(path / 2)) * sin(path)", "sweep * sin(path / 2)", "0", "6.28", "-0.3", "0.3"),
+        new ShapePreset("Spring tube", "(2 + 0.3 * cos(sweep)) * cos(path)", "(2 + 0.3 * cos(sweep)) * sin(path)", "path / 6 + 0.3 * sin(sweep)", "0", "18.84", "0", "6.28"),
+        new ShapePreset("Wave helix", "cos(path)", "sin(path)", "path / 4 + 0.5 * sin(path * 4)", "0", "18.84", "0", "0"),
+        new ShapePreset("Lissajous curve", "sin(path * 3)", "sin(path * 4)", "sin(path * 5) / 2", "0", "6.28", "0", "0"),
+        new ShapePreset("Orbital ring", "(2 + 0.3 * sin(path * 5)) * cos(path)", "(2 + 0.3 * sin(path * 5)) * sin(path)", "0.4 * cos(path * 5)", "0", "6.28", "0", "0"),
+        new ShapePreset("Tornado", "(2 - sweep / 2) * cos(path)", "(2 - sweep / 2) * sin(path)", "sweep", "0", "18.84", "0", "3"),
+        new ShapePreset("Hourglass surface", "(0.25 + sweep * sweep) * cos(path)", "(0.25 + sweep * sweep) * sin(path)", "sweep * 2", "0", "6.28", "-1", "1"),
+        new ShapePreset("Clover sphere", "(1 + 0.25 * cos(path * 3)) * sin(sweep) * cos(path)", "(1 + 0.25 * cos(path * 3)) * sin(sweep) * sin(path)", "cos(sweep)", "0", "6.28", "0", "3.14"),
+        new ShapePreset("Star disc", "(1 + 0.35 * cos(path * 5)) * sweep * cos(path)", "(1 + 0.35 * cos(path * 5)) * sweep * sin(path)", "0", "0", "6.28", "0", "1"),
+        new ShapePreset("Arcane sigil ring", "(2 + 0.25 * sin(path * 8) + 0.15 * cos(path * 13)) * cos(path)", "(2 + 0.25 * sin(path * 8) + 0.15 * cos(path * 13)) * sin(path)", "0.15 * sin(path * 16)", "0", "6.28", "0", "0"),
+        new ShapePreset("Celestial spiral gate", "(0.2 + sweep) * cos(path + sweep * 2)", "(0.2 + sweep) * sin(path + sweep * 2)", "sin(path * 3) * 0.25", "0", "18.84", "0", "2.5"),
+        new ShapePreset("Floating rune veil", "path", "sweep", "sin(path * 4 + sweep * 2) * cos(sweep * 3) * 0.4", "-3.14", "3.14", "-2", "2"),
+        new ShapePreset("Astral blossom", "(1 + 0.6 * sin(path * 7) * sin(sweep)) * sin(sweep) * cos(path)", "(1 + 0.6 * sin(path * 7) * sin(sweep)) * sin(sweep) * sin(path)", "cos(sweep) + 0.2 * cos(path * 7)", "0", "6.28", "0", "3.14"),
+        new ShapePreset("Witchfire helix", "(1 + 0.2 * sin(path * 9)) * cos(path)", "(1 + 0.2 * sin(path * 9)) * sin(path)", "path / 5 + 0.3 * cos(path * 4)", "0", "25.12", "0", "0"),
+        new ShapePreset("Summoning vortex", "(2.5 - sweep) * cos(path + sweep * 3)", "(2.5 - sweep) * sin(path + sweep * 3)", "sweep + 0.25 * sin(path * 6)", "0", "25.12", "0", "2.5"),
+        new ShapePreset("Halo of thorns", "(2 + 0.4 * abs(sin(path * 12))) * cos(path)", "(2 + 0.4 * abs(sin(path * 12))) * sin(path)", "0.25 * cos(path * 12)", "0", "6.28", "0", "0"),
+        new ShapePreset("Dreamcatcher web", "sweep * cos(path)", "sweep * sin(path)", "0.25 * sin(path * 5 + sweep * 8)", "0", "6.28", "0", "2"),
+        new ShapePreset("Void eye", "(1 + 0.5 * cos(sweep)) * cos(path)", "0.45 * sin(sweep)", "(1 + 0.5 * cos(sweep)) * sin(path)", "0", "6.28", "0", "6.28"),
+        new ShapePreset("Spell comet trail", "path / 2", "sin(path * 3) * (1 - sweep)", "cos(path * 4) * (1 - sweep)", "0", "6.28", "0", "1")
+    };
     public EquationSynthScreen(BlockPos blockPos) {
         super(Component.literal("Equation Synthesizer"));
         this.blockPos = blockPos;
@@ -74,14 +130,20 @@ public final class EquationSynthScreen extends Screen {
         this.previewW = Math.min(460, this.width - rightX - 12);
         this.previewH = 330;
 
+
         int inputW = leftW - 16;
         int y = top + 12;
 
-        this.xExpr = addExprBox(leftX + 8, y, inputW, "(2+cos(u))*cos(t)");
+        this.addRenderableWidget(Button.builder(Component.literal("Shape Preset"), b -> showShapeModal = true)
+            .bounds(leftX + 8, y, inputW, 20)
+            .build());
         y += 24;
-        this.yExpr = addExprBox(leftX + 8, y, inputW, "(2+cos(u))*sin(t)");
+
+        this.xExpr = addExprBox(leftX + 8, y, inputW, "(2+cos(sweep))*cos(path)");
         y += 24;
-        this.zExpr = addExprBox(leftX + 8, y, inputW, "sin(u)");
+        this.yExpr = addExprBox(leftX + 8, y, inputW, "(2+cos(sweep))*sin(path)");
+        y += 24;
+        this.zExpr = addExprBox(leftX + 8, y, inputW, "sin(sweep)");
 
         y += 28;
         this.tMin = addNumBox(leftX + 8, y, 66, "0");
@@ -127,9 +189,9 @@ public final class EquationSynthScreen extends Screen {
         y += 24;
         this.colorExprR = addExprBox(leftX + 8, y, inputW, "0.85");
         y += 24;
-        this.colorExprG = addExprBox(leftX + 8, y, inputW, "0.55 + 0.4*sin(t)");
+        this.colorExprG = addExprBox(leftX + 8, y, inputW, "0.55 + 0.4*sin(path)");
         y += 24;
-        this.colorExprB = addExprBox(leftX + 8, y, inputW, "0.75 + 0.25*cos(u)");
+        this.colorExprB = addExprBox(leftX + 8, y, inputW, "0.75 + 0.25*cos(sweep)");
 
         y += 24;
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
@@ -140,10 +202,125 @@ public final class EquationSynthScreen extends Screen {
         recomputePreview();
     }
 
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (showShapeModal) {
+            int mx = (this.width - SHAPE_MODAL_W) / 2;
+            int my = (this.height - SHAPE_MODAL_H) / 2;
+            int visible = (SHAPE_MODAL_H - 32) / SHAPE_ITEM_H;
+            int start = Math.max(0, Math.min(shapeScroll, Math.max(0, SHAPES.length - visible)));
+            int end = Math.min(SHAPES.length, start + visible);
+            for (int i = start; i < end; i++) {
+                int iy = my + 32 + (i - start) * SHAPE_ITEM_H;
+                if (mouseX >= mx + 12 && mouseX <= mx + SHAPE_MODAL_W - 12 && mouseY >= iy && mouseY <= iy + SHAPE_ITEM_H) {
+                    ShapePreset s = SHAPES[i];
+                    this.xExpr.setValue(s.x);
+                    this.yExpr.setValue(s.y);
+                    this.zExpr.setValue(s.z);
+                    this.tMin.setValue(s.pathMin);
+                    this.tMax.setValue(s.pathMax);
+                    this.uMin.setValue(s.sweepMin);
+                    this.uMax.setValue(s.sweepMax);
+                    showShapeModal = false;
+                    return true;
+                }
+            }
+            // Click outside closes modal
+            if (mouseX < mx || mouseX > mx + SHAPE_MODAL_W || mouseY < my || mouseY > my + SHAPE_MODAL_H) {
+                showShapeModal = false;
+                return true;
+            }
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (showShapeModal) {
+            int visible = (SHAPE_MODAL_H - 32) / SHAPE_ITEM_H;
+            int maxScroll = Math.max(0, SHAPES.length - visible);
+            if (amount < 0.0) {
+                shapeScroll = Math.min(maxScroll, shapeScroll + 1);
+            } else if (amount > 0.0) {
+                shapeScroll = Math.max(0, shapeScroll - 1);
+            }
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount);
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
+
+        if (showShapeModal) {
+            int mx = (this.width - SHAPE_MODAL_W) / 2;
+            int my = (this.height - SHAPE_MODAL_H) / 2;
+            graphics.fill(mx, my, mx + SHAPE_MODAL_W, my + SHAPE_MODAL_H, 0xEE22262C);
+            graphics.drawString(this.font, "Select Shape Preset", mx + 16, my + 12, 0xFFFFFF, false);
+            int visible = (SHAPE_MODAL_H - 32) / SHAPE_ITEM_H;
+            int start = Math.max(0, Math.min(shapeScroll, Math.max(0, SHAPES.length - visible)));
+            int end = Math.min(SHAPES.length, start + visible);
+            for (int i = start; i < end; i++) {
+                int iy = my + 32 + (i - start) * SHAPE_ITEM_H;
+                int color = 0xFFCCCCCC;
+                if (mouseX >= mx + 12 && mouseX <= mx + SHAPE_MODAL_W - 12 && mouseY >= iy && mouseY <= iy + SHAPE_ITEM_H) {
+                    color = 0xFF99B4FF;
+                }
+                graphics.fill(mx + 12, iy, mx + SHAPE_MODAL_W - 12, iy + SHAPE_ITEM_H, color);
+                graphics.drawString(this.font, SHAPES[i].name, mx + 20, iy + 5, 0x222244, false);
+            }
+            if (SHAPES.length > visible) {
+                graphics.drawString(this.font, "Scroll wheel to browse", mx + 16, my + SHAPE_MODAL_H - 14, 0xAFC2D8, false);
+            }
+            return;
+        }
+
+        int leftX = this.xExpr.getX() - 8;
+        int leftY = this.xExpr.getY() - 36;
+        int leftW = 318;
+        int leftH = 330;
+
+        graphics.fill(leftX, leftY, leftX + leftW, leftY + leftH, 0xCC111418);
+        graphics.fill(previewX, previewY, previewX + previewW, previewY + previewH, 0xCC0D1118);
+
+        super.render(graphics, mouseX, mouseY, partialTick);
+
+        graphics.drawString(this.font, this.title, leftX + 8, leftY - 10, 0xFFFFFF, false);
+        graphics.drawString(this.font, "X Equation", this.xExpr.getX(), this.xExpr.getY() - LABEL_GAP, 0xC8D7FF, false);
+        graphics.drawString(this.font, "Y Equation", this.yExpr.getX(), this.yExpr.getY() - LABEL_GAP, 0xC8D7FF, false);
+        graphics.drawString(this.font, "Z Equation", this.zExpr.getX(), this.zExpr.getY() - LABEL_GAP, 0xC8D7FF, false);
+
+        int rangesY = this.tMin.getY() - LABEL_GAP;
+        graphics.drawString(this.font, "Path Min", this.tMin.getX(), rangesY, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Path Max", this.tMax.getX(), rangesY, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Sweep Min", this.uMin.getX(), rangesY, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Sweep Max", this.uMax.getX(), rangesY, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Point Count", this.pointCount.getX(), this.pointCount.getY() - LABEL_GAP, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Color A (single/grad start)", this.colorA_R.getX(), this.colorA_R.getY() - LABEL_GAP, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Color B (grad end)", this.colorB_R.getX(), this.colorB_R.getY() - LABEL_GAP, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Color R Expr", this.colorExprR.getX(), this.colorExprR.getY() - LABEL_GAP, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Color G Expr", this.colorExprG.getX(), this.colorExprG.getY() - LABEL_GAP, 0x9FB2C6, false);
+        graphics.drawString(this.font, "Color B Expr", this.colorExprB.getX(), this.colorExprB.getY() - LABEL_GAP, 0x9FB2C6, false);
+
+        graphics.drawString(this.font, "Preview", previewX + 8, previewY + 8, 0xDDE7FF, false);
+
+        for (Dot dot : previewDots) {
+            if (dot.x >= previewX + 1 && dot.x < previewX + previewW - 1 && dot.y >= previewY + 1 && dot.y < previewY + previewH - 1) {
+                graphics.fill(dot.x, dot.y, dot.x + 2, dot.y + 2, dot.color);
+            }
+        }
+
+        graphics.drawString(this.font, status, leftX + 8, leftY + leftH - 12, statusColor, false);
+        graphics.drawString(this.font, "Write stores a reusable equation iota in the inserted focus.", previewX + 8, previewY + previewH - 12, 0xA7B7CD, false);
+    }
+
     private EditBox addExprBox(int x, int y, int w, String value) {
         EditBox box = new EditBox(this.font, x, y, w, 20, Component.empty());
         box.setValue(value);
         box.setMaxLength(MAX_EXPR_CHARS);
+        box.setResponder(s -> recomputePreview());
         addRenderableWidget(box);
         return box;
     }
@@ -152,12 +329,13 @@ public final class EquationSynthScreen extends Screen {
         EditBox box = new EditBox(this.font, x, y, w, 20, Component.empty());
         box.setValue(value);
         box.setMaxLength(32);
+        box.setResponder(s -> recomputePreview());
         addRenderableWidget(box);
         return box;
     }
 
     private void syncUseUButton() {
-        useUButton.setMessage(Component.literal(useU ? "U Param: On" : "U Param: Off"));
+        useUButton.setMessage(Component.literal(useU ? "Sweep Param: On" : "Sweep Param: Off"));
     }
 
     private void syncColorModeButton() {
@@ -364,50 +542,6 @@ public final class EquationSynthScreen extends Screen {
         }
         int idx = code.indexOf("_at_");
         return idx >= 0 ? code.substring(0, idx) : code;
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
-
-        int leftX = this.xExpr.getX() - 8;
-        int leftY = this.xExpr.getY() - 12;
-        int leftW = 318;
-        int leftH = 330;
-
-        graphics.fill(leftX, leftY, leftX + leftW, leftY + leftH, 0xCC111418);
-        graphics.fill(previewX, previewY, previewX + previewW, previewY + previewH, 0xCC0D1118);
-
-        super.render(graphics, mouseX, mouseY, partialTick);
-
-        graphics.drawString(this.font, this.title, leftX + 8, leftY - 10, 0xFFFFFF, false);
-
-        graphics.drawString(this.font, "X Equation", this.xExpr.getX(), this.xExpr.getY() - 10, 0xC8D7FF, false);
-        graphics.drawString(this.font, "Y Equation", this.yExpr.getX(), this.yExpr.getY() - 10, 0xC8D7FF, false);
-        graphics.drawString(this.font, "Z Equation", this.zExpr.getX(), this.zExpr.getY() - 10, 0xC8D7FF, false);
-
-        int rangesY = this.tMin.getY() - 10;
-        graphics.drawString(this.font, "T Min", this.tMin.getX(), rangesY, 0x9FB2C6, false);
-        graphics.drawString(this.font, "T Max", this.tMax.getX(), rangesY, 0x9FB2C6, false);
-        graphics.drawString(this.font, "U Min", this.uMin.getX(), rangesY, 0x9FB2C6, false);
-        graphics.drawString(this.font, "U Max", this.uMax.getX(), rangesY, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Point Count", this.pointCount.getX(), this.pointCount.getY() - 10, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Color A (single / gradient start)", this.colorA_R.getX(), this.colorA_R.getY() - 10, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Color B (gradient end)", this.colorB_R.getX(), this.colorB_R.getY() - 10, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Color Expr R", this.colorExprR.getX(), this.colorExprR.getY() - 10, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Color Expr G", this.colorExprG.getX(), this.colorExprG.getY() - 10, 0x9FB2C6, false);
-        graphics.drawString(this.font, "Color Expr B", this.colorExprB.getX(), this.colorExprB.getY() - 10, 0x9FB2C6, false);
-
-        graphics.drawString(this.font, "Preview", previewX + 8, previewY + 8, 0xDDE7FF, false);
-
-        for (Dot dot : previewDots) {
-            if (dot.x >= previewX + 1 && dot.x < previewX + previewW - 1 && dot.y >= previewY + 1 && dot.y < previewY + previewH - 1) {
-                graphics.fill(dot.x, dot.y, dot.x + 2, dot.y + 2, dot.color);
-            }
-        }
-
-        graphics.drawString(this.font, status, leftX + 8, leftY + leftH - 12, statusColor, false);
-        graphics.drawString(this.font, "Write stores a reusable equation iota in the inserted focus.", previewX + 8, previewY + previewH - 12, 0xA7B7CD, false);
     }
 
     @Override

@@ -15,12 +15,26 @@ import net.minecraft.world.level.block.EntityBlock
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 
 class EquationSynthBlock(properties: Properties) : Block(properties), EntityBlock {
+
+    init {
+        registerDefaultState(
+            stateDefinition.any()
+                .setValue(FOCUS, false)
+                .setValue(ACTIVE, false)
+        )
+    }
+
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(FOCUS, ACTIVE)
+    }
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
@@ -61,6 +75,13 @@ class EquationSynthBlock(properties: Properties) : Block(properties), EntityBloc
 
             be.setFocus(held.copyWithCount(1))
             held.shrink(1)
+            level.setBlock(
+                pos,
+                state
+                    .setValue(FOCUS, true)
+                    .setValue(ACTIVE, be.hasPreviewEquation()),
+                UPDATE_CLIENTS
+            )
             level.playSound(null, pos, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 0.8f, 1.0f)
             return InteractionResult.CONSUME
         }
@@ -68,8 +89,19 @@ class EquationSynthBlock(properties: Properties) : Block(properties), EntityBloc
         if (held.isEmpty) {
             val out = be.popFocus()
             player.setItemInHand(hand, out)
+            level.setBlock(
+                pos,
+                state
+                    .setValue(FOCUS, false)
+                    .setValue(ACTIVE, false),
+                UPDATE_CLIENTS
+            )
             level.playSound(null, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 0.8f, 1.0f)
             return InteractionResult.CONSUME
+        }
+
+        if (!state.getValue(ACTIVE) && be.hasPreviewEquation()) {
+            level.setBlock(pos, state.setValue(ACTIVE, true), UPDATE_CLIENTS)
         }
 
         val serverPlayer = player as? ServerPlayer ?: return InteractionResult.CONSUME
@@ -88,5 +120,13 @@ class EquationSynthBlock(properties: Properties) : Block(properties), EntityBloc
             }
         }
         super.onRemove(state, level, pos, newState, isMoving)
+    }
+
+    companion object {
+        @JvmField
+        val FOCUS: BooleanProperty = BooleanProperty.create("focus")
+
+        @JvmField
+        val ACTIVE: BooleanProperty = BooleanProperty.create("active")
     }
 }
