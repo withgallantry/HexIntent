@@ -25,6 +25,7 @@ import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
@@ -59,6 +60,7 @@ class CorridorPortalBlockEntity(
     private var portalMidColor: Int = DEFAULT_PORTAL_MID_COLOR
     private var portalHighlightColor: Int = DEFAULT_PORTAL_HIGHLIGHT_COLOR
     private var portalFrameColor: Int = DEFAULT_PORTAL_FRAME_COLOR
+    private var portalResolvedTintColor: Int = DEFAULT_PORTAL_TINT_COLOR
     private val thresholdPatterns: MutableList<CompoundTag> = mutableListOf()
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
@@ -182,6 +184,8 @@ class CorridorPortalBlockEntity(
 
     fun getPortalFrameColor(): Int = portalFrameColor
 
+    fun getPortalResolvedTintColor(): Int = portalResolvedTintColor
+
     fun setPortalColors(backdropColor: Int, midColor: Int, highlightColor: Int, frameColor: Int) {
         portalBackdropColor = backdropColor and 0xFFFFFF
         portalMidColor = midColor and 0xFFFFFF
@@ -190,6 +194,18 @@ class CorridorPortalBlockEntity(
 
         setChanged()
         level?.sendBlockUpdated(worldPosition, blockState, blockState, 3)
+    }
+
+    fun applyPortalAccentTint(@Suppress("UNUSED_PARAMETER") dyeColor: DyeColor?, resolvedTintRgb: Int) {
+        portalResolvedTintColor = resolvedTintRgb and 0xFFFFFF
+
+        // Keep base portal and rim colors stable; renderer consumes the tint only for internal accents.
+        setPortalColors(
+            DEFAULT_PORTAL_BACKDROP_COLOR,
+            DEFAULT_PORTAL_MID_COLOR,
+            DEFAULT_PORTAL_HIGHLIGHT_COLOR,
+            DEFAULT_PORTAL_FRAME_COLOR
+        )
     }
 
     fun serverTick(level: ServerLevel) {
@@ -550,6 +566,7 @@ class CorridorPortalBlockEntity(
         portalMidColor = if (tag.contains(TAG_PORTAL_MID_COLOR)) tag.getInt(TAG_PORTAL_MID_COLOR) else DEFAULT_PORTAL_MID_COLOR
         portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
         portalFrameColor = if (tag.contains(TAG_PORTAL_FRAME_COLOR)) tag.getInt(TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
+        portalResolvedTintColor = if (tag.contains(TAG_PORTAL_TINT_COLOR)) tag.getInt(TAG_PORTAL_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR
         thresholdPatterns.clear()
         if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
             val list = tag.getList(TAG_THRESHOLD_PATTERNS, Tag.TAG_COMPOUND.toInt())
@@ -587,6 +604,7 @@ class CorridorPortalBlockEntity(
         tag.putInt(TAG_PORTAL_MID_COLOR, portalMidColor)
         tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
         tag.putInt(TAG_PORTAL_FRAME_COLOR, portalFrameColor)
+        tag.putInt(TAG_PORTAL_TINT_COLOR, portalResolvedTintColor)
         if (thresholdPatterns.isNotEmpty()) {
             val serialized = ListTag()
             for (pattern in thresholdPatterns) {
@@ -616,11 +634,13 @@ class CorridorPortalBlockEntity(
         private const val TAG_PORTAL_MID_COLOR = "PortalMidColor"
         private const val TAG_PORTAL_HIGHLIGHT_COLOR = "PortalHighlightColor"
         private const val TAG_PORTAL_FRAME_COLOR = "PortalFrameColor"
+        private const val TAG_PORTAL_TINT_COLOR = "PortalTintColor"
 
         private const val DEFAULT_PORTAL_BACKDROP_COLOR = 0x050A10
         private const val DEFAULT_PORTAL_MID_COLOR = 0x1E8F88
         private const val DEFAULT_PORTAL_HIGHLIGHT_COLOR = 0x8BFFF2
         private const val DEFAULT_PORTAL_FRAME_COLOR = 0x46D4C1
+        private const val DEFAULT_PORTAL_TINT_COLOR = 0xB02CFF
 
         private const val TELEPORT_COOLDOWN_TICKS = 20L
         private const val THRESHOLD_TRIGGER_COOLDOWN_TICKS = 10L
@@ -656,6 +676,39 @@ class CorridorPortalBlockEntity(
         portalMidColor = DEFAULT_PORTAL_MID_COLOR
         portalHighlightColor = DEFAULT_PORTAL_HIGHLIGHT_COLOR
         portalFrameColor = DEFAULT_PORTAL_FRAME_COLOR
+        portalResolvedTintColor = DEFAULT_PORTAL_TINT_COLOR
+    }
+
+    private fun mixRgb(a: Int, b: Int, t: Float): Int {
+        val clamped = t.coerceIn(0.0f, 1.0f)
+        val ar = (a shr 16) and 0xFF
+        val ag = (a shr 8) and 0xFF
+        val ab = a and 0xFF
+        val br = (b shr 16) and 0xFF
+        val bg = (b shr 8) and 0xFF
+        val bb = b and 0xFF
+
+        val r = Mth.lerp(clamped, ar.toFloat(), br.toFloat()).toInt().coerceIn(0, 255)
+        val g = Mth.lerp(clamped, ag.toFloat(), bg.toFloat()).toInt().coerceIn(0, 255)
+        val bCh = Mth.lerp(clamped, ab.toFloat(), bb.toFloat()).toInt().coerceIn(0, 255)
+        return (r shl 16) or (g shl 8) or bCh
+    }
+
+    private fun capLuma(rgb: Int, maxLuma: Float): Int {
+        val r = (rgb shr 16) and 0xFF
+        val g = (rgb shr 8) and 0xFF
+        val b = rgb and 0xFF
+
+        val luma = ((0.2126f * r) + (0.7152f * g) + (0.0722f * b)) / 255.0f
+        if (luma <= maxLuma || luma <= 0.0001f) {
+            return rgb and 0xFFFFFF
+        }
+
+        val scale = (maxLuma / luma).coerceIn(0.0f, 1.0f)
+        val nr = (r * scale).toInt().coerceIn(0, 255)
+        val ng = (g * scale).toInt().coerceIn(0, 255)
+        val nb = (b * scale).toInt().coerceIn(0, 255)
+        return (nr shl 16) or (ng shl 8) or nb
     }
 
     private fun isSustainDriver(level: ServerLevel): Boolean {

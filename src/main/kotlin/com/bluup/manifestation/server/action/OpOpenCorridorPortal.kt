@@ -15,7 +15,11 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.api.misc.MediaConstants
+import at.petrak.hexcasting.api.pigment.FrozenPigment
+import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
+import at.petrak.hexcasting.common.items.pigment.ItemDyePigment
+import at.petrak.hexcasting.common.lib.HexItems
 import com.bluup.manifestation.server.PortalOwnershipStore
 import com.bluup.manifestation.server.block.CorridorPortalBlock
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity
@@ -30,6 +34,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.item.DyeColor
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
 
@@ -119,6 +125,7 @@ object OpOpenCorridorPortal : Action {
 
         val sourceYaw = Mth.wrapDegrees(caster.yRot)
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
+        val portalTint = resolvePortalTint(caster)
 
         if (env.extractMedia(mediaBudget, true) > 0) {
             throw MishapNotEnoughMedia(mediaBudget)
@@ -136,6 +143,7 @@ object OpOpenCorridorPortal : Action {
                 scale,
                 sourceYaw
             )
+            threshold.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
 
             val image2 = image.withUsedOp().copy(stack = stack)
             return OperationResult(
@@ -183,6 +191,8 @@ object OpOpenCorridorPortal : Action {
             scale,
             targetYaw
         )
+        aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
+        bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
         ownershipStore.put(
             caster.uuid,
             PortalOwnershipStore.PortalPair(
@@ -256,4 +266,25 @@ object OpOpenCorridorPortal : Action {
     private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
 
     private fun horizontalAxisForYaw(yaw: Float): Direction.Axis = Direction.fromYRot(yaw.toDouble()).axis
+
+    private data class PortalTintResolution(
+        val dyeColor: DyeColor?,
+        val resolvedTintRgb: Int
+    )
+
+    private fun resolvePortalTint(caster: net.minecraft.server.level.ServerPlayer): PortalTintResolution {
+        val activePigment = HexAPI.instance().getColorizer(caster)
+        val activeItem = activePigment.item.item
+        val explicitDye = (activeItem as? ItemDyePigment)?.dyeColor
+
+        if (explicitDye != null) {
+            return PortalTintResolution(explicitDye, explicitDye.textColor and 0xFFFFFF)
+        }
+
+        val soulglimmer = FrozenPigment(ItemStack(HexItems.UUID_PIGMENT), caster.uuid)
+        val soulRgb = soulglimmer
+            .getColorProvider()
+            .getColor(0.0f, Vec3.ZERO) and 0xFFFFFF
+        return PortalTintResolution(null, soulRgb)
+    }
 }

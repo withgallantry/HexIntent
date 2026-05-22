@@ -440,6 +440,7 @@ object ManifestationServer : ModInitializer {
             val colorExprR = buf.readUtf(MAX_EQUATION_CHARS)
             val colorExprG = buf.readUtf(MAX_EQUATION_CHARS)
             val colorExprB = buf.readUtf(MAX_EQUATION_CHARS)
+            val animationPreset = buf.readUtf(32)
 
             server.execute {
                 val level = player.serverLevel()
@@ -509,6 +510,8 @@ object ManifestationServer : ModInitializer {
                     player.displayClientMessage(Component.literal("Equation write failed: $writeError"), false)
                     return@execute
                 }
+
+                be.setAnimationPreset(animationPreset)
 
                 player.displayClientMessage(
                     Component.literal("Equation write complete: ${normalized.pointCount()} points (${if (normalized.useU()) "surface" else "curve"} mode)."),

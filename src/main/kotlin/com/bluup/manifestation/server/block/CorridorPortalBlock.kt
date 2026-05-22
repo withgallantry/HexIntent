@@ -84,8 +84,8 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
         val tangent = Vec3(kotlin.math.cos(yawRad), 0.0, kotlin.math.sin(yawRad))
 
         val halfThickness = 0.10
-        val halfWidth = 0.52 * scale
-        val halfHeight = 0.82 * scale
+        val halfWidth = 1.0 * scale
+        val halfHeight = 1.5 * scale
 
         val bb = entity.boundingBox
         val halfSizeX = bb.xsize * 0.5

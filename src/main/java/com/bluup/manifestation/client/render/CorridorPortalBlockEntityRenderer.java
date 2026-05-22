@@ -63,12 +63,42 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float time = (float) ((worldTicks % 24000.0) * 0.042);
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
+        int stableBasePortalColour = blockEntity.getPortalBackdropColor();
+        int midColor = blockEntity.getPortalMidColor();
+        int highlightColor = blockEntity.getPortalHighlightColor();
+        int frameColor = blockEntity.getPortalFrameColor();
+        int resolvedTintColor = blockEntity.getPortalResolvedTintColor();
+        int resolvedAccentTint = makePortalAccentTint(resolvedTintColor);
+
+        // Contract: structural visuals are stable and never tint-driven.
+        int stableRimOuterColour = mixRgb(frameColor, midColor, 0.28f);
+        int stableRimInnerColour = highlightColor;
+        int stableEdgeVeilColour = mixRgb(midColor, stableBasePortalColour, 0.30f);
+        int stableTrailTailColour = mixRgb(midColor, 0x12020D, 0.42f);
+        int stableTrailHeadColour = mixRgb(highlightColor, frameColor, 0.24f);
+        int stableGlyphOuterColour = mixRgb(frameColor, midColor, 0.46f);
+        int stableGlyphInnerColour = mixRgb(highlightColor, frameColor, 0.30f);
+        int stableCollapseColour = mixRgb(highlightColor, frameColor, 0.36f);
+
+        // Contract: tint is used only for subtle internal membrane accents.
+        int internalAccentColour = mixRgb(0x180410, resolvedAccentTint, 0.86f);
 
         if (blockEntity.isThresholdMode()) {
             TextureAtlasSprite glyphSprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(THRESHOLD_GLYPH_SPRITE);
             VertexConsumer glyphVc = buffer.getBuffer(RenderType.entityTranslucent(InventoryMenu.BLOCK_ATLAS));
-            drawThresholdGlyph(poseStack, glyphVc, glyphSprite, packedLight, envelope, scale, time, worldTicks);
-            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
+            drawThresholdGlyph(
+                poseStack,
+                glyphVc,
+                glyphSprite,
+                packedLight,
+                envelope,
+                scale,
+                time,
+                worldTicks,
+                stableGlyphOuterColour,
+                stableGlyphInnerColour
+            );
+            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
             poseStack.popPose();
             return;
         }
@@ -76,10 +106,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         // Jagged tear around portal. This took a lot to get looking so so lol.
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
-        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0);
-        drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time);
-        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0);
-        drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress);
+        drawInternalPortalAccent(poseStack, energyVc, packedLight, envelope, scale, time, 0, internalAccentColour);
+        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0, stableEdgeVeilColour);
+        drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time, stableTrailTailColour, stableTrailHeadColour);
+        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0, stableRimOuterColour, stableRimInnerColour);
+        drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
 
         poseStack.popPose();
     }
@@ -138,7 +169,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float envelope,
         float scale,
         float time,
-        int shape
+        int shape,
+        int outerColor,
+        int innerColor
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
@@ -155,6 +188,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float glowPulse = 0.74f + (0.18f * Mth.sin(time * 2.1f)) + (0.08f * Mth.sin(time * 6.2f));
         int alphaOuter = Mth.clamp((int) (112f * envelope * glowPulse), 0, 255);
         int alphaInner = Mth.clamp((int) (188f * envelope * glowPulse), 0, 255);
+        int outerR = (outerColor >> 16) & 0xFF;
+        int outerG = (outerColor >> 8) & 0xFF;
+        int outerB = outerColor & 0xFF;
+        int innerR = (innerColor >> 16) & 0xFF;
+        int innerG = (innerColor >> 8) & 0xFF;
+        int innerB = innerColor & 0xFF;
 
         for (int side = 0; side < 2; side++) {
             float z = side == 0 ? zFront : zBack;
@@ -174,10 +213,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 PortalPoint outer1 = offsetPortalPoint(shape, inner1, width1, halfW, halfH);
 
                 quadBidirectional(vc, mat4, normal, outer0.x, outer0.y, inner0.x, inner0.y, inner1.x, inner1.y, outer1.x, outer1.y, z, light, nz,
-                    164, 102, 255, alphaOuter,
-                    214, 166, 255, alphaInner,
-                    214, 166, 255, alphaInner,
-                    164, 102, 255, alphaOuter);
+                    outerR, outerG, outerB, alphaOuter,
+                    innerR, innerG, innerB, alphaInner,
+                    innerR, innerG, innerB, alphaInner,
+                    outerR, outerG, outerB, alphaOuter);
             }
         }
     }
@@ -189,7 +228,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float envelope,
         float scale,
         float time,
-        int shape
+        int shape,
+        int edgeColor
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
@@ -205,6 +245,13 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float zBack = -Z_EPSILON - 0.0011f;
         float pulse = 0.72f + (0.14f * Mth.sin(time * 1.9f)) + (0.06f * Mth.sin(time * 4.7f));
         int edgeAlpha = Mth.clamp((int) (74f * envelope * pulse), 0, 255);
+        int edgeR = (edgeColor >> 16) & 0xFF;
+        int edgeG = (edgeColor >> 8) & 0xFF;
+        int edgeB = edgeColor & 0xFF;
+        int innerFade = mixRgb(0x0B0108, edgeColor, 0.40f);
+        int innerR = (innerFade >> 16) & 0xFF;
+        int innerG = (innerFade >> 8) & 0xFF;
+        int innerB = innerFade & 0xFF;
 
         for (int side = 0; side < 2; side++) {
             float z = side == 0 ? zFront : zBack;
@@ -229,10 +276,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                     inner1.x, inner1.y,
                     edge1.x, edge1.y,
                     z, light, nz,
-                    138, 94, 255, edgeAlpha,
-                    102, 74, 176, 0,
-                    102, 74, 176, 0,
-                    138, 94, 255, edgeAlpha);
+                    edgeR, edgeG, edgeB, edgeAlpha,
+                    innerR, innerG, innerB, 0,
+                    innerR, innerG, innerB, 0,
+                    edgeR, edgeG, edgeB, edgeAlpha);
             }
         }
     }
@@ -243,7 +290,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int light,
         float envelope,
         float scale,
-        float time
+        float time,
+        int tailColor,
+        int headColor
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
@@ -291,9 +340,82 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 int moteTailAlpha = Mth.clamp((int) (alphaTail * fade), 0, 255);
                 int moteHeadAlpha = Mth.clamp((int) (alphaHead * fade), 0, 255);
 
-                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zFront, light, 1.0f, moteTailAlpha, moteHeadAlpha);
-                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zBack, light, -1.0f, moteTailAlpha, moteHeadAlpha);
+                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zFront, light, 1.0f, moteTailAlpha, moteHeadAlpha, tailColor, headColor);
+                drawTrailWisp(vc, mat4, normal, cx, cy, nx, ny, size, stretch, zBack, light, -1.0f, moteTailAlpha, moteHeadAlpha, tailColor, headColor);
             }
+        }
+    }
+
+    private void drawInternalPortalAccent(
+        PoseStack poseStack,
+        VertexConsumer vc,
+        int light,
+        float envelope,
+        float scale,
+        float time,
+        int shape,
+        int accentColor
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+
+        float halfH = HALF_HEIGHT * envelope * scale;
+        float halfW = HALF_WIDTH * envelope * scale;
+        if (halfH <= 0.0001f || halfW <= 0.0001f) {
+            return;
+        }
+
+        int accentR = (accentColor >> 16) & 0xFF;
+        int accentG = (accentColor >> 8) & 0xFF;
+        int accentB = accentColor & 0xFF;
+        int coreColor = mixRgb(0x090106, accentColor, 0.34f);
+        int coreR = (coreColor >> 16) & 0xFF;
+        int coreG = (coreColor >> 8) & 0xFF;
+        int coreB = coreColor & 0xFF;
+
+        float zFront = Z_EPSILON + 0.0016f;
+        float zBack = -Z_EPSILON - 0.0016f;
+        int wispCount = 18;
+        for (int i = 0; i < wispCount; i++) {
+            float seed = i * 0.617f;
+            float angle = Mth.TWO_PI * Mth.frac(seed * 0.221f + time * 0.032f);
+            float radial = 0.14f + (0.70f * Mth.frac(seed * 0.379f + time * 0.058f));
+            PortalPoint edge = portalPoint(shape, angle, halfW, halfH, envelope, scale, time);
+            float cx = edge.x * radial;
+            float cy = edge.y * radial;
+
+            float pulse = 0.70f + (0.30f * Mth.sin(time * 2.4f + seed * 5.3f));
+            int alphaOuter = Mth.clamp((int) (34f * envelope * pulse), 0, 255);
+            int alphaInner = Mth.clamp((int) (76f * envelope * pulse), 0, 255);
+            float size = (0.018f + 0.010f * Mth.sin(time * 1.7f + seed * 3.9f)) * envelope * scale;
+
+            float left = cx - size;
+            float right = cx + size;
+            float bottom = cy - size;
+            float top = cy + size;
+
+            quadBidirectional(vc, mat4, normal,
+                left, bottom,
+                right, bottom,
+                right, top,
+                left, top,
+                zFront, light, 1.0f,
+                coreR, coreG, coreB, alphaOuter,
+                accentR, accentG, accentB, alphaInner,
+                accentR, accentG, accentB, alphaInner,
+                coreR, coreG, coreB, alphaOuter);
+
+            quadBidirectional(vc, mat4, normal,
+                left, bottom,
+                right, bottom,
+                right, top,
+                left, top,
+                zBack, light, -1.0f,
+                coreR, coreG, coreB, alphaOuter,
+                accentR, accentG, accentB, alphaInner,
+                accentR, accentG, accentB, alphaInner,
+                coreR, coreG, coreB, alphaOuter);
         }
     }
 
@@ -311,18 +433,31 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int light,
         float nz,
         int alphaTail,
-        int alphaHead
+        int alphaHead,
+        int tailColor,
+        int headColor
     ) {
+        int darkColor = mixRgb(0x0A0006, tailColor, 0.45f);
+        int darkR = (darkColor >> 16) & 0xFF;
+        int darkG = (darkColor >> 8) & 0xFF;
+        int darkB = darkColor & 0xFF;
+        int tailR = (tailColor >> 16) & 0xFF;
+        int tailG = (tailColor >> 8) & 0xFF;
+        int tailB = tailColor & 0xFF;
+        int headR = (headColor >> 16) & 0xFF;
+        int headG = (headColor >> 8) & 0xFF;
+        int headB = headColor & 0xFF;
+
         quadBidirectional(vc, mat4, normal,
             cx - nx * size, cy - ny * size,
             cx - nx * stretch * 0.35f, cy - ny * stretch * 0.35f,
             cx + nx * size, cy + ny * size,
             cx + nx * stretch, cy + ny * stretch,
             z, light, nz,
-            118, 84, 220, 0,
-            150, 106, 255, alphaTail,
-            216, 176, 255, alphaHead,
-            188, 138, 255, 0);
+            darkR, darkG, darkB, 0,
+            tailR, tailG, tailB, alphaTail,
+            headR, headG, headB, alphaHead,
+            tailR, tailG, tailB, 0);
     }
 
         // Leaving this in incase I want to add it back but it wasn't great looking and I wasn't sure how to get it right.
@@ -474,7 +609,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         portalVertex(vc, mat4, -halfW, -halfH, z);
     }
 
-    private void drawCollapseSpark(PoseStack poseStack, VertexConsumer vc, int light, float collapseProgress) {
+    private void drawCollapseSpark(PoseStack poseStack, VertexConsumer vc, int light, float collapseProgress, int sparkColor) {
         // Bright implosion spark only in the final part of collapse.
         // I keep flip flopping on whether I like this or not but it does add a bit of extra punch to the collapse and I don't have a better idea for what to do in that moment, so here we are.
         if (collapseProgress < 0.78f || collapseProgress >= 1.0f) {
@@ -485,20 +620,28 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float pulse = Mth.sin(phase * Mth.PI);
         float size = 0.03f + (0.18f * (1.0f - phase));
         int alpha = Mth.clamp((int) (255f * pulse), 0, 255);
+        int outer = mixRgb(0x14000B, sparkColor, 0.68f);
+        int inner = mixRgb(0x2A0018, sparkColor, 0.92f);
+        int outerR = (outer >> 16) & 0xFF;
+        int outerG = (outer >> 8) & 0xFF;
+        int outerB = outer & 0xFF;
+        int innerR = (inner >> 16) & 0xFF;
+        int innerG = (inner >> 8) & 0xFF;
+        int innerB = inner & 0xFF;
 
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
         Matrix3f normal = pose.normal();
 
-        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 138, 84, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 176, 108, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 214, 164, 255, alpha, light, 1.0f);
-        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 176, 108, 255, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, outerR, outerG, outerB, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, innerR, innerG, innerB, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, innerR, innerG, innerB, alpha, light, 1.0f);
+        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, innerR, innerG, innerB, alpha, light, 1.0f);
 
-        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, 176, 108, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, 214, 164, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, 176, 108, 255, alpha, light, -1.0f);
-        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, 138, 84, 255, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, -size, size, Z_EPSILON + 0.0008f, 0.0f, 1.0f, innerR, innerG, innerB, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, size, size, Z_EPSILON + 0.0008f, 1.0f, 1.0f, innerR, innerG, innerB, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, size, -size, Z_EPSILON + 0.0008f, 1.0f, 0.0f, innerR, innerG, innerB, alpha, light, -1.0f);
+        vertex(vc, mat4, normal, -size, -size, Z_EPSILON + 0.0008f, 0.0f, 0.0f, outerR, outerG, outerB, alpha, light, -1.0f);
     }
 
     private void drawThresholdGlyph(
@@ -509,7 +652,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float envelope,
         float scale,
         float time,
-        double worldTicks
+        double worldTicks,
+        int outerColor,
+        int innerColor
     ) {
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
@@ -523,6 +668,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float pulse = 0.72f + (0.22f * Mth.sin(time * 2.2f));
         int alphaOuter = Mth.clamp((int) (132f * envelope * pulse), 0, 255);
         int alphaInner = Mth.clamp((int) (186f * envelope * pulse), 0, 255);
+        int outerR = (outerColor >> 16) & 0xFF;
+        int outerG = (outerColor >> 8) & 0xFF;
+        int outerB = outerColor & 0xFF;
+        int innerR = (innerColor >> 16) & 0xFF;
+        int innerG = (innerColor >> 8) & 0xFF;
+        int innerB = innerColor & 0xFF;
         float u0 = sprite.getU0();
         float v0 = sprite.getV0();
         float u1 = sprite.getU1();
@@ -539,10 +690,52 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             u1, v0,
             u1, v1,
             u0, v1,
-            168, 126, 255, alphaOuter,
-            226, 200, 255, alphaInner,
-            226, 200, 255, alphaInner,
-            168, 126, 255, alphaOuter);
+                outerR, outerG, outerB, alphaOuter,
+                innerR, innerG, innerB, alphaInner,
+                innerR, innerG, innerB, alphaInner,
+                outerR, outerG, outerB, alphaOuter);
+    }
+
+    private static int mixRgb(int a, int b, float t) {
+        float clamped = Mth.clamp(t, 0.0f, 1.0f);
+        int ar = (a >> 16) & 0xFF;
+        int ag = (a >> 8) & 0xFF;
+        int ab = a & 0xFF;
+        int br = (b >> 16) & 0xFF;
+        int bg = (b >> 8) & 0xFF;
+        int bb = b & 0xFF;
+
+        int r = Mth.clamp((int) Mth.lerp(clamped, ar, br), 0, 255);
+        int g = Mth.clamp((int) Mth.lerp(clamped, ag, bg), 0, 255);
+        int bCh = Mth.clamp((int) Mth.lerp(clamped, ab, bb), 0, 255);
+        return (r << 16) | (g << 8) | bCh;
+    }
+
+    private static int makePortalAccentTint(int rgb) {
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        int max = Math.max(r, Math.max(g, b));
+
+        // Very dark dyes get a stable shadow-purple accent so internal details remain visible.
+        if (max < 21) {
+            return 0x2E0847;
+        }
+
+        float nr = r / (float) max;
+        float ng = g / (float) max;
+        float nb = b / (float) max;
+        float biasR = 115f / 255f;
+        float biasG = 13f / 255f;
+        float biasB = 31f / 255f;
+        float mixedR = Mth.lerp(0.15f, nr, biasR) * 0.75f;
+        float mixedG = Mth.lerp(0.15f, ng, biasG) * 0.75f;
+        float mixedB = Mth.lerp(0.15f, nb, biasB) * 0.75f;
+
+        int outR = Mth.clamp((int) (mixedR * 255f), 0, 255);
+        int outG = Mth.clamp((int) (mixedG * 255f), 0, 255);
+        int outB = Mth.clamp((int) (mixedB * 255f), 0, 255);
+        return (outR << 16) | (outG << 8) | outB;
     }
 
     private static void glyphQuadBidirectional(

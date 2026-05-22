@@ -48,7 +48,7 @@ public final class ManifestationClient implements ClientModInitializer {
         );
         BlockRenderLayerMap.INSTANCE.putBlock(
             ManifestationBlocks.EQUATION_SYNTH_BLOCK,
-            RenderType.translucent()
+            RenderType.cutout()
         );
         BlockEntityRenderers.register(
             ManifestationBlocks.CORRIDOR_PORTAL_BLOCK_ENTITY,

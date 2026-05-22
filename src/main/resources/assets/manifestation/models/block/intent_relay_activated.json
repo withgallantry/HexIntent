@@ -1,16 +1,18 @@
 {
-  "textures": {
-    "all": "manifestation:block/intent_activated",
-    "particle": "manifestation:block/intent_activated"
-  },
-  "elements": [
-    {
-      "from": [0, 0, 0],
-      "to": [16, 0.2, 16],
-      "faces": {
-        "up": {"uv": [0, 0, 16, 16], "texture": "#all"},
-        "down": {"uv": [0, 0, 16, 16], "texture": "#all"}
-      }
-    }
-  ]
+	"format_version": "1.21.11",
+	"credit": "Made with Blockbench",
+	"textures": {
+		"particle": "manifestation:block/intent_activated",
+		"all": "manifestation:block/intent_activated"
+	},
+	"elements": [
+		{
+			"from": [0, 0, 0],
+			"to": [16, 0.1, 16],
+			"faces": {
+				"up": {"uv": [0, 0, 16, 16], "texture": "#all"},
+				"down": {"uv": [0, 0, 16, 16], "texture": "#all"}
+			}
+		}
+	]
 }

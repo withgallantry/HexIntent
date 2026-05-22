@@ -21,12 +21,16 @@ class EquationSynthBlockEntity(
 
     private var focus: ItemStack = ItemStack.EMPTY
     private var previewEquation: EquationParticleConfig? = null
+    private var animationPreset: String = ANIM_ROTATE
+    private var refreshTicker = 0
 
     fun hasFocus(): Boolean = !focus.isEmpty
 
     fun hasPreviewEquation(): Boolean = previewEquation != null
 
     fun getPreviewEquation(): EquationParticleConfig? = previewEquation
+
+    fun getAnimationPreset(): String = animationPreset
 
     fun getFocusCopy(): ItemStack = if (focus.isEmpty) ItemStack.EMPTY else focus.copy()
 
@@ -37,6 +41,7 @@ class EquationSynthBlockEntity(
         }
         focus = normalized
         previewEquation = readEquationFromFocus()
+        syncVisualState()
         markUpdated()
     }
 
@@ -44,6 +49,7 @@ class EquationSynthBlockEntity(
         val out = focus
         focus = ItemStack.EMPTY
         previewEquation = null
+        syncVisualState()
         markUpdated()
         return out
     }
@@ -53,6 +59,15 @@ class EquationSynthBlockEntity(
             return false
         }
         return IXplatAbstractions.INSTANCE.findDataHolder(stack) != null
+    }
+
+    fun setAnimationPreset(preset: String) {
+        val normalized = normalizeAnimationPreset(preset)
+        if (animationPreset == normalized) {
+            return
+        }
+        animationPreset = normalized
+        markUpdated()
     }
 
     fun writeEquation(config: EquationParticleConfig): String? {
@@ -100,6 +115,14 @@ class EquationSynthBlockEntity(
         return null
     }
 
+    fun serverTick(level: ServerLevel) {
+        if (++refreshTicker < 10) {
+            return
+        }
+        refreshTicker = 0
+        refreshFromFocus(level)
+    }
+
     override fun load(tag: CompoundTag) {
         super.load(tag)
         focus = if (tag.contains(TAG_FOCUS, CompoundTag.TAG_COMPOUND.toInt())) {
@@ -112,6 +135,7 @@ class EquationSynthBlockEntity(
         } else {
             null
         }
+        animationPreset = normalizeAnimationPreset(tag.getString(TAG_ANIMATION_PRESET))
     }
 
     override fun saveAdditional(tag: CompoundTag) {
@@ -123,6 +147,7 @@ class EquationSynthBlockEntity(
         if (preview != null) {
             tag.put(TAG_PREVIEW, writeConfigTag(preview))
         }
+        tag.putString(TAG_ANIMATION_PRESET, animationPreset)
     }
 
     override fun getUpdateTag(): CompoundTag {
@@ -154,12 +179,36 @@ class EquationSynthBlockEntity(
         }
     }
 
+    private fun refreshFromFocus(serverLevel: ServerLevel) {
+        val refreshed = readEquationFromFocus(serverLevel)
+        if (previewEquation != refreshed) {
+            previewEquation = refreshed
+            markUpdated()
+        }
+
+        val state = serverLevel.getBlockState(worldPosition)
+        if (state.block !is EquationSynthBlock) {
+            return
+        }
+
+        val desired = state
+            .setValue(EquationSynthBlock.FOCUS, hasFocus())
+            .setValue(EquationSynthBlock.ACTIVE, refreshed != null)
+        if (desired != state) {
+            serverLevel.setBlock(worldPosition, desired, Block.UPDATE_CLIENTS)
+        }
+    }
+
     private fun readEquationFromFocus(): EquationParticleConfig? {
+        val serverLevel = level as? ServerLevel ?: return null
+        return readEquationFromFocus(serverLevel)
+    }
+
+    private fun readEquationFromFocus(serverLevel: ServerLevel): EquationParticleConfig? {
         if (focus.isEmpty) {
             return null
         }
 
-        val serverLevel = level as? ServerLevel ?: return null
         val holder = IXplatAbstractions.INSTANCE.findDataHolder(focus) ?: return null
         val iota = holder.readIota(serverLevel) as? EquationParticleIota ?: return null
         return EquationParticleConfig(
@@ -245,5 +294,24 @@ class EquationSynthBlockEntity(
     companion object {
         private const val TAG_FOCUS = "Focus"
         private const val TAG_PREVIEW = "PreviewEquation"
+        private const val TAG_ANIMATION_PRESET = "AnimationPreset"
+
+        private const val ANIM_STATIC = "static"
+        private const val ANIM_ROTATE = "rotate"
+        private const val ANIM_BOB = "bob"
+        private const val ANIM_PULSE = "pulse"
+        private const val ANIM_ORBIT = "orbit"
+        private const val ANIM_SPIN_BOB = "spin_bob"
+
+        private fun normalizeAnimationPreset(raw: String?): String {
+            return when (raw?.lowercase()) {
+                ANIM_STATIC -> ANIM_STATIC
+                ANIM_BOB -> ANIM_BOB
+                ANIM_PULSE -> ANIM_PULSE
+                ANIM_ORBIT -> ANIM_ORBIT
+                ANIM_SPIN_BOB -> ANIM_SPIN_BOB
+                else -> ANIM_ROTATE
+            }
+        }
     }
 }

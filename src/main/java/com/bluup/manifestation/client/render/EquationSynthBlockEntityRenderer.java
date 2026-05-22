@@ -2,6 +2,7 @@ package com.bluup.manifestation.client.render;
 
 import com.bluup.manifestation.common.equation.EquationParticleConfig;
 import com.bluup.manifestation.common.equation.EquationParticleGenerator;
+import com.bluup.manifestation.server.block.EquationSynthBlock;
 import com.bluup.manifestation.server.block.EquationSynthBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -43,6 +44,11 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
         int packedLight,
         int packedOverlay
     ) {
+        if (!blockEntity.getBlockState().getValue(EquationSynthBlock.FOCUS)
+            || !blockEntity.getBlockState().getValue(EquationSynthBlock.ACTIVE)) {
+            return;
+        }
+
         EquationParticleConfig config = blockEntity.getPreviewEquation();
         if (config == null) {
             return;
@@ -63,6 +69,7 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
         }
 
         long gameTime = blockEntity.getLevel() == null ? 0L : blockEntity.getLevel().getGameTime();
+        float animTime = gameTime + partialTick;
         int step = Math.max(1, (preview.points.size() + TARGET_VISIBLE_POINTS - 1) / TARGET_VISIBLE_POINTS);
         int phase = (int) (gameTime % step);
         float alpha = 0.86f;
@@ -70,7 +77,7 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.55, 0.5);
-        poseStack.mulPose(Axis.YP.rotationDegrees((gameTime + partialTick) * 1.9f));
+        applyAnimationPreset(poseStack, blockEntity.getAnimationPreset(), animTime);
 
         VertexConsumer lineBuffer = buffer.getBuffer(RenderType.lines());
         PoseStack.Pose pose = poseStack.last();
@@ -97,6 +104,28 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
         }
 
         poseStack.popPose();
+    }
+
+    private static void applyAnimationPreset(PoseStack poseStack, String preset, float animTime) {
+        switch (preset) {
+            case "static" -> {
+                // Keep rendered cloud fixed in-place.
+            }
+            case "bob" -> poseStack.translate(0.0, Mth.sin(animTime * 0.09f) * 0.08f, 0.0);
+            case "pulse" -> {
+                float scale = 1.0f + (0.18f * Mth.sin(animTime * 0.12f));
+                poseStack.scale(scale, scale, scale);
+            }
+            case "orbit" -> {
+                poseStack.translate(Mth.cos(animTime * 0.05f) * 0.08f, 0.0, Mth.sin(animTime * 0.05f) * 0.08f);
+                poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.4f));
+            }
+            case "spin_bob" -> {
+                poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.9f));
+                poseStack.translate(0.0, Mth.sin(animTime * 0.09f) * 0.08f, 0.0);
+            }
+            default -> poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.9f));
+        }
     }
 
     private static CachedPreview rebuild(EquationParticleConfig input, long fingerprint) {
