@@ -4,14 +4,17 @@ import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.equation.EquationEvaluator;
 import com.bluup.manifestation.common.equation.EquationParticleConfig;
 import com.bluup.manifestation.common.equation.EquationParticleGenerator;
+import com.bluup.manifestation.server.block.EquationSynthBlockEntity;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 
@@ -26,6 +29,16 @@ public final class EquationSynthScreen extends Screen {
     private static final int SHAPE_MODAL_W = 260;
     private static final int SHAPE_MODAL_H = 320;
     private static final int SHAPE_ITEM_H = 20;
+    private static final double PREVIEW_CLOUD_RADIUS = 0.45;
+    private static final int ACTION_BUTTON_GAP = 10;
+
+    private enum PanelState {
+        SHAPE,
+        COLOR,
+        ANIMATION
+    }
+
+    private static PanelState lastOpenPanel = PanelState.SHAPE;
 
     private final BlockPos blockPos;
 
@@ -64,7 +77,7 @@ public final class EquationSynthScreen extends Screen {
     private boolean showShapeModal = false;
     private int shapeScroll = 0;
     private boolean formulaPanelCollapsed = false;
-    private boolean colorPanelCollapsed = false;
+    private boolean colorPanelCollapsed = true;
     private boolean animationPanelCollapsed = true;
     private String animationPreset = "rotate";
 
@@ -78,6 +91,7 @@ public final class EquationSynthScreen extends Screen {
     private Button colorPanelButton;
     private Button animationPanelButton;
     private Button animationPresetButton;
+    private DensitySlider densitySlider;
     private Button previewButton;
     private Button writeButton;
     private Button closeButton;
@@ -90,6 +104,37 @@ public final class EquationSynthScreen extends Screen {
         "orbit",
         "static"
     };
+
+    private static final class DensitySlider extends AbstractSliderButton {
+        DensitySlider(int x, int y, int width, int height, double initial) {
+            super(x, y, width, height, Component.empty(), normalize(initial));
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            this.setMessage(Component.literal("Density: " + (int) Math.round(getDensity() * 100.0) + "%"));
+        }
+
+        @Override
+        protected void applyValue() {
+            updateMessage();
+        }
+
+        double getDensity() {
+            return 0.1 + (this.value * 0.9);
+        }
+
+        void setDensity(double density) {
+            this.value = normalize(density);
+            updateMessage();
+        }
+
+        private static double normalize(double raw) {
+            double clamped = Math.max(0.1, Math.min(1.0, raw));
+            return (clamped - 0.1) / 0.9;
+        }
+    }
 
     // --- Shape preset modal ---
     private static class ShapePreset {
@@ -172,6 +217,7 @@ public final class EquationSynthScreen extends Screen {
                 formulaPanelCollapsed = false;
                 colorPanelCollapsed = true;
                 animationPanelCollapsed = true;
+                lastOpenPanel = PanelState.SHAPE;
             } else {
                 formulaPanelCollapsed = true;
             }
@@ -209,8 +255,8 @@ public final class EquationSynthScreen extends Screen {
         this.previewButton = this.addRenderableWidget(Button.builder(Component.literal("Preview"), b -> recomputePreview())
             .bounds(this.leftPanelX + 228, 0, 42, 20)
             .build());
-        this.writeButton = this.addRenderableWidget(Button.builder(Component.literal("Write"), b -> writeToFocus())
-            .bounds(this.leftPanelX + 278, 0, 48, 20)
+        this.writeButton = this.addRenderableWidget(Button.builder(Component.literal("Write").withStyle(ChatFormatting.LIGHT_PURPLE), b -> writeToFocus())
+            .bounds(this.leftPanelX + 8, 0, this.inputWidth, 20)
             .build());
 
         this.colorPanelButton = this.addRenderableWidget(Button.builder(Component.empty(), b -> {
@@ -218,6 +264,7 @@ public final class EquationSynthScreen extends Screen {
                 colorPanelCollapsed = false;
                 formulaPanelCollapsed = true;
                 animationPanelCollapsed = true;
+                lastOpenPanel = PanelState.COLOR;
             } else {
                 colorPanelCollapsed = true;
             }
@@ -230,6 +277,7 @@ public final class EquationSynthScreen extends Screen {
                 animationPanelCollapsed = false;
                 formulaPanelCollapsed = true;
                 colorPanelCollapsed = true;
+                lastOpenPanel = PanelState.ANIMATION;
             } else {
                 animationPanelCollapsed = true;
             }
@@ -242,6 +290,8 @@ public final class EquationSynthScreen extends Screen {
             syncAnimationPresetButton();
         }).bounds(this.leftPanelX + 8, 0, this.inputWidth, 20).build());
         syncAnimationPresetButton();
+
+        this.densitySlider = this.addRenderableWidget(new DensitySlider(this.leftPanelX + 8, 0, this.inputWidth, 20, 0.6));
 
         this.colorA_R = addNumBox(this.leftPanelX + 8, 0, 42, "0.96");
         this.colorA_G = addNumBox(this.leftPanelX + 52, 0, 42, "0.56");
@@ -257,6 +307,9 @@ public final class EquationSynthScreen extends Screen {
         this.closeButton = this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
             .bounds(this.leftPanelX + 8, 0, this.inputWidth, 20)
             .build());
+
+        applyRememberedPanelState();
+        loadFromSynthIfAvailable();
 
         syncPanelButtons();
         layoutLeftPanel();
@@ -374,17 +427,55 @@ public final class EquationSynthScreen extends Screen {
 
         if (!animationPanelCollapsed) {
             graphics.drawString(this.font, "Animation Preset", this.animationPresetButton.getX(), this.animationPresetButton.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
+            graphics.drawString(this.font, "Render Density", this.densitySlider.getX(), this.densitySlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
         }
 
         graphics.drawString(this.font, "Preview", previewX + 8, previewY + 8, 0xDDE7FF, false);
 
-        for (Dot dot : previewDots) {
-            if (dot.x >= previewX + 1 && dot.x < previewX + previewW - 1 && dot.y >= previewY + 1 && dot.y < previewY + previewH - 1) {
-                graphics.fill(dot.x, dot.y, dot.x + PREVIEW_DOT_SIZE, dot.y + PREVIEW_DOT_SIZE, dot.color);
+        double animTime = (this.minecraft != null && this.minecraft.level != null)
+            ? this.minecraft.level.getGameTime() + partialTick
+            : (System.currentTimeMillis() * 0.02);
+
+        final double yaw = Math.toRadians(38.0);
+        final double pitch = Math.toRadians(26.0);
+        double cy = Math.cos(yaw);
+        double sy = Math.sin(yaw);
+        double cp = Math.cos(pitch);
+        double sp = Math.sin(pitch);
+        double pad = 22.0;
+        double halfAvailW = Math.max(1.0, (previewW - 2.0 * pad) * 0.5);
+        double halfAvailH = Math.max(1.0, (previewH - 2.0 * pad) * 0.5);
+        double projectionScale = Math.min(halfAvailW, halfAvailH) / Math.max(1.0e-6, PREVIEW_CLOUD_RADIUS);
+        double screenCenterX = previewX + (previewW * 0.5);
+        double screenCenterY = previewY + (previewH * 0.5);
+
+        for (int i = 0; i < previewDots.size(); i++) {
+            Dot dot = previewDots.get(i);
+            Vec3 animated = applyPreviewAnimation(dot.x, dot.y, dot.z, animationPreset, animTime);
+            double x1 = animated.x * cy + animated.z * sy;
+            double z1 = -animated.x * sy + animated.z * cy;
+            double y1 = animated.y * cp - z1 * sp;
+
+            float shimmer = (float) (0.65 + (0.35 * Math.sin((animTime * 0.20) + (i * 0.83))));
+            float twinkle = (float) (0.55 + (0.45 * Math.sin((animTime * 0.31) + (i * 1.39))));
+
+            int dx = (int) Math.round(Math.sin((animTime * 0.12) + (i * 0.27)));
+            int dy = (int) Math.round(Math.cos((animTime * 0.11) + (i * 0.29)));
+
+            int x = (int) Math.round(screenCenterX + (x1 * projectionScale)) + dx;
+            int y = (int) Math.round(screenCenterY - (y1 * projectionScale)) + dy;
+            if (x >= previewX + 2 && x < previewX + previewW - 2 && y >= previewY + 2 && y < previewY + previewH - 2) {
+                int glow = withAlpha(dot.color, 0.16f * (0.75f + (0.25f * shimmer)));
+                int mid = withAlpha(dot.color, 0.42f * shimmer);
+                int core = withAlpha(dot.color, 0.80f * twinkle);
+
+                graphics.fill(x - 2, y - 2, x + 3, y + 3, glow);
+                graphics.fill(x - 1, y - 1, x + 2, y + 2, mid);
+                graphics.fill(x, y, x + PREVIEW_DOT_SIZE, y + PREVIEW_DOT_SIZE, core);
             }
         }
 
-        graphics.drawString(this.font, status, leftX + 8, leftY + leftH - 12, statusColor, false);
+        graphics.drawString(this.font, status, leftX + 8, this.closeButton.getY() - 12, statusColor, false);
         graphics.drawString(this.font, "Write stores a reusable equation iota in the inserted focus.", previewX + 8, previewY + previewH - 12, 0xA7B7CD, false);
     }
 
@@ -430,21 +521,19 @@ public final class EquationSynthScreen extends Screen {
     }
 
     private void syncPanelButtons() {
-        formulaPanelButton.setMessage(Component.literal(formulaPanelCollapsed ? "[+] Formula Panel" : "[-] Formula Panel"));
-        colorPanelButton.setMessage(Component.literal(colorPanelCollapsed ? "[+] Color Panel" : "[-] Color Panel"));
-        animationPanelButton.setMessage(Component.literal(animationPanelCollapsed ? "[+] Animation Panel" : "[-] Animation Panel"));
+        formulaPanelButton.setMessage(Component.literal(formulaPanelCollapsed ? "[+] Shape" : "[-] Shape"));
+        colorPanelButton.setMessage(Component.literal(colorPanelCollapsed ? "[+] Color" : "[-] Color"));
+        animationPanelButton.setMessage(Component.literal(animationPanelCollapsed ? "[+] Animation" : "[-] Animation"));
     }
 
     private void layoutLeftPanel() {
         int y = this.leftPanelTop + 12;
 
-        shapePresetButton.setY(y);
-        y += 24;
-
         formulaPanelButton.setY(y);
-        y += 24;
+        y += 26;
 
         boolean formulaVisible = !formulaPanelCollapsed;
+        setWidgetVisible(this.shapePresetButton, formulaVisible);
         setWidgetVisible(this.xExpr, formulaVisible);
         setWidgetVisible(this.yExpr, formulaVisible);
         setWidgetVisible(this.zExpr, formulaVisible);
@@ -456,35 +545,37 @@ public final class EquationSynthScreen extends Screen {
         setWidgetVisible(this.useUButton, formulaVisible);
         setWidgetVisible(this.colorModeButton, formulaVisible);
         setWidgetVisible(this.previewButton, formulaVisible);
-        setWidgetVisible(this.writeButton, formulaVisible);
+        setWidgetVisible(this.writeButton, true);
 
         if (formulaVisible) {
+            this.shapePresetButton.setY(y);
+            y += 26;
+
             this.xExpr.setY(y);
-            y += 30;
+            y += 36;
             this.yExpr.setY(y);
-            y += 30;
+            y += 36;
             this.zExpr.setY(y);
 
-            y += 34;
+            y += 36;
             this.tMin.setY(y);
             this.tMax.setY(y);
             this.uMin.setY(y);
             this.uMax.setY(y);
 
-            y += 30;
+            y += 36;
             this.pointCount.setY(y);
 
-            y += 34;
+            y += 36;
             this.useUButton.setY(y);
             this.colorModeButton.setY(y);
             this.previewButton.setY(y);
-            this.writeButton.setY(y);
 
-            y += 30;
+            y += 32;
         }
 
         this.colorPanelButton.setY(y);
-        y += 24;
+        y += 32;
 
         boolean colorVisible = !colorPanelCollapsed;
         setWidgetVisible(this.colorA_R, colorVisible);
@@ -505,27 +596,114 @@ public final class EquationSynthScreen extends Screen {
             this.colorB_G.setY(y);
             this.colorB_B.setY(y);
 
-            y += 30;
+            y += 32;
             this.colorExprR.setY(y);
-            y += 30;
+            y += 36;
             this.colorExprG.setY(y);
-            y += 30;
+            y += 36;
             this.colorExprB.setY(y);
 
-            y += 30;
+            y += 32;
         }
 
         this.animationPanelButton.setY(y);
-        y += 24;
+        y += 32;
 
         boolean animationVisible = !animationPanelCollapsed;
         setWidgetVisible(this.animationPresetButton, animationVisible);
+        setWidgetVisible(this.densitySlider, animationVisible);
         if (animationVisible) {
             this.animationPresetButton.setY(y);
-            y += 30;
+            y += 36;
+            this.densitySlider.setY(y);
+            y += 36;
         }
 
-        this.closeButton.setY(y);
+        int actionButtonW = (this.inputWidth - ACTION_BUTTON_GAP) / 2;
+        int actionY = this.leftPanelTop + PANEL_HEIGHT - 28;
+        int actionX = this.leftPanelX + 8;
+
+        this.writeButton.setX(actionX);
+        this.writeButton.setY(actionY);
+        this.writeButton.setWidth(actionButtonW);
+
+        this.closeButton.setX(actionX + actionButtonW + ACTION_BUTTON_GAP);
+        this.closeButton.setY(actionY);
+        this.closeButton.setWidth(actionButtonW);
+    }
+
+    private void loadFromSynthIfAvailable() {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return;
+        }
+
+        var be = this.minecraft.level.getBlockEntity(this.blockPos);
+        if (!(be instanceof EquationSynthBlockEntity synth)) {
+            return;
+        }
+
+        if (!synth.hasFocus()) {
+            lastOpenPanel = PanelState.SHAPE;
+            formulaPanelCollapsed = false;
+            colorPanelCollapsed = true;
+            animationPanelCollapsed = true;
+            return;
+        }
+
+        EquationParticleConfig cfg = synth.getPreviewEquation();
+        if (cfg != null) {
+            applyConfig(cfg);
+        }
+
+        this.animationPreset = synth.getAnimationPreset();
+        syncAnimationPresetButton();
+        this.densitySlider.setDensity(synth.getRenderDensity());
+    }
+
+    private void applyRememberedPanelState() {
+        switch (lastOpenPanel) {
+            case COLOR -> {
+                formulaPanelCollapsed = true;
+                colorPanelCollapsed = false;
+                animationPanelCollapsed = true;
+            }
+            case ANIMATION -> {
+                formulaPanelCollapsed = true;
+                colorPanelCollapsed = true;
+                animationPanelCollapsed = false;
+            }
+            default -> {
+                formulaPanelCollapsed = false;
+                colorPanelCollapsed = true;
+                animationPanelCollapsed = true;
+            }
+        }
+    }
+
+    private void applyConfig(EquationParticleConfig cfg) {
+        this.xExpr.setValue(cfg.xExpr());
+        this.yExpr.setValue(cfg.yExpr());
+        this.zExpr.setValue(cfg.zExpr());
+        this.tMin.setValue(Double.toString(cfg.tMin()));
+        this.tMax.setValue(Double.toString(cfg.tMax()));
+        this.uMin.setValue(Double.toString(cfg.uMin()));
+        this.uMax.setValue(Double.toString(cfg.uMax()));
+        this.pointCount.setValue(Integer.toString(cfg.pointCount()));
+
+        this.useU = cfg.useU();
+        this.colorMode = cfg.colorMode();
+        syncUseUButton();
+        syncColorModeButton();
+
+        this.colorA_R.setValue(Double.toString(cfg.gradientStartR()));
+        this.colorA_G.setValue(Double.toString(cfg.gradientStartG()));
+        this.colorA_B.setValue(Double.toString(cfg.gradientStartB()));
+        this.colorB_R.setValue(Double.toString(cfg.gradientEndR()));
+        this.colorB_G.setValue(Double.toString(cfg.gradientEndG()));
+        this.colorB_B.setValue(Double.toString(cfg.gradientEndB()));
+        this.colorExprR.setValue(cfg.colorExprR());
+        this.colorExprG.setValue(cfg.colorExprG());
+        this.colorExprB.setValue(cfg.colorExprB());
     }
 
     private static void setWidgetVisible(AbstractWidget widget, boolean visible) {
@@ -576,6 +754,7 @@ public final class EquationSynthScreen extends Screen {
         buf.writeUtf(config.colorExprG(), MAX_EXPR_CHARS);
         buf.writeUtf(config.colorExprB(), MAX_EXPR_CHARS);
         buf.writeUtf(animationPreset, 32);
+        buf.writeDouble(this.densitySlider.getDensity());
         ClientPlayNetworking.send(ManifestationNetworking.WRITE_EQUATION_PARTICLE_C2S, buf);
 
         status = "Sent to synthesizer for write.";
@@ -662,60 +841,69 @@ public final class EquationSynthScreen extends Screen {
             throw new IllegalArgumentException("no_valid_points");
         }
 
-        final double yaw = Math.toRadians(38.0);
-        final double pitch = Math.toRadians(26.0);
-        double cy = Math.cos(yaw);
-        double sy = Math.sin(yaw);
-        double cp = Math.cos(pitch);
-        double sp = Math.sin(pitch);
-
-        ArrayList<Projected> projected = new ArrayList<>(generated.size());
         double minX = Double.POSITIVE_INFINITY;
-        double maxX = Double.NEGATIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY;
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
         double maxY = Double.NEGATIVE_INFINITY;
-        double sumX = 0.0;
-        double sumY = 0.0;
+        double maxZ = Double.NEGATIVE_INFINITY;
 
         for (int i = 0; i < generated.size(); i++) {
             Vec3 p = generated.get(i).offset();
-            double x1 = p.x * cy + p.z * sy;
-            double z1 = -p.x * sy + p.z * cy;
-            double y1 = p.y * cp - z1 * sp;
-
-            minX = Math.min(minX, x1);
-            maxX = Math.max(maxX, x1);
-            minY = Math.min(minY, y1);
-            maxY = Math.max(maxY, y1);
-            sumX += x1;
-            sumY += y1;
-            projected.add(new Projected(x1, y1, i));
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            minZ = Math.min(minZ, p.z);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+            maxZ = Math.max(maxZ, p.z);
         }
 
         double spanX = Math.max(1.0e-6, maxX - minX);
         double spanY = Math.max(1.0e-6, maxY - minY);
-        double centerX = sumX / projected.size();
-        double centerY = sumY / projected.size();
-        double halfSpanX = spanX * 0.5;
-        double halfSpanY = spanY * 0.5;
-        double maxAbsX = Math.max(halfSpanX, Math.max(Math.abs(minX - centerX), Math.abs(maxX - centerX)));
-        double maxAbsY = Math.max(halfSpanY, Math.max(Math.abs(minY - centerY), Math.abs(maxY - centerY)));
-        double pad = 22.0;
-        double halfAvailW = Math.max(1.0, (previewW - 2.0 * pad) * 0.5);
-        double halfAvailH = Math.max(1.0, (previewH - 2.0 * pad) * 0.5);
-        double scaleX = halfAvailW / Math.max(1.0e-6, maxAbsX);
-        double scaleY = halfAvailH / Math.max(1.0e-6, maxAbsY);
-        double scale = Math.min(scaleX, scaleY);
-        double screenCenterX = previewX + (previewW * 0.5);
-        double screenCenterY = previewY + (previewH * 0.5);
+        double spanZ = Math.max(1.0e-6, maxZ - minZ);
+        double spanMax = Math.max(spanX, Math.max(spanY, spanZ));
+        double scale = (PREVIEW_CLOUD_RADIUS * 2.0) / spanMax;
 
-        for (Projected p : projected) {
-            int sx = (int) Math.round(screenCenterX + (p.x - centerX) * scale);
-            int syScreen = (int) Math.round(screenCenterY - (p.y - centerY) * scale);
-            Vec3 c = generated.get(p.index).color();
+        double centerX = (minX + maxX) * 0.5;
+        double centerY = (minY + maxY) * 0.5;
+        double centerZ = (minZ + maxZ) * 0.5;
+
+        for (EquationParticleGenerator.GeneratedPoint p : generated) {
+            Vec3 offset = p.offset();
+            double nx = (offset.x - centerX) * scale;
+            double ny = (offset.y - centerY) * scale;
+            double nz = (offset.z - centerZ) * scale;
+            Vec3 c = p.color();
             int color = packColor(c.x, c.y, c.z);
-            previewDots.add(new Dot(sx, syScreen, color));
+            previewDots.add(new Dot(nx, ny, nz, color));
         }
+    }
+
+    private static Vec3 applyPreviewAnimation(double x, double y, double z, String preset, double animTime) {
+        return switch (preset) {
+            case "static" -> new Vec3(x, y, z);
+            case "bob" -> new Vec3(x, y + (Math.sin(animTime * 0.09) * 0.08), z);
+            case "pulse" -> {
+                double s = 1.0 + (0.18 * Math.sin(animTime * 0.12));
+                yield new Vec3(x * s, y * s, z * s);
+            }
+            case "orbit" -> {
+                double tx = x + (Math.cos(animTime * 0.05) * 0.08);
+                double tz = z + (Math.sin(animTime * 0.05) * 0.08);
+                yield rotateY(tx, y, tz, Math.toRadians(animTime * 1.4));
+            }
+            case "spin_bob" -> {
+                Vec3 spun = rotateY(x, y, z, Math.toRadians(animTime * 1.9));
+                yield new Vec3(spun.x, spun.y + (Math.sin(animTime * 0.09) * 0.08), spun.z);
+            }
+            default -> rotateY(x, y, z, Math.toRadians(animTime * 1.9));
+        };
+    }
+
+    private static Vec3 rotateY(double x, double y, double z, double radians) {
+        double c = Math.cos(radians);
+        double s = Math.sin(radians);
+        return new Vec3((x * c) + (z * s), y, (-x * s) + (z * c));
     }
 
     private static int packColor(double r, double g, double b) {
@@ -723,6 +911,12 @@ public final class EquationSynthScreen extends Screen {
         int gg = (int) (Math.max(0.0, Math.min(1.0, g)) * 255.0);
         int bb = (int) (Math.max(0.0, Math.min(1.0, b)) * 255.0);
         return 0xFF000000 | (rr << 16) | (gg << 8) | bb;
+    }
+
+    private static int withAlpha(int argb, float alphaScale) {
+        float clamped = Math.max(0.0f, Math.min(1.0f, alphaScale));
+        int alpha = (int) (((argb >>> 24) & 0xFF) * clamped);
+        return (alpha << 24) | (argb & 0x00FFFFFF);
     }
 
     private static int parseInt(String raw, int fallback) {
@@ -755,9 +949,6 @@ public final class EquationSynthScreen extends Screen {
         return false;
     }
 
-    private record Dot(int x, int y, int color) {
-    }
-
-    private record Projected(double x, double y, int index) {
+    private record Dot(double x, double y, double z, int color) {
     }
 }

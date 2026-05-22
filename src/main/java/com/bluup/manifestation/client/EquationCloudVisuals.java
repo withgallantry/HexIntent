@@ -8,11 +8,15 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +29,9 @@ public final class EquationCloudVisuals {
 
     private static final int CLOUD_TTL_TICKS = 45;
     private static final int MOVE_TICKS = 8;
+    private static final float BASE_POINT_HALF = 0.017f;
+    private static final float DRIFT_RADIUS = 0.016f;
+    private static final float GLOW_SCALE = 1.9f;
 
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(
@@ -116,24 +123,19 @@ public final class EquationCloudVisuals {
 
         String currentDimension = mc.level.dimension().location().toString();
         long now = mc.level.getGameTime();
+        float animTime = now;
 
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
-        var lookF = mc.gameRenderer.getMainCamera().getLookVector();
-        Vec3 look = new Vec3(lookF.x(), lookF.y(), lookF.z()).normalize();
-        Vec3 right = look.cross(new Vec3(0.0, 1.0, 0.0));
-        if (right.lengthSqr() < 1.0e-8) {
-            right = new Vec3(1.0, 0.0, 0.0);
-        } else {
-            right = right.normalize();
-        }
-        Vec3 up = right.cross(look).normalize();
+        Camera mainCamera = mc.gameRenderer.getMainCamera();
+        Quaternionf cameraRotation = mainCamera.rotation();
 
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        VertexConsumer lineBuffer = buffers.getBuffer(RenderType.lines());
+        VertexConsumer sparkBuffer = buffers.getBuffer(RenderType.lightning());
 
         poseStack.pushPose();
         poseStack.translate(-camera.x, -camera.y, -camera.z);
         try {
+            Matrix4f mat = poseStack.last().pose();
             for (CloudState state : ACTIVE.values()) {
                 if (!currentDimension.equals(state.dimensionId)) {
                     continue;
@@ -146,7 +148,7 @@ public final class EquationCloudVisuals {
                 double dist = origin.distanceTo(camera);
                 int step = computeSampleStep(state.points.size(), dist);
                 int phase = (int) (now % step);
-                double pointHalfSize = computePointHalfSize(dist);
+                float baseSize = computePointHalfSize(dist);
                 float alpha = computeAlpha(dist);
 
                 for (int i = 0; i < state.points.size(); i++) {
@@ -157,15 +159,43 @@ public final class EquationCloudVisuals {
                     Vec3 p = origin.add(point.offset());
                     Vec3 c = point.color();
 
-                    Vec3 rx = right.scale(pointHalfSize);
-                    Vec3 uy = up.scale(pointHalfSize);
-                    drawLineSegment(poseStack, lineBuffer, p.subtract(rx), p.add(rx), (float) c.x, (float) c.y, (float) c.z, alpha);
-                    drawLineSegment(poseStack, lineBuffer, p.subtract(uy), p.add(uy), (float) c.x, (float) c.y, (float) c.z, alpha);
+                    float x = (float) p.x;
+                    float y = (float) p.y;
+                    float z = (float) p.z;
+                    float r = Mth.clamp((float) c.x, 0.0f, 1.0f);
+                    float g = Mth.clamp((float) c.y, 0.0f, 1.0f);
+                    float b = Mth.clamp((float) c.z, 0.0f, 1.0f);
+
+                    float t = (animTime * 0.08f) + (i * 0.019f);
+                    float shimmer = 0.65f + (0.35f * Mth.sin((animTime * 0.23f) + (i * 0.81f)));
+                    float twinkle = 0.55f + (0.45f * Mth.sin((animTime * 0.34f) + (i * 1.57f)));
+
+                    float ox = (float) point.offset().x;
+                    float oy = (float) point.offset().y;
+                    float oz = (float) point.offset().z;
+                    float lenSq = (ox * ox) + (oy * oy) + (oz * oz);
+                    if (lenSq > 1.0e-6f) {
+                        float invLen = Mth.invSqrt(lenSq);
+                        float drift = DRIFT_RADIUS * (0.45f + (0.55f * Mth.sin(t + (i * 0.29f))));
+                        x += ox * invLen * drift;
+                        y += oy * invLen * drift;
+                        z += oz * invLen * drift;
+                    }
+
+                    x += Mth.sin((animTime * 0.11f) + (i * 0.26f)) * 0.005f;
+                    z += Mth.cos((animTime * 0.10f) + (i * 0.28f)) * 0.005f;
+
+                    float size = baseSize * (0.65f + (0.35f * shimmer));
+                    float coreAlpha = alpha * (0.7f + (0.3f * twinkle));
+                    float glowAlpha = alpha * 0.25f * (0.75f + (0.25f * shimmer));
+
+                    addBillboardQuad(sparkBuffer, mat, cameraRotation, x, y, z, size * GLOW_SCALE, r, g, b, glowAlpha);
+                    addBillboardQuad(sparkBuffer, mat, cameraRotation, x, y, z, size, r, g, b, coreAlpha);
                 }
             }
         } finally {
             poseStack.popPose();
-            buffers.endBatch(RenderType.lines());
+            buffers.endBatch(RenderType.lightning());
         }
     }
 
@@ -181,14 +211,14 @@ public final class EquationCloudVisuals {
         return Math.max(1, step);
     }
 
-    private static double computePointHalfSize(double distance) {
+    private static float computePointHalfSize(double distance) {
         if (distance < 12.0) {
-            return 0.032;
+            return BASE_POINT_HALF * 1.45f;
         }
         if (distance < 28.0) {
-            return 0.024;
+            return BASE_POINT_HALF * 1.10f;
         }
-        return 0.018;
+        return BASE_POINT_HALF * 0.88f;
     }
 
     private static float computeAlpha(double distance) {
@@ -201,31 +231,62 @@ public final class EquationCloudVisuals {
         return 0.58f;
     }
 
-    private static void drawLineSegment(
-        PoseStack poseStack,
-        VertexConsumer lineBuffer,
-        Vec3 from,
-        Vec3 to,
+    private static void addBillboardQuad(
+        VertexConsumer vc,
+        Matrix4f mat,
+        Quaternionf cameraRotation,
+        float x,
+        float y,
+        float z,
+        float s,
         float r,
         float g,
         float b,
         float alpha
     ) {
-        Vec3 delta = to.subtract(from);
-        double len = delta.length();
-        if (len <= 1.0e-8) {
-            return;
-        }
+        Vector3f right = new Vector3f(1.0f, 0.0f, 0.0f).rotate(cameraRotation).mul(s);
+        Vector3f up = new Vector3f(0.0f, 1.0f, 0.0f).rotate(cameraRotation).mul(s);
 
-        Vec3 normal = delta.scale(1.0 / len);
-        var pose = poseStack.last();
-        lineBuffer.vertex(pose.pose(), (float) from.x, (float) from.y, (float) from.z)
+        float x0 = x - right.x - up.x;
+        float y0 = y - right.y - up.y;
+        float z0 = z - right.z - up.z;
+
+        float x1 = x + right.x - up.x;
+        float y1 = y + right.y - up.y;
+        float z1 = z + right.z - up.z;
+
+        float x2 = x + right.x + up.x;
+        float y2 = y + right.y + up.y;
+        float z2 = z + right.z + up.z;
+
+        float x3 = x - right.x + up.x;
+        float y3 = y - right.y + up.y;
+        float z3 = z - right.z + up.z;
+
+        vc.vertex(mat, x0, y0, z0)
             .color(r, g, b, alpha)
-            .normal(pose.normal(), (float) normal.x, (float) normal.y, (float) normal.z)
             .endVertex();
-        lineBuffer.vertex(pose.pose(), (float) to.x, (float) to.y, (float) to.z)
+        vc.vertex(mat, x1, y1, z1)
             .color(r, g, b, alpha)
-            .normal(pose.normal(), (float) normal.x, (float) normal.y, (float) normal.z)
+            .endVertex();
+        vc.vertex(mat, x2, y2, z2)
+            .color(r, g, b, alpha)
+            .endVertex();
+        vc.vertex(mat, x3, y3, z3)
+            .color(r, g, b, alpha)
+            .endVertex();
+
+        vc.vertex(mat, x3, y3, z3)
+            .color(r, g, b, alpha)
+            .endVertex();
+        vc.vertex(mat, x2, y2, z2)
+            .color(r, g, b, alpha)
+            .endVertex();
+        vc.vertex(mat, x1, y1, z1)
+            .color(r, g, b, alpha)
+            .endVertex();
+        vc.vertex(mat, x0, y0, z0)
+            .color(r, g, b, alpha)
             .endVertex();
     }
 

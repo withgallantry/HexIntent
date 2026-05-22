@@ -7,15 +7,17 @@ import com.bluup.manifestation.server.block.EquationSynthBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,9 +28,12 @@ import java.util.Objects;
 public final class EquationSynthBlockEntityRenderer implements BlockEntityRenderer<EquationSynthBlockEntity> {
     private static final int PREVIEW_MAX_POINTS = 420;
     private static final int PREVIEW_EVAL_BUDGET = 2800;
-    private static final int TARGET_VISIBLE_POINTS = 180;
+    private static final int TARGET_VISIBLE_MIN = 48;
+    private static final int TARGET_VISIBLE_MAX = 360;
     private static final double PREVIEW_RADIUS = 0.35;
-    private static final float BASE_POINT_HALF = 0.0095f;
+    private static final float BASE_POINT_HALF = 0.0105f;
+    private static final float DRIFT_RADIUS = 0.012f;
+    private static final float GLOW_SCALE = 1.9f;
 
     private static final Map<Long, CachedPreview> CACHE = new HashMap<>();
 
@@ -70,19 +75,21 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
 
         long gameTime = blockEntity.getLevel() == null ? 0L : blockEntity.getLevel().getGameTime();
         float animTime = gameTime + partialTick;
-        int step = Math.max(1, (preview.points.size() + TARGET_VISIBLE_POINTS - 1) / TARGET_VISIBLE_POINTS);
+        double density = Mth.clamp(blockEntity.getRenderDensity(), 0.1, 1.0);
+        int targetVisible = Mth.clamp((int) Math.round(TARGET_VISIBLE_MIN + (density * (TARGET_VISIBLE_MAX - TARGET_VISIBLE_MIN))), TARGET_VISIBLE_MIN, TARGET_VISIBLE_MAX);
+        int step = Math.max(1, (preview.points.size() + targetVisible - 1) / targetVisible);
         int phase = (int) (gameTime % step);
         float alpha = 0.86f;
-        int light = LightTexture.FULL_BRIGHT;
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.55, 0.5);
         applyAnimationPreset(poseStack, blockEntity.getAnimationPreset(), animTime);
 
-        VertexConsumer lineBuffer = buffer.getBuffer(RenderType.lines());
+        VertexConsumer sparkBuffer = buffer.getBuffer(RenderType.lightning());
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat4 = pose.pose();
-        Matrix3f normal = pose.normal();
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Quaternionf cameraRotation = camera.rotation();
 
         for (int i = 0; i < preview.points.size(); i++) {
             if ((i + phase) % step != 0) {
@@ -93,14 +100,36 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
             float x = point.x;
             float y = point.y;
             float z = point.z;
-            float r = point.r;
-            float g = point.g;
-            float b = point.b;
-            float s = BASE_POINT_HALF * (0.75f + (0.25f * Mth.sin((gameTime + i) * 0.07f)));
+            float r = Mth.clamp(point.r, 0.0f, 1.0f);
+            float g = Mth.clamp(point.g, 0.0f, 1.0f);
+            float b = Mth.clamp(point.b, 0.0f, 1.0f);
 
-            addLine(lineBuffer, mat4, normal, x - s, y, z, x + s, y, z, r, g, b, alpha, light, 1.0f, 0.0f, 0.0f);
-            addLine(lineBuffer, mat4, normal, x, y - s, z, x, y + s, z, r, g, b, alpha, light, 0.0f, 1.0f, 0.0f);
-            addLine(lineBuffer, mat4, normal, x, y, z - s, x, y, z + s, r, g, b, alpha, light, 0.0f, 0.0f, 1.0f);
+            float t = (animTime * 0.08f) + (i * 0.017f);
+            float shimmer = 0.65f + (0.35f * Mth.sin((animTime * 0.24f) + (i * 0.93f)));
+            float twinkle = 0.55f + (0.45f * Mth.sin((animTime * 0.35f) + (i * 1.71f)));
+
+            float lenSq = (x * x) + (y * y) + (z * z);
+            if (lenSq > 1.0e-6f) {
+                float invLen = Mth.invSqrt(lenSq);
+                float nx = x * invLen;
+                float ny = y * invLen;
+                float nz = z * invLen;
+
+                float drift = DRIFT_RADIUS * (0.4f + (0.6f * Mth.sin(t + (i * 0.31f))));
+                x += nx * drift;
+                y += ny * drift;
+                z += nz * drift;
+            }
+
+            x += Mth.sin((animTime * 0.11f) + (i * 0.27f)) * 0.004f;
+            z += Mth.cos((animTime * 0.10f) + (i * 0.29f)) * 0.004f;
+
+            float s = BASE_POINT_HALF * (0.65f + (0.35f * shimmer));
+            float coreAlpha = alpha * (0.7f + (0.3f * twinkle));
+            float glowAlpha = alpha * 0.26f * (0.75f + (0.25f * shimmer));
+
+            addBillboardQuad(sparkBuffer, mat4, cameraRotation, x, y, z, s * GLOW_SCALE, r, g, b, glowAlpha);
+            addBillboardQuad(sparkBuffer, mat4, cameraRotation, x, y, z, s, r, g, b, coreAlpha);
         }
 
         poseStack.popPose();
@@ -215,34 +244,73 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
         );
     }
 
-    private static void addLine(
+    private static void addBillboardQuad(
         VertexConsumer vc,
         Matrix4f mat,
-        Matrix3f normal,
+        Quaternionf cameraRotation,
+        float x,
+        float y,
+        float z,
+        float s,
+        float r,
+        float g,
+        float b,
+        float a
+    ) {
+        Vector3f right = new Vector3f(1.0f, 0.0f, 0.0f).rotate(cameraRotation).mul(s);
+        Vector3f up = new Vector3f(0.0f, 1.0f, 0.0f).rotate(cameraRotation).mul(s);
+
+        float x0 = x - right.x - up.x;
+        float y0 = y - right.y - up.y;
+        float z0 = z - right.z - up.z;
+
+        float x1 = x + right.x - up.x;
+        float y1 = y + right.y - up.y;
+        float z1 = z + right.z - up.z;
+
+        float x2 = x + right.x + up.x;
+        float y2 = y + right.y + up.y;
+        float z2 = z + right.z + up.z;
+
+        float x3 = x - right.x + up.x;
+        float y3 = y - right.y + up.y;
+        float z3 = z - right.z + up.z;
+
+        addQuad(vc, mat, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, r, g, b, a);
+        addQuad(vc, mat, x3, y3, z3, x2, y2, z2, x1, y1, z1, x0, y0, z0, r, g, b, a);
+    }
+
+    private static void addQuad(
+        VertexConsumer vc,
+        Matrix4f mat,
         float x0,
         float y0,
         float z0,
         float x1,
         float y1,
         float z1,
+        float x2,
+        float y2,
+        float z2,
+        float x3,
+        float y3,
+        float z3,
         float r,
         float g,
         float b,
-        float a,
-        int light,
-        float nx,
-        float ny,
-        float nz
+        float a
     ) {
         vc.vertex(mat, x0, y0, z0)
             .color(r, g, b, a)
-            .normal(normal, nx, ny, nz)
-            .uv2(light)
             .endVertex();
         vc.vertex(mat, x1, y1, z1)
             .color(r, g, b, a)
-            .normal(normal, nx, ny, nz)
-            .uv2(light)
+            .endVertex();
+        vc.vertex(mat, x2, y2, z2)
+            .color(r, g, b, a)
+            .endVertex();
+        vc.vertex(mat, x3, y3, z3)
+            .color(r, g, b, a)
             .endVertex();
     }
 

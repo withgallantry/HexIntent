@@ -441,6 +441,7 @@ object ManifestationServer : ModInitializer {
             val colorExprG = buf.readUtf(MAX_EQUATION_CHARS)
             val colorExprB = buf.readUtf(MAX_EQUATION_CHARS)
             val animationPreset = buf.readUtf(32)
+            val renderDensity = buf.readDouble()
 
             server.execute {
                 val level = player.serverLevel()
@@ -512,6 +513,7 @@ object ManifestationServer : ModInitializer {
                 }
 
                 be.setAnimationPreset(animationPreset)
+                be.setRenderDensity(renderDensity)
 
                 player.displayClientMessage(
                     Component.literal("Equation write complete: ${normalized.pointCount()} points (${if (normalized.useU()) "surface" else "curve"} mode)."),

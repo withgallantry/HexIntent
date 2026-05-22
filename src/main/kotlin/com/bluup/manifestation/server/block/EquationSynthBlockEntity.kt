@@ -22,6 +22,7 @@ class EquationSynthBlockEntity(
     private var focus: ItemStack = ItemStack.EMPTY
     private var previewEquation: EquationParticleConfig? = null
     private var animationPreset: String = ANIM_ROTATE
+    private var renderDensity: Double = DEFAULT_RENDER_DENSITY
     private var refreshTicker = 0
 
     fun hasFocus(): Boolean = !focus.isEmpty
@@ -31,6 +32,8 @@ class EquationSynthBlockEntity(
     fun getPreviewEquation(): EquationParticleConfig? = previewEquation
 
     fun getAnimationPreset(): String = animationPreset
+
+    fun getRenderDensity(): Double = renderDensity
 
     fun getFocusCopy(): ItemStack = if (focus.isEmpty) ItemStack.EMPTY else focus.copy()
 
@@ -67,6 +70,15 @@ class EquationSynthBlockEntity(
             return
         }
         animationPreset = normalized
+        markUpdated()
+    }
+
+    fun setRenderDensity(value: Double) {
+        val normalized = normalizeRenderDensity(value)
+        if (renderDensity == normalized) {
+            return
+        }
+        renderDensity = normalized
         markUpdated()
     }
 
@@ -136,6 +148,11 @@ class EquationSynthBlockEntity(
             null
         }
         animationPreset = normalizeAnimationPreset(tag.getString(TAG_ANIMATION_PRESET))
+        renderDensity = if (tag.contains(TAG_RENDER_DENSITY, CompoundTag.TAG_DOUBLE.toInt())) {
+            normalizeRenderDensity(tag.getDouble(TAG_RENDER_DENSITY))
+        } else {
+            DEFAULT_RENDER_DENSITY
+        }
     }
 
     override fun saveAdditional(tag: CompoundTag) {
@@ -148,6 +165,7 @@ class EquationSynthBlockEntity(
             tag.put(TAG_PREVIEW, writeConfigTag(preview))
         }
         tag.putString(TAG_ANIMATION_PRESET, animationPreset)
+        tag.putDouble(TAG_RENDER_DENSITY, renderDensity)
     }
 
     override fun getUpdateTag(): CompoundTag {
@@ -295,6 +313,9 @@ class EquationSynthBlockEntity(
         private const val TAG_FOCUS = "Focus"
         private const val TAG_PREVIEW = "PreviewEquation"
         private const val TAG_ANIMATION_PRESET = "AnimationPreset"
+        private const val TAG_RENDER_DENSITY = "RenderDensity"
+
+        private const val DEFAULT_RENDER_DENSITY = 0.6
 
         private const val ANIM_STATIC = "static"
         private const val ANIM_ROTATE = "rotate"
@@ -312,6 +333,13 @@ class EquationSynthBlockEntity(
                 ANIM_SPIN_BOB -> ANIM_SPIN_BOB
                 else -> ANIM_ROTATE
             }
+        }
+
+        private fun normalizeRenderDensity(value: Double): Double {
+            if (!value.isFinite()) {
+                return DEFAULT_RENDER_DENSITY
+            }
+            return value.coerceIn(0.1, 1.0)
         }
     }
 }

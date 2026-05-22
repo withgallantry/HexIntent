@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -57,9 +58,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
-        double worldTicks = blockEntity.getLevel() == null
-            ? 0.0
-            : (blockEntity.getLevel().getGameTime() + (double) partialTick);
+        double worldTicks = resolveAnimationTicks(blockEntity, partialTick);
         float time = (float) ((worldTicks % 24000.0) * 0.042);
         float collapseProgress = blockEntity.collapseProgress(partialTick);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
@@ -79,6 +78,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int stableGlyphOuterColour = mixRgb(frameColor, midColor, 0.46f);
         int stableGlyphInnerColour = mixRgb(highlightColor, frameColor, 0.30f);
         int stableCollapseColour = mixRgb(highlightColor, frameColor, 0.36f);
+        int membraneTintColour = mixRgb(stableBasePortalColour, resolvedTintColor, 0.72f);
 
         // Contract: tint is used only for subtle internal membrane accents.
         int internalAccentColour = mixRgb(0x180410, resolvedAccentTint, 0.86f);
@@ -100,18 +100,79 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             );
             drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
             poseStack.popPose();
+            renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
             return;
         }
 
         // Jagged tear around portal. This took a lot to get looking so so lol.
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
+        drawMembraneTint(poseStack, fxVc, packedLight, envelope, scale, time, 0, membraneTintColour);
         drawInternalPortalAccent(poseStack, energyVc, packedLight, envelope, scale, time, 0, internalAccentColour);
         drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0, stableEdgeVeilColour);
         drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time, stableTrailTailColour, stableTrailHeadColour);
         drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0, stableRimOuterColour, stableRimInnerColour);
         drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
 
+        poseStack.popPose();
+        renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
+    }
+
+    private static double resolveAnimationTicks(CorridorPortalBlockEntity blockEntity, float partialTick) {
+        if (blockEntity.getLevel() != null) {
+            return blockEntity.getLevel().getGameTime() + (double) partialTick;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            return mc.level.getGameTime() + (double) mc.getFrameTime();
+        }
+
+        if (mc.player != null) {
+            return mc.player.tickCount + (double) partialTick;
+        }
+
+        return 0.0;
+    }
+
+    private void renderPortalLabel(
+        CorridorPortalBlockEntity blockEntity,
+        PoseStack poseStack,
+        MultiBufferSource buffer,
+        int packedLight,
+        float scale
+    ) {
+        String label = blockEntity.getPortalLabel();
+        if (label == null || label.isBlank()) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) {
+            return;
+        }
+
+        poseStack.pushPose();
+        poseStack.translate(0.5, 1.16 + (0.22 * scale), 0.5);
+        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+
+        float textScale = 0.020f * (0.9f + (0.1f * Mth.clamp(scale, 0.1f, 3.0f)));
+        poseStack.scale(-textScale, -textScale, textScale);
+
+        Font font = mc.font;
+        float x = -font.width(label) / 2.0f;
+        font.drawInBatch(
+            label,
+            x,
+            0.0f,
+            0xE4FBFF,
+            false,
+            poseStack.last().pose(),
+            buffer,
+            Font.DisplayMode.SEE_THROUGH,
+            0x44000812,
+            packedLight
+        );
         poseStack.popPose();
     }
 
@@ -159,6 +220,63 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             portalVertex(vc, mat4, right1, y1, z);
             portalVertex(vc, mat4, right0, y0, z);
             portalVertex(vc, mat4, left0, y0, z);
+        }
+    }
+
+    private void drawMembraneTint(
+        PoseStack poseStack,
+        VertexConsumer vc,
+        int light,
+        float envelope,
+        float scale,
+        float time,
+        int shape,
+        int tintColor
+    ) {
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+
+        float halfH = HALF_HEIGHT * envelope * scale;
+        float halfW = HALF_WIDTH * envelope * scale;
+        if (halfH <= 0.0001f || halfW <= 0.0001f) {
+            return;
+        }
+
+        int edgeColor = mixRgb(0x06020D, tintColor, 0.56f);
+        int coreColor = mixRgb(0x020106, tintColor, 0.78f);
+        int edgeR = (edgeColor >> 16) & 0xFF;
+        int edgeG = (edgeColor >> 8) & 0xFF;
+        int edgeB = edgeColor & 0xFF;
+        int coreR = (coreColor >> 16) & 0xFF;
+        int coreG = (coreColor >> 8) & 0xFF;
+        int coreB = coreColor & 0xFF;
+        int edgeAlpha = Mth.clamp((int) (58f * envelope), 0, 255);
+        int coreAlpha = Mth.clamp((int) (90f * envelope), 0, 255);
+
+        float zFront = Z_EPSILON + 0.0012f;
+        float zBack = -Z_EPSILON - 0.0012f;
+        for (int side = 0; side < 2; side++) {
+            float z = side == 0 ? zFront : zBack;
+            float nz = side == 0 ? 1.0f : -1.0f;
+            for (int i = 0; i < OUTLINE_SEGMENTS; i++) {
+                float a0 = Mth.TWO_PI * i / OUTLINE_SEGMENTS;
+                float a1 = Mth.TWO_PI * (i + 1) / OUTLINE_SEGMENTS;
+                PortalPoint edge0 = portalPoint(shape, a0, halfW, halfH, envelope, scale, time);
+                PortalPoint edge1 = portalPoint(shape, a1, halfW, halfH, envelope, scale, time);
+
+                // A soft fan from center to edge tints the membrane without replacing the end texture depth.
+                quadBidirectional(vc, mat4, normal,
+                    0.0f, 0.0f,
+                    edge0.x, edge0.y,
+                    edge1.x, edge1.y,
+                    0.0f, 0.0f,
+                    z, light, nz,
+                    coreR, coreG, coreB, coreAlpha,
+                    edgeR, edgeG, edgeB, edgeAlpha,
+                    edgeR, edgeG, edgeB, edgeAlpha,
+                    coreR, coreG, coreB, coreAlpha);
+            }
         }
     }
 

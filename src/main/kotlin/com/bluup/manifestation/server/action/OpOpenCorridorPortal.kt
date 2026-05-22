@@ -8,7 +8,6 @@ import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
-import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadLocation
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
@@ -43,8 +42,10 @@ import kotlin.math.atan2
  * Create a linked pair of corridor portals from two vectors.
  *
  * Stack shape on entry (top -> bottom):
+ *   optional pigment color iota
+ *   optional label text/string iota
  *   dust budget
- *   destination presence intent OR list of patterns (threshold trigger mode)
+ *   destination presence intent
  *   source portal vector
  */
 object OpOpenCorridorPortal : Action {
@@ -54,6 +55,29 @@ object OpOpenCorridorPortal : Action {
         continuation: SpellContinuation
     ): OperationResult {
         val stack = image.stack.toMutableList()
+        var pigmentTintOverrideRgb: Int? = null
+        var portalLabel: String? = null
+
+        if (stack.size >= 5) {
+            val maybePigment = stack.last()
+            pigmentTintOverrideRgb = extractPigmentTintRgb(maybePigment)
+            if (pigmentTintOverrideRgb != null) {
+                stack.removeAt(stack.lastIndex)
+            } else {
+                throw MishapInvalidIota.ofType(maybePigment, 0, "pigment color iota (optional 5th input)")
+            }
+        }
+
+        if (stack.size >= 4) {
+            val maybeLabel = stack.last()
+            portalLabel = extractPortalLabel(maybeLabel)
+            if (portalLabel != null) {
+                stack.removeAt(stack.lastIndex)
+            } else if (maybeLabel !is DoubleIota) {
+                throw MishapInvalidIota.ofType(maybeLabel, 0, "text/string iota (optional label) or number (dust budget)")
+            }
+        }
+
         if (stack.size < 3) {
             throw MishapNotEnoughArgs(3, stack.size)
         }
@@ -88,19 +112,6 @@ object OpOpenCorridorPortal : Action {
         // Source portal must be within ambit.
         env.assertVecInRange(Vec3.atCenterOf(aPos))
 
-        val thresholdPayload: List<Iota>? = if (bIota is ListIota) {
-            val list = bIota.list.toList()
-            if (list.isEmpty()) {
-                stack.add(aIota)
-                stack.add(bIota)
-                throw MishapInvalidIota.ofType(bIota, 0, "non-empty list of iotas")
-            }
-
-            list
-        } else {
-            null
-        }
-
         val (bPos, bAxis, bDimensionId) = if (bIota is PresenceIntentIota) {
             val facing = bIota.facing
             if (facing.lengthSqr() <= 1.0e-10) {
@@ -111,12 +122,10 @@ object OpOpenCorridorPortal : Action {
 
             val yaw = yawFromFacing(facing)
             Triple(BlockPos.containing(bIota.position), horizontalAxisForYaw(yaw), bIota.dimensionId)
-        } else if (thresholdPayload != null) {
-            Triple(aPos, horizontalAxisForYaw(Mth.wrapDegrees((env.castingEntity as? net.minecraft.server.level.ServerPlayer)?.yRot ?: 0f)), "")
         } else {
             stack.add(aIota)
             stack.add(bIota)
-            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent or [iotas]")
+            throw MishapInvalidIota.ofType(bIota, 0, "presenceIntent")
         }
 
         val caster = env.castingEntity as? net.minecraft.server.level.ServerPlayer
@@ -125,33 +134,10 @@ object OpOpenCorridorPortal : Action {
 
         val sourceYaw = Mth.wrapDegrees(caster.yRot)
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
-        val portalTint = resolvePortalTint(caster)
+        val portalTint = resolvePortalTint(caster, pigmentTintOverrideRgb)
 
         if (env.extractMedia(mediaBudget, true) > 0) {
             throw MishapNotEnoughMedia(mediaBudget)
-        }
-
-        if (thresholdPayload != null) {
-            placePortal(sourceLevel, aPos, sourceAxis)
-            val threshold = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity ?: throw MishapPortalNoSpace()
-
-            threshold.configureThresholdTrigger(
-                sourceLevel,
-                thresholdPayload,
-                caster.uuid,
-                mediaBudget,
-                scale,
-                sourceYaw
-            )
-            threshold.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
-
-            val image2 = image.withUsedOp().copy(stack = stack)
-            return OperationResult(
-                image2,
-                listOf(OperatorSideEffect.ConsumeMedia(mediaBudget)),
-                continuation,
-                HexEvalSounds.NORMAL_EXECUTE
-            )
         }
 
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(bDimensionId))
@@ -193,6 +179,7 @@ object OpOpenCorridorPortal : Action {
         )
         aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
         bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
+        aPortal.setPortalLabel(portalLabel)
         ownershipStore.put(
             caster.uuid,
             PortalOwnershipStore.PortalPair(
@@ -267,12 +254,104 @@ object OpOpenCorridorPortal : Action {
 
     private fun horizontalAxisForYaw(yaw: Float): Direction.Axis = Direction.fromYRot(yaw.toDouble()).axis
 
+    private fun extractPortalLabel(iota: Iota): String? {
+        val className = iota.javaClass.name.lowercase()
+        if (!className.contains("stringiota") && !className.contains("textiota")) {
+            return null
+        }
+
+        val candidate = extractStringLikeValue(iota) ?: return null
+        val trimmed = candidate.trim()
+        if (trimmed.isEmpty()) {
+            return null
+        }
+
+        return trimmed.take(MAX_LABEL_LENGTH)
+    }
+
+    private fun extractStringLikeValue(iota: Iota): String? {
+        val methodNames = listOf("getString", "string", "getText", "text", "getValue", "value")
+        for (methodName in methodNames) {
+            try {
+                val method = iota.javaClass.methods.firstOrNull {
+                    it.name == methodName && it.parameterCount == 0
+                } ?: continue
+                val raw = method.invoke(iota) ?: continue
+                when (raw) {
+                    is String -> return raw
+                    is net.minecraft.network.chat.Component -> return raw.string
+                }
+            } catch (_: Throwable) {
+                // Try the next accessor.
+            }
+        }
+
+        return null
+    }
+
+    private fun extractPigmentTintRgb(iota: Iota): Int? {
+        val className = iota.javaClass.name.lowercase()
+        if (!className.contains("pigment")) {
+            return null
+        }
+
+        val directInt = tryInvokeMethods(iota, "getColor", "color", "getRgb", "rgb")
+        if (directInt is Number) {
+            return directInt.toInt() and 0xFFFFFF
+        }
+
+        val pigmentCarrier = tryInvokeMethods(iota, "getPigment", "pigment", "getValue", "value")
+        if (pigmentCarrier != null) {
+            val provider = tryInvokeMethods(pigmentCarrier, "getColorProvider", "colorProvider")
+            if (provider != null) {
+                val colorMethod = provider.javaClass.methods.firstOrNull { it.name == "getColor" }
+                if (colorMethod != null) {
+                    try {
+                        val args = when (colorMethod.parameterCount) {
+                            2 -> arrayOf<Any>(0.0f, Vec3.ZERO)
+                            1 -> arrayOf<Any>(0.0f)
+                            else -> emptyArray()
+                        }
+                        if (args.isNotEmpty()) {
+                            val raw = colorMethod.invoke(provider, *args)
+                            if (raw is Number) {
+                                return raw.toInt() and 0xFFFFFF
+                            }
+                        }
+                    } catch (_: Throwable) {
+                        // Fall through to unsupported format.
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun tryInvokeMethods(target: Any, vararg names: String): Any? {
+        for (name in names) {
+            try {
+                val method = target.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 0 } ?: continue
+                return method.invoke(target)
+            } catch (_: Throwable) {
+                // Try next accessor.
+            }
+        }
+        return null
+    }
+
     private data class PortalTintResolution(
         val dyeColor: DyeColor?,
         val resolvedTintRgb: Int
     )
 
-    private fun resolvePortalTint(caster: net.minecraft.server.level.ServerPlayer): PortalTintResolution {
+    private const val MAX_LABEL_LENGTH = 64
+
+    private fun resolvePortalTint(caster: net.minecraft.server.level.ServerPlayer, explicitTintOverrideRgb: Int?): PortalTintResolution {
+        if (explicitTintOverrideRgb != null) {
+            return PortalTintResolution(null, explicitTintOverrideRgb and 0xFFFFFF)
+        }
+
         val activePigment = HexAPI.instance().getColorizer(caster)
         val activeItem = activePigment.item.item
         val explicitDye = (activeItem as? ItemDyePigment)?.dyeColor

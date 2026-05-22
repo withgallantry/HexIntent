@@ -61,6 +61,7 @@ class CorridorPortalBlockEntity(
     private var portalHighlightColor: Int = DEFAULT_PORTAL_HIGHLIGHT_COLOR
     private var portalFrameColor: Int = DEFAULT_PORTAL_FRAME_COLOR
     private var portalResolvedTintColor: Int = DEFAULT_PORTAL_TINT_COLOR
+    private var portalLabel: String? = null
     private val thresholdPatterns: MutableList<CompoundTag> = mutableListOf()
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
@@ -87,6 +88,7 @@ class CorridorPortalBlockEntity(
         thresholdMode = false
         updateThresholdBlockState(level, false)
         resetPortalColors()
+        portalLabel = null
         thresholdPatterns.clear()
 
         setChanged()
@@ -113,6 +115,7 @@ class CorridorPortalBlockEntity(
         thresholdMode = true
         updateThresholdBlockState(level, true)
         resetPortalColors()
+        portalLabel = null
         thresholdPatterns.clear()
 
         for (pattern in patterns) {
@@ -185,6 +188,19 @@ class CorridorPortalBlockEntity(
     fun getPortalFrameColor(): Int = portalFrameColor
 
     fun getPortalResolvedTintColor(): Int = portalResolvedTintColor
+
+    fun getPortalLabel(): String? = portalLabel
+
+    fun setPortalLabel(label: String?) {
+        val normalized = label?.trim()?.take(64)?.takeIf { it.isNotEmpty() }
+        if (portalLabel == normalized) {
+            return
+        }
+
+        portalLabel = normalized
+        setChanged()
+        level?.sendBlockUpdated(worldPosition, blockState, blockState, 3)
+    }
 
     fun setPortalColors(backdropColor: Int, midColor: Int, highlightColor: Int, frameColor: Int) {
         portalBackdropColor = backdropColor and 0xFFFFFF
@@ -567,6 +583,7 @@ class CorridorPortalBlockEntity(
         portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
         portalFrameColor = if (tag.contains(TAG_PORTAL_FRAME_COLOR)) tag.getInt(TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
         portalResolvedTintColor = if (tag.contains(TAG_PORTAL_TINT_COLOR)) tag.getInt(TAG_PORTAL_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR
+        portalLabel = if (tag.contains(TAG_PORTAL_LABEL)) tag.getString(TAG_PORTAL_LABEL) else null
         thresholdPatterns.clear()
         if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
             val list = tag.getList(TAG_THRESHOLD_PATTERNS, Tag.TAG_COMPOUND.toInt())
@@ -605,6 +622,10 @@ class CorridorPortalBlockEntity(
         tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
         tag.putInt(TAG_PORTAL_FRAME_COLOR, portalFrameColor)
         tag.putInt(TAG_PORTAL_TINT_COLOR, portalResolvedTintColor)
+        val label = portalLabel
+        if (!label.isNullOrEmpty()) {
+            tag.putString(TAG_PORTAL_LABEL, label)
+        }
         if (thresholdPatterns.isNotEmpty()) {
             val serialized = ListTag()
             for (pattern in thresholdPatterns) {
@@ -635,6 +656,7 @@ class CorridorPortalBlockEntity(
         private const val TAG_PORTAL_HIGHLIGHT_COLOR = "PortalHighlightColor"
         private const val TAG_PORTAL_FRAME_COLOR = "PortalFrameColor"
         private const val TAG_PORTAL_TINT_COLOR = "PortalTintColor"
+        private const val TAG_PORTAL_LABEL = "PortalLabel"
 
         private const val DEFAULT_PORTAL_BACKDROP_COLOR = 0x050A10
         private const val DEFAULT_PORTAL_MID_COLOR = 0x1E8F88

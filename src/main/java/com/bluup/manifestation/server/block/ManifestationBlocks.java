@@ -74,6 +74,7 @@ public final class ManifestationBlocks {
     public static final EquationSynthBlock EQUATION_SYNTH_BLOCK = new EquationSynthBlock(
         FabricBlockSettings.copyOf(Blocks.POLISHED_DEEPSLATE)
             .strength(2.0f, 6.0f)
+            .noOcclusion()
             .requiresCorrectToolForDrops()
     );
 
