@@ -6,9 +6,13 @@ import at.petrak.hexcasting.api.casting.iota.PatternIota;
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation;
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds;
 import com.bluup.manifestation.server.CastSoundSuppressor;
+import com.bluup.manifestation.server.StaffCastSoundController;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,6 +24,8 @@ import java.util.UUID;
 @Mixin(PatternIota.class)
 public abstract class PatternIotaMixin {
     private static final ThreadLocal<UUID> manifestation$currentCaster = new ThreadLocal<>();
+    private static final ThreadLocal<ServerPlayer> manifestation$currentPlayer = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> manifestation$customStaffSound = ThreadLocal.withInitial(() -> false);
 
     @Inject(method = "execute", at = @At("HEAD"), remap = false)
     private void manifestation$beginExecute(
@@ -37,9 +43,31 @@ public abstract class PatternIotaMixin {
         Entity caster = env.getCastingEntity();
         if (caster instanceof ServerPlayer player) {
             manifestation$currentCaster.set(player.getUUID());
+            manifestation$currentPlayer.set(player);
+            manifestation$customStaffSound.set(manifestation$isManifestationStaff(vm, player));
         } else {
             manifestation$currentCaster.remove();
+            manifestation$currentPlayer.remove();
+            manifestation$customStaffSound.set(false);
         }
+    }
+
+    private static boolean manifestation$isManifestationStaff(CastingVM vm, ServerPlayer player) {
+        var env = vm.getEnv();
+        if (env == null) {
+            return false;
+        }
+
+        var hand = env.getCastingHand();
+        ItemStack stack = player.getItemInHand(hand);
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return itemId != null
+            && "manifestation".equals(itemId.getNamespace())
+            && itemId.getPath().endsWith("_staff");
     }
 
     @ModifyArg(
@@ -57,6 +85,11 @@ public abstract class PatternIotaMixin {
             return original;
         }
         if (!CastSoundSuppressor.INSTANCE.shouldSuppressCurrentExecution(playerId)) {
+            ServerPlayer player = manifestation$currentPlayer.get();
+            if (player != null && manifestation$customStaffSound.get()) {
+                StaffCastSoundController.INSTANCE.playIfDue(player);
+                return HexEvalSounds.MUTE;
+            }
             return original;
         }
         return HexEvalSounds.MUTE;
@@ -70,5 +103,7 @@ public abstract class PatternIotaMixin {
         CallbackInfoReturnable<?> cir
     ) {
         manifestation$currentCaster.remove();
+        manifestation$currentPlayer.remove();
+        manifestation$customStaffSound.set(false);
     }
 }

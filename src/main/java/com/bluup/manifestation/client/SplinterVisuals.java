@@ -128,9 +128,10 @@ public final class SplinterVisuals {
                 float pulse = 0.72f + (0.28f * Mth.sin((gameTime + mc.getFrameTime()) * 0.20f));
                 float alpha = (0.55f + 0.45f * pulse) * (0.7f + 0.3f * urgency);
 
-                Vec3 top = renderPos.add(0.0, 1.55, 0.0);
-                Vec3 mid = renderPos.add(0.0, 1.25, 0.0);
-                Vec3 base = renderPos.add(0.0, 0.98, 0.0);
+                // Keep the marker centered on the actual splinter cast position.
+                Vec3 top = renderPos.add(0.0, 0.30, 0.0);
+                Vec3 mid = renderPos;
+                Vec3 base = renderPos.add(0.0, -0.24, 0.0);
 
                 drawGlyph(mc, poseStack, buffers, "◆", top, camera, (int) (alpha * 220.0f), 0x78f2ff, 1.05f);
                 drawGlyph(mc, poseStack, buffers, "◇", mid, camera, (int) (alpha * 180.0f), 0x52c8ff, 1.35f);
@@ -140,7 +141,7 @@ public final class SplinterVisuals {
                 for (int i = 0; i < RING_RUNES.length; i++) {
                     double angle = ((Math.PI * 2.0) / RING_RUNES.length) * i + (gameTime * 0.03);
                     Vec3 runePos = renderPos
-                        .add(Math.cos(angle) * 0.28, 1.18 + Math.sin((gameTime + i * 3) * 0.09) * 0.02, Math.sin(angle) * 0.28);
+                        .add(Math.cos(angle) * 0.28, Math.sin((gameTime + i * 3) * 0.09) * 0.02, Math.sin(angle) * 0.28);
                     drawGlyph(mc, poseStack, buffers, RING_RUNES[i], runePos, camera, (int) (alpha * 110.0f), 0x6ee6ff, 0.55f);
                 }
             }

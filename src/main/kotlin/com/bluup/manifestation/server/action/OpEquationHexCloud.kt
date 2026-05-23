@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.eval.OperationResult
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
+import at.petrak.hexcasting.api.casting.iota.EntityIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
@@ -21,7 +22,8 @@ import net.minecraft.server.level.ServerPlayer
  * Stack shape on entry (top -> bottom):
  *   id (number)
  *   equation particle iota
- *   origin vector
+ *   origin vector OR anchor entity
+ *   optional offset vector when using an anchor entity
  */
 object OpEquationHexCloud : Action {
     override fun operate(
@@ -36,13 +38,34 @@ object OpEquationHexCloud : Action {
 
         val idIota = stack.removeAt(stack.lastIndex)
         val equationIota = stack.removeAt(stack.lastIndex)
-        val originIota = stack.removeAt(stack.lastIndex)
+        val anchorOrOffsetIota = stack.removeAt(stack.lastIndex)
 
         val cloudId = (idIota as? DoubleIota)?.let { Math.round(it.double) }
             ?: throw MishapInvalidIota.ofType(idIota, 0, "number")
 
-        val origin = (originIota as? Vec3Iota)?.vec3
-            ?: throw MishapInvalidIota.ofType(originIota, 2, "vector")
+        val origin = when (anchorOrOffsetIota) {
+            is EntityIota -> {
+                val entity = anchorOrOffsetIota.entity
+                env.assertEntityInRange(entity)
+                entity.position().add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
+            }
+
+            is Vec3Iota -> {
+                val maybeEntityAnchor = stack.lastOrNull() as? EntityIota
+                if (maybeEntityAnchor != null) {
+                    stack.removeAt(stack.lastIndex)
+                    val entity = maybeEntityAnchor.entity
+                    env.assertEntityInRange(entity)
+                    entity.position()
+                        .add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
+                        .add(anchorOrOffsetIota.vec3)
+                } else {
+                    anchorOrOffsetIota.vec3
+                }
+            }
+
+            else -> throw MishapInvalidIota.ofType(anchorOrOffsetIota, 2, "vector or entity")
+        }
         env.assertVecInRange(origin)
 
         val equation = equationIota as? EquationParticleIota

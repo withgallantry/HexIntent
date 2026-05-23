@@ -70,11 +70,17 @@ public final class ManifestationClient implements ClientModInitializer {
         IntentShifterLensOverlay.register();
         MindVaultLensOverlay.register();
         IntentShifterRuneEffects.register();
+        SplinterVisuals.register();
 
-        // Register constellation visuals (packet + renderer)
-        ConstellationVisuals.register();
-        ParticleBlobVisuals.register();
+        // Register optional visuals only when their feature flags are enabled.
+        if (ManifestationConfig.INSTANCE.constellationFeatureEnabled()) {
+            ConstellationVisuals.register();
+        }
+        if (ManifestationConfig.INSTANCE.particleBlobLoaderEnabled()) {
+            ParticleBlobVisuals.register();
+        }
         EquationCloudVisuals.register();
+        SpellCircleVisuals.register();
 
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,

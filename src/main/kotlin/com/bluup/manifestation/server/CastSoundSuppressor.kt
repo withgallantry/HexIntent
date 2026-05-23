@@ -6,11 +6,11 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Tracks one-shot cast-sound suppression requests per player.
  *
- * The operator arms with two steps so the pattern that armed it is not muted,
- * and the following pattern execution is muted once.
+ * The operator arms for the next pattern execution in the same cast batch.
+ * Any leftover arming state is cleared when the current cast batch ends.
  */
 object CastSoundSuppressor {
-    private const val ARMING_STEPS = 2
+    private const val ARMING_STEPS = 1
     private val pendingByPlayer: MutableMap<UUID, Int> = ConcurrentHashMap()
 
     fun armNextCast(playerId: UUID) {

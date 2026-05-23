@@ -6,7 +6,7 @@
 	"textures": {
 		"8": "manifestation:block/equation_synth/particle_synthesiser_active",
 		"10": "manifestation:block/equation_synth/particle_synth_active",
-		"particle": "manifestation:block/equation_synth/particle_sphere_animated"
+		"particle": "manifestation:block/equation_synth/particle_sphere_static"
 	},
 	"elements": [
 		{

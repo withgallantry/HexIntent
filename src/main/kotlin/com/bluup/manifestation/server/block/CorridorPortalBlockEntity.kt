@@ -1,5 +1,6 @@
 package com.bluup.manifestation.server.block
 
+// This got so much bigger than I'd planned, just because I wanted it to look nice and kept adding
 
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.iota.EntityIota
@@ -740,6 +741,18 @@ class CorridorPortalBlockEntity(
 
         val targetDim = targetDimensionId ?: return false
         val target = targetPos ?: return false
+
+        // If counterpart is currently unloaded, let the loaded side drive sustain/collapse
+        // so portals cannot pause forever just because the "driver" is unloaded.
+        val targetKeyResource = ResourceLocation.tryParse(targetDim)
+        if (targetKeyResource != null) {
+            val targetKey = ResourceKey.create(Registries.DIMENSION, targetKeyResource)
+            val targetLevel = level.server.getLevel(targetKey)
+            if (targetLevel == null || !targetLevel.chunkSource.hasChunk(target.x shr 4, target.z shr 4)) {
+                return true
+            }
+        }
+
         val selfKey = level.dimension().location().toString() + ":" + worldPosition.asLong()
         val targetKey = targetDim + ":" + target.asLong()
         return selfKey <= targetKey

@@ -26,12 +26,15 @@ import com.bluup.manifestation.server.action.OpHexTrail
 import com.bluup.manifestation.server.action.OpManifestSplinter
 import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
+import com.bluup.manifestation.server.action.OpOpenCastingScreen
 import com.bluup.manifestation.server.action.OpManifestEcho
-import com.bluup.manifestation.server.action.OpMakeParticleBlob
 import com.bluup.manifestation.server.action.OpParticleScatter
 import com.bluup.manifestation.server.action.OpParticleBlobScatter
 import com.bluup.manifestation.server.action.OpPresenceIntent
+import com.bluup.manifestation.server.action.OpClearStack
+import com.bluup.manifestation.server.action.OpExitIfInteracting
 import com.bluup.manifestation.server.action.OpSilenceNextCastSound
+import com.bluup.manifestation.server.action.OpSpellCircle
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiCheckbox
 import com.bluup.manifestation.server.action.OpUiDropdown
@@ -47,6 +50,7 @@ import com.bluup.manifestation.server.action.ParticleBlobCodec
 import com.bluup.manifestation.server.block.EquationSynthBlockEntity
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.block.ParticleImporterBlockEntity
+import com.bluup.manifestation.server.item.ManifestationItems
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
@@ -90,6 +94,7 @@ object ManifestationServer : ModInitializer {
         Manifestation.LOGGER.info("Manifestation server initializing.")
 
         ManifestationConfig.load()
+        ManifestationItems.register()
         ManifestationBlocks.register()
 
         registerIotaTypes()
@@ -120,6 +125,7 @@ object ManifestationServer : ModInitializer {
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
             CastSoundSuppressor.clearForPlayer(playerId)
+            StaffCastSoundController.clearForPlayer(playerId)
 
             // Send constellation snapshot on join
             val player = handler.player
@@ -154,6 +160,7 @@ object ManifestationServer : ModInitializer {
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
             CastSoundSuppressor.clearForPlayer(playerId)
+            StaffCastSoundController.clearForPlayer(playerId)
         })
 
         ServerPlayerEvents.AFTER_RESPAWN.register(ServerPlayerEvents.AfterRespawn { oldPlayer, newPlayer, _ ->
@@ -166,6 +173,8 @@ object ManifestationServer : ModInitializer {
             MenuOpenLoopGuard.clearForPlayer(newPlayer.uuid)
             CastSoundSuppressor.clearForPlayer(oldPlayer.uuid)
             CastSoundSuppressor.clearForPlayer(newPlayer.uuid)
+            StaffCastSoundController.clearForPlayer(oldPlayer.uuid)
+            StaffCastSoundController.clearForPlayer(newPlayer.uuid)
         })
     }
 
@@ -201,10 +210,13 @@ object ManifestationServer : ModInitializer {
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
         registerAction("particle_scatter", "qaqeaddw", HexDir.NORTH_EAST, OpParticleScatter)
-        registerAction("make_particle_blob", "qaqeaddwa", HexDir.NORTH_EAST, OpMakeParticleBlob)
         registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
+        registerAction("spell_circle", "qaqeaddaq", HexDir.NORTH_EAST, OpSpellCircle)
         registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
+        registerAction("exit_if_interacting", "aqawqadedq", HexDir.SOUTH_WEST, OpExitIfInteracting)
+        registerAction("open_casting_screen", "aqawqaded", HexDir.SOUTH_WEST, OpOpenCastingScreen)
+        registerAction("clear_stack", "aqawqadedd", HexDir.SOUTH_WEST, OpClearStack)
     }
 
     private fun registerAction(idPath: String, signature: String, startDir: HexDir, action: Action) {
@@ -360,6 +372,11 @@ object ManifestationServer : ModInitializer {
             val pos = buf.readBlockPos()
             val rawJson = buf.readUtf(MAX_IMPORT_JSON_CHARS)
             server.execute {
+                if (!ManifestationConfig.particleBlobLoaderEnabled()) {
+                    player.displayClientMessage(Component.literal("Particle importer is currently disabled."), false)
+                    return@execute
+                }
+
                 val level = player.serverLevel()
                 if (!player.isAlive || player.blockPosition().distSqr(pos) > 8.0 * 8.0) {
                     player.displayClientMessage(Component.literal("Particle import failed: too far from importer."), false)
@@ -525,6 +542,10 @@ object ManifestationServer : ModInitializer {
 
     @JvmStatic
     fun openParticleImporter(player: ServerPlayer, pos: BlockPos) {
+        if (!ManifestationConfig.particleBlobLoaderEnabled()) {
+            player.displayClientMessage(Component.literal("Particle importer is currently disabled."), false)
+            return
+        }
         val buf = PacketByteBufs.create()
         buf.writeBlockPos(pos)
         ServerPlayNetworking.send(player, ManifestationNetworking.OPEN_PARTICLE_IMPORTER_S2C, buf)
@@ -1045,6 +1066,47 @@ object ManifestationServer : ModInitializer {
             buf.writeUtf(equation.colorExprB, EquationParticleConfig.MAX_EXPR_CHARS)
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
+        }
+    }
+
+    @JvmStatic
+    fun sendSpellCircleTo(
+        level: ServerLevel,
+        origin: net.minecraft.world.phys.Vec3,
+        facing: net.minecraft.world.phys.Vec3,
+        lifetimeTicks: Int,
+        patterns: List<Pair<String, HexDir>>
+    ) {
+        if (patterns.isEmpty()) {
+            return
+        }
+
+        val radius = 128.0
+        val circleId = level.random.nextLong()
+        val lifetime = lifetimeTicks.coerceIn(1, 1200)
+        val limitedPatterns = patterns.take(48)
+
+        for (other in level.server.playerList.players) {
+            if (other.serverLevel() != level || other.position().distanceTo(origin) > radius) {
+                continue
+            }
+
+            val buf = PacketByteBufs.create()
+            buf.writeUtf(level.dimension().location().toString())
+            buf.writeLong(circleId)
+            buf.writeDouble(origin.x)
+            buf.writeDouble(origin.y)
+            buf.writeDouble(origin.z)
+            buf.writeDouble(facing.x)
+            buf.writeDouble(facing.y)
+            buf.writeDouble(facing.z)
+            buf.writeVarInt(lifetime)
+            buf.writeVarInt(limitedPatterns.size)
+            for ((signature, startDir) in limitedPatterns) {
+                buf.writeUtf(signature, 128)
+                buf.writeVarInt(startDir.ordinal)
+            }
+            ServerPlayNetworking.send(other, ManifestationNetworking.SPELL_CIRCLE_S2C, buf)
         }
     }
 }

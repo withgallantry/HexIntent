@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server.block;
 
 import com.bluup.manifestation.Manifestation;
+import com.bluup.manifestation.server.ManifestationConfig;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
@@ -131,7 +132,9 @@ public final class ManifestationBlocks {
                 entries.accept(SPLINTER_CASTER_ITEM);
                 entries.accept(HEX_RELIQUARY_ITEM);
                 entries.accept(MIND_VAULT_ITEM);
-                entries.accept(PARTICLE_IMPORTER_ITEM);
+                if (ManifestationConfig.INSTANCE.particleBlobLoaderEnabled()) {
+                    entries.accept(PARTICLE_IMPORTER_ITEM);
+                }
                 entries.accept(EQUATION_SYNTH_ITEM);
             }
         );

@@ -1,6 +1,6 @@
 {
   "textures": {
-    "portal": "minecraft:block/end_portal",
+    "portal": "manifestation:block/transparent",
     "particle": "minecraft:block/black_wool"
   },
   "elements": [
