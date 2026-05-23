@@ -13,7 +13,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_list_menu",
       "anchor": "manifestation:create_list_menu",
-      "input": "[intents], string | text",
+      "input": "[intents], text",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_list_menu"
     },
@@ -21,7 +21,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_grid_menu",
       "anchor": "manifestation:create_grid_menu",
-      "input": "[intents], string | text, num",
+      "input": "[intents], text, num",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_grid_menu"
     },
@@ -29,7 +29,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_radial_menu",
       "anchor": "manifestation:create_radial_menu",
-      "input": "list, string | text",
+      "input": "list, text",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_radial_menu"
     },
@@ -61,7 +61,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:set_charm_cast_sound",
       "anchor": "manifestation:set_charm_cast_sound",
-      "input": "string | text | null, item entity?",
+      "input": "text | null, item?",
       "output": "none",
       "text": "hexcasting.page.manifestation.menus.set_charm_cast_sound"
     },
@@ -93,7 +93,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:open_corridor_portal",
       "anchor": "manifestation:open_corridor_portal",
-      "input": "vec, presenceIntent, num, num?<=3",
+      "input": "vec, presence, num, num?",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
     },

@@ -10,6 +10,7 @@ import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.registries.Registries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
@@ -31,6 +32,7 @@ import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import org.joml.Vector3f
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -884,7 +886,8 @@ class CorridorPortalBlockEntity(
         }
 
         val ownScale = renderScale.coerceIn(0.1f, 3.0f)
-        spawnInflowParticles(level, worldPosition, renderYawDegrees, ownScale)
+        val ownTint = samplePortalTintColor(level.gameTime.toFloat() / 2.0f, Vec3.atCenterOf(worldPosition))
+        spawnInflowParticles(level, worldPosition, renderYawDegrees, ownScale, ownTint)
 
         val target = targetPos ?: return
         val targetDim = targetDimensionId ?: return
@@ -897,10 +900,13 @@ class CorridorPortalBlockEntity(
         val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity
         val targetYaw = targetPortal?.renderYawDegrees ?: renderYawDegrees
         val targetScale = targetPortal?.renderScale?.coerceIn(0.1f, 3.0f) ?: ownScale
-        spawnInflowParticles(targetLevel, target, targetYaw, targetScale)
+        val targetTint = targetPortal
+            ?.samplePortalTintColor(targetLevel.gameTime.toFloat() / 2.0f, Vec3.atCenterOf(target))
+            ?: ownTint
+        spawnInflowParticles(targetLevel, target, targetYaw, targetScale, targetTint)
     }
 
-    private fun spawnInflowParticles(level: ServerLevel, pos: BlockPos, yawDegrees: Float, scale: Float) {
+    private fun spawnInflowParticles(level: ServerLevel, pos: BlockPos, yawDegrees: Float, scale: Float, tintRgb: Int) {
         val center = Vec3.atCenterOf(pos)
         val yawRad = Math.toRadians(yawDegrees.toDouble())
         val normal = Vec3(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad))
@@ -908,6 +914,13 @@ class CorridorPortalBlockEntity(
         val maxSide = 0.62 * scale
         val maxHeight = 0.78 * scale
         val random = level.random
+        val particleRgb = mixRgb(tintRgb, 0xFFFFFF, 0.18f)
+        val particleColour = Vector3f(
+            ((particleRgb shr 16) and 0xFF) / 255.0f,
+            ((particleRgb shr 8) and 0xFF) / 255.0f,
+            (particleRgb and 0xFF) / 255.0f
+        )
+        val particle = DustParticleOptions(particleColour, 1.05f)
 
         repeat(FLOW_PARTICLES_PER_BURST) {
             val side = (random.nextDouble() * 2.0 - 1.0) * maxSide
@@ -929,8 +942,8 @@ class CorridorPortalBlockEntity(
             )
             val velocity = towardPlane.add(alongFace).add(verticalDrift).add(shimmer)
 
-            // Reverse-portal streaks sell the idea of space folding inward.
-            level.sendParticles(ParticleTypes.REVERSE_PORTAL, spawn.x, spawn.y, spawn.z, 0, velocity.x * 0.55, velocity.y * 0.55, velocity.z * 0.55, 1.0)
+            // Drift stream follows the portal's active tint instead of vanilla reverse-portal purple.
+            level.sendParticles(particle, spawn.x, spawn.y, spawn.z, 0, velocity.x * 0.55, velocity.y * 0.55, velocity.z * 0.55, 1.0)
         }
     }
 

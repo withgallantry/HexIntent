@@ -53,7 +53,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:particle_scatter",
       "anchor": "manifestation:particle_scatter",
-      "input": "[vec | [vec, vec]], num",
+      "input": "[vec | pair], num",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.particle_scatter"
     },
@@ -69,7 +69,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:equation_hex_cloud",
       "anchor": "manifestation:equation_hex_cloud",
-      "input": "(vec | entity | entity, vec), equation, num",
+      "input": "target, equation, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud"
     },

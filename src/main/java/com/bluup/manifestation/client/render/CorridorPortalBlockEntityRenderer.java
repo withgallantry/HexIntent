@@ -167,7 +167,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
 
         poseStack.pushPose();
-        poseStack.translate(0.5, 1.66 + (0.22 * scale), 0.5);
+        poseStack.translate(0.5, 1.50 + (0.18 * scale), 0.5);
         poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
 
         float textScale = 0.020f * (0.9f + (0.1f * Mth.clamp(scale, 0.1f, 3.0f)));
@@ -183,8 +183,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             false,
             poseStack.last().pose(),
             buffer,
-            Font.DisplayMode.SEE_THROUGH,
-            0x44000812,
+            Font.DisplayMode.NORMAL,
+            0,
             packedLight
         );
         poseStack.popPose();
