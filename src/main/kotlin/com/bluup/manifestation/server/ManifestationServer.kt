@@ -7,6 +7,7 @@ import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.math.HexDir
 import at.petrak.hexcasting.api.casting.math.HexPattern
+import at.petrak.hexcasting.api.pigment.FrozenPigment
 import at.petrak.hexcasting.common.lib.hex.HexActions
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.equation.EquationEvaluator
@@ -32,7 +33,7 @@ import com.bluup.manifestation.server.action.OpParticleBlobScatter
 import com.bluup.manifestation.server.action.OpPresenceIntent
 import com.bluup.manifestation.server.action.OpClearStack
 import com.bluup.manifestation.server.action.OpExitIfInteracting
-import com.bluup.manifestation.server.action.OpSilenceNextCastSound
+import com.bluup.manifestation.server.action.OpSetCharmCastSound
 import com.bluup.manifestation.server.action.OpSpellCircle
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiCheckbox
@@ -123,7 +124,6 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(playerId)
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
-            CastSoundSuppressor.clearForPlayer(playerId)
             StaffCastSoundController.clearForPlayer(playerId)
 
             // Send constellation snapshot on join
@@ -158,7 +158,6 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(playerId)
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
-            CastSoundSuppressor.clearForPlayer(playerId)
             StaffCastSoundController.clearForPlayer(playerId)
         })
 
@@ -170,8 +169,6 @@ object ManifestationServer : ModInitializer {
             MenuSessionRegistry.clearForPlayer(newPlayer.uuid)
             MenuDispatchAbuseGuard.clearForPlayer(newPlayer.uuid)
             MenuOpenLoopGuard.clearForPlayer(newPlayer.uuid)
-            CastSoundSuppressor.clearForPlayer(oldPlayer.uuid)
-            CastSoundSuppressor.clearForPlayer(newPlayer.uuid)
             StaffCastSoundController.clearForPlayer(oldPlayer.uuid)
             StaffCastSoundController.clearForPlayer(newPlayer.uuid)
         })
@@ -190,7 +187,7 @@ object ManifestationServer : ModInitializer {
         registerAction("intent_input", "awwaqwedwwdad", HexDir.NORTH_EAST, OpUiInput)
         registerAction("intent_numeric_input", "awwaqwedwwdadq", HexDir.NORTH_EAST, OpUiNumericInput)
         registerAction("intent_slider", "awwaqwedwwdaw", HexDir.NORTH_EAST, OpUiSlider)
-        registerAction("intent_checkbox", "awwaqwedwwdadee", HexDir.NORTH_EAST, OpUiCheckbox)
+        registerAction("intent_checkbox", "awwaqwedwwdaeedd", HexDir.NORTH_EAST, OpUiCheckbox)
         registerAction("intent_select_list", "awwaqwedwwdaaedd", HexDir.NORTH_EAST, OpUiSelectList)
         registerAction("intent_section", "awwaqwedwwdawde", HexDir.NORTH_EAST, OpUiSection)
         registerAction("intent_dropdown", "awwaqwedwwdawaq", HexDir.NORTH_EAST, OpUiDropdown)
@@ -213,7 +210,7 @@ object ManifestationServer : ModInitializer {
         }
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
-        registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
+        registerAction("set_charm_cast_sound", "wedwwdwee", HexDir.EAST, OpSetCharmCastSound)
         registerAction("exit_if_interacting", "qaqqqqe", HexDir.EAST, OpExitIfInteracting)
         registerAction("open_casting_screen", "aqaeawqqwqwqqw", HexDir.SOUTH_WEST, OpOpenCastingScreen)
         registerAction("clear_stack", "aqaeawqqwa", HexDir.SOUTH_WEST, OpClearStack)
@@ -1086,7 +1083,8 @@ object ManifestationServer : ModInitializer {
         facing: net.minecraft.world.phys.Vec3,
         lifetimeTicks: Int,
         sizeTier: Int,
-        patterns: List<Pair<String, HexDir>>
+        patterns: List<Pair<String, HexDir>>,
+        colorizer: FrozenPigment
     ) {
         if (patterns.isEmpty()) {
             return
@@ -1114,6 +1112,7 @@ object ManifestationServer : ModInitializer {
             buf.writeDouble(facing.z)
             buf.writeVarInt(lifetime)
             buf.writeVarInt(clampedTier)
+            buf.writeNbt(colorizer.serializeToNBT())
             buf.writeVarInt(limitedPatterns.size)
             for ((signature, startDir) in limitedPatterns) {
                 buf.writeUtf(signature, 128)

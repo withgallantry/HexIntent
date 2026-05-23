@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.iota.EntityIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
+import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -62,6 +63,7 @@ class CorridorPortalBlockEntity(
     private var portalHighlightColor: Int = DEFAULT_PORTAL_HIGHLIGHT_COLOR
     private var portalFrameColor: Int = DEFAULT_PORTAL_FRAME_COLOR
     private var portalResolvedTintColor: Int = DEFAULT_PORTAL_TINT_COLOR
+    private var portalTintColorizer: FrozenPigment? = null
     private var portalLabel: String? = null
     private val thresholdPatterns: MutableList<CompoundTag> = mutableListOf()
 
@@ -190,6 +192,15 @@ class CorridorPortalBlockEntity(
 
     fun getPortalResolvedTintColor(): Int = portalResolvedTintColor
 
+    fun samplePortalTintColor(time: Float, samplePosition: Vec3): Int {
+        val pigment = portalTintColorizer ?: return portalResolvedTintColor
+        return try {
+            pigment.getColorProvider().getColor(time, samplePosition) and 0xFFFFFF
+        } catch (_: Throwable) {
+            portalResolvedTintColor
+        }
+    }
+
     fun getPortalLabel(): String? = portalLabel
 
     fun setPortalLabel(label: String?) {
@@ -213,8 +224,13 @@ class CorridorPortalBlockEntity(
         level?.sendBlockUpdated(worldPosition, blockState, blockState, 3)
     }
 
-    fun applyPortalAccentTint(@Suppress("UNUSED_PARAMETER") dyeColor: DyeColor?, resolvedTintRgb: Int) {
+    fun applyPortalAccentTint(
+        @Suppress("UNUSED_PARAMETER") dyeColor: DyeColor?,
+        resolvedTintRgb: Int,
+        colorizer: FrozenPigment?
+    ) {
         portalResolvedTintColor = resolvedTintRgb and 0xFFFFFF
+        portalTintColorizer = colorizer
 
         // Keep base portal and rim colors stable; renderer consumes the tint only for internal accents.
         setPortalColors(
@@ -584,6 +600,11 @@ class CorridorPortalBlockEntity(
         portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
         portalFrameColor = if (tag.contains(TAG_PORTAL_FRAME_COLOR)) tag.getInt(TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
         portalResolvedTintColor = if (tag.contains(TAG_PORTAL_TINT_COLOR)) tag.getInt(TAG_PORTAL_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR
+        portalTintColorizer = if (tag.contains(TAG_PORTAL_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
+            FrozenPigment.fromNBT(tag.getCompound(TAG_PORTAL_TINT_COLORIZER))
+        } else {
+            null
+        }
         portalLabel = if (tag.contains(TAG_PORTAL_LABEL)) tag.getString(TAG_PORTAL_LABEL) else null
         thresholdPatterns.clear()
         if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
@@ -623,6 +644,10 @@ class CorridorPortalBlockEntity(
         tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
         tag.putInt(TAG_PORTAL_FRAME_COLOR, portalFrameColor)
         tag.putInt(TAG_PORTAL_TINT_COLOR, portalResolvedTintColor)
+        val colorizer = portalTintColorizer
+        if (colorizer != null) {
+            tag.put(TAG_PORTAL_TINT_COLORIZER, colorizer.serializeToNBT())
+        }
         val label = portalLabel
         if (!label.isNullOrEmpty()) {
             tag.putString(TAG_PORTAL_LABEL, label)
@@ -657,6 +682,7 @@ class CorridorPortalBlockEntity(
         private const val TAG_PORTAL_HIGHLIGHT_COLOR = "PortalHighlightColor"
         private const val TAG_PORTAL_FRAME_COLOR = "PortalFrameColor"
         private const val TAG_PORTAL_TINT_COLOR = "PortalTintColor"
+        private const val TAG_PORTAL_TINT_COLORIZER = "PortalTintColorizer"
         private const val TAG_PORTAL_LABEL = "PortalLabel"
 
         private const val DEFAULT_PORTAL_BACKDROP_COLOR = 0x050A10
@@ -700,6 +726,7 @@ class CorridorPortalBlockEntity(
         portalHighlightColor = DEFAULT_PORTAL_HIGHLIGHT_COLOR
         portalFrameColor = DEFAULT_PORTAL_FRAME_COLOR
         portalResolvedTintColor = DEFAULT_PORTAL_TINT_COLOR
+        portalTintColorizer = null
     }
 
     private fun mixRgb(a: Int, b: Int, t: Float): Int {

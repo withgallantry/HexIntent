@@ -1,5 +1,6 @@
 package com.bluup.manifestation.client.render;
 
+import at.petrak.hexcasting.client.ClientTickCounter;
 import com.bluup.manifestation.server.block.CorridorPortalBlock;
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -18,6 +19,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 public final class CorridorPortalBlockEntityRenderer implements BlockEntityRenderer<CorridorPortalBlockEntity> {
     private static final int STRIPS = 40;
@@ -66,10 +68,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int midColor = blockEntity.getPortalMidColor();
         int highlightColor = blockEntity.getPortalHighlightColor();
         int frameColor = blockEntity.getPortalFrameColor();
-        int resolvedTintColor = blockEntity.getPortalResolvedTintColor();
+        float tintTime = ClientTickCounter.getTotal() / 2.0f;
+        Vec3 tintSamplePos = Vec3.atCenterOf(blockEntity.getBlockPos());
+        int resolvedTintColor = blockEntity.samplePortalTintColor(tintTime, tintSamplePos);
         int resolvedAccentTint = makePortalAccentTint(resolvedTintColor);
 
-        // Contract: structural visuals are stable and never tint-driven.
+        // Base structural palette.
         int stableRimOuterColour = mixRgb(frameColor, midColor, 0.28f);
         int stableRimInnerColour = highlightColor;
         int stableEdgeVeilColour = mixRgb(midColor, stableBasePortalColour, 0.30f);
@@ -80,7 +84,17 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int stableCollapseColour = mixRgb(highlightColor, frameColor, 0.36f);
         int membraneTintColour = mixRgb(stableBasePortalColour, resolvedTintColor, 0.72f);
 
-        // Contract: tint is used only for subtle internal membrane accents.
+        // Pigment should lead the outside shell color; keep only a light structural blend-in.
+        int rimOuterColour = mixRgb(stableRimOuterColour, resolvedTintColor, 0.74f);
+        int rimInnerColour = mixRgb(stableRimInnerColour, resolvedTintColor, 0.70f);
+        int edgeVeilColour = mixRgb(stableEdgeVeilColour, resolvedTintColor, 0.68f);
+        int trailTailColour = mixRgb(stableTrailTailColour, resolvedAccentTint, 0.62f);
+        int trailHeadColour = mixRgb(stableTrailHeadColour, resolvedTintColor, 0.72f);
+        int glyphOuterColour = mixRgb(stableGlyphOuterColour, resolvedTintColor, 0.76f);
+        int glyphInnerColour = mixRgb(stableGlyphInnerColour, resolvedTintColor, 0.74f);
+        int collapseColour = mixRgb(stableCollapseColour, resolvedTintColor, 0.70f);
+
+        // Internal membrane still receives the strongest tint influence.
         int internalAccentColour = mixRgb(0x180410, resolvedAccentTint, 0.86f);
 
         if (blockEntity.isThresholdMode()) {
@@ -95,10 +109,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 scale,
                 time,
                 worldTicks,
-                stableGlyphOuterColour,
-                stableGlyphInnerColour
+                glyphOuterColour,
+                glyphInnerColour
             );
-            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
+            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
             poseStack.popPose();
             renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
             return;
@@ -109,10 +123,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
         drawMembraneTint(poseStack, fxVc, packedLight, envelope, scale, time, 0, membraneTintColour);
         drawInternalPortalAccent(poseStack, energyVc, packedLight, envelope, scale, time, 0, internalAccentColour);
-        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0, stableEdgeVeilColour);
-        drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time, stableTrailTailColour, stableTrailHeadColour);
-        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0, stableRimOuterColour, stableRimInnerColour);
-        drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, stableCollapseColour);
+        drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0, edgeVeilColour);
+        drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time, trailTailColour, trailHeadColour);
+        drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0, rimOuterColour, rimInnerColour);
+        drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
 
         poseStack.popPose();
         renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);

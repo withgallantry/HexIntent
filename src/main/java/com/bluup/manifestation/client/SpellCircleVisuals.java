@@ -2,6 +2,8 @@ package com.bluup.manifestation.client;
 
 import at.petrak.hexcasting.api.casting.math.HexDir;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
+import at.petrak.hexcasting.api.pigment.FrozenPigment;
+import at.petrak.hexcasting.client.ClientTickCounter;
 import at.petrak.hexcasting.client.render.PatternColors;
 import at.petrak.hexcasting.client.render.WorldlyPatternRenderHelpers;
 import at.petrak.hexcasting.common.particles.ConjureParticleOptions;
@@ -16,7 +18,6 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
@@ -56,6 +57,11 @@ public final class SpellCircleVisuals {
                 Vec3 normal = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 int lifetimeTicks = Mth.clamp(buf.readVarInt(), 1, MAX_TICKS);
                 int sizeTier = Mth.clamp(buf.readVarInt(), 1, 6);
+                var colorTag = buf.readNbt();
+                if (colorTag == null) {
+                    return;
+                }
+                FrozenPigment colorizer = FrozenPigment.fromNBT(colorTag);
                 int count = Mth.clamp(buf.readVarInt(), 0, MAX_PATTERNS);
 
                 List<HexPattern> patterns = new ArrayList<>(count);
@@ -89,6 +95,7 @@ public final class SpellCircleVisuals {
                     state.remainingTicks = lifetimeTicks;
                     state.sizeTier = sizeTier;
                     state.scaleMultiplier = scaleForTier(sizeTier);
+                    state.colorizer = colorizer;
                     state.lastUpdateTick = now;
                     ACTIVE.put(key, state);
                 });
@@ -145,7 +152,7 @@ public final class SpellCircleVisuals {
                     continue;
                 }
 
-                renderCircleState(vc, mat, poseStack, buffers, state, camera, now, alpha);
+                renderCircleState(vc, mat, poseStack, buffers, state, now, alpha);
             }
         } finally {
             poseStack.popPose();
@@ -159,7 +166,6 @@ public final class SpellCircleVisuals {
         PoseStack poseStack,
         MultiBufferSource buffers,
         CircleState state,
-        Vec3 camera,
         long now,
         float alpha
     ) {
@@ -177,13 +183,18 @@ public final class SpellCircleVisuals {
         float outerRingWidth = (float) (0.043 * scale);
         float innerRingWidth = (float) (0.032 * scale);
         float triangleWidth = (float) (0.03 * scale);
+        float colorTime = ClientTickCounter.getTotal() / 2.0f;
 
-        float coreR = 0.24f;
-        float coreG = 0.90f;
-        float coreB = 0.86f;
-        float rimR = 0.55f;
-        float rimG = 1.0f;
-        float rimB = 0.96f;
+        int coreColor = state.colorizer.getColorProvider().getColor(colorTime, state.origin);
+        float tintR = ((coreColor >> 16) & 0xFF) / 255.0f;
+        float tintG = ((coreColor >> 8) & 0xFF) / 255.0f;
+        float tintB = (coreColor & 0xFF) / 255.0f;
+        float coreR = tintR;
+        float coreG = tintG;
+        float coreB = tintB;
+        float rimR = Mth.clamp(tintR * 0.72f + 0.28f, 0.0f, 1.0f);
+        float rimG = Mth.clamp(tintG * 0.72f + 0.28f, 0.0f, 1.0f);
+        float rimB = Mth.clamp(tintB * 0.72f + 0.28f, 0.0f, 1.0f);
 
         drawCircleOutline(vc, mat, state.origin, spunBasis, outerRingRadius, outerRingWidth, rimR, rimG, rimB, alpha * 0.92f);
         drawCircleOutline(vc, mat, state.origin, spunBasis, innerRingRadius, innerRingWidth, coreR, coreG, coreB, alpha * 0.86f);
@@ -198,16 +209,13 @@ public final class SpellCircleVisuals {
             double theta = ((Math.PI * 2.0) * i / count);
             Vec3 radial = spunBasis.u().scale(Math.cos(theta)).add(spunBasis.v().scale(Math.sin(theta)));
             Vec3 tangent = spunBasis.u().scale(-Math.sin(theta)).add(spunBasis.v().scale(Math.cos(theta))).normalize();
-            double side = Math.signum(camera.subtract(state.origin).dot(spunBasis.n()));
-            if (side == 0.0) {
-                side = 1.0;
-            }
-            Vec3 glyphCenter = state.origin.add(radial.scale(glyphOrbit)).add(spunBasis.n().scale(0.02 * scale * side));
+            Vec3 glyphCenter = state.origin.add(radial.scale(glyphOrbit)).add(spunBasis.n().scale(0.02 * scale));
             float glyphScale = (float) Mth.clamp(
                 (ringBandWidth * 1.18) / (1.0 + (count * 0.006)),
                 0.30 * scale,
                 0.92 * scale
             );
+            int patternColor = state.colorizer.getColorProvider().getColor(colorTime, glyphCenter);
             int light = LevelRenderer.getLightColor(Minecraft.getInstance().level, BlockPos.containing(glyphCenter));
             renderPatternGlyph(
                 poseStack,
@@ -218,7 +226,8 @@ public final class SpellCircleVisuals {
                 radial.normalize(),
                 glyphScale,
                 i,
-                light
+                light,
+                0xFF000000 | (patternColor & 0x00FFFFFF)
             );
         }
     }
@@ -232,7 +241,8 @@ public final class SpellCircleVisuals {
         Vec3 radial,
         float glyphScale,
         int glyphIndex,
-        int light
+        int light,
+        int patternColor
     ) {
         Vec3 tangentN = tangent.normalize();
         Vec3 radialN = radial.normalize();
@@ -265,8 +275,8 @@ public final class SpellCircleVisuals {
         poseStack.translate(-0.5, -0.5, 0.0);
         WorldlyPatternRenderHelpers.renderPattern(
             pattern,
-            WorldlyPatternRenderHelpers.WORLDLY_SETTINGS,
-            PatternColors.DEFAULT_PATTERN_COLOR,
+            WorldlyPatternRenderHelpers.WORLDLY_SETTINGS_WOBBLY,
+            PatternColors.singleStroke(patternColor),
             seed,
             poseStack,
             buffers,
@@ -405,6 +415,8 @@ public final class SpellCircleVisuals {
         Random rng = new Random(id ^ (state.lastUpdateTick * 31L));
 
         int ringBursts = 92;
+        float colorTime = ClientTickCounter.getTotal();
+        var colorProvider = state.colorizer.getColorProvider();
         for (int i = 0; i < ringBursts; i++) {
             double t = (Math.PI * 2.0) * i / ringBursts;
             double radialJitter = (rng.nextDouble() - 0.5) * 0.24;
@@ -417,9 +429,13 @@ public final class SpellCircleVisuals {
                 .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.018 * state.scaleMultiplier))
                 .add(0.0, -(0.03 + rng.nextDouble() * 0.03) * state.scaleMultiplier, 0.0);
 
-            float r = 0.60f + (float) rng.nextDouble() * 0.26f;
-            float g = 0.84f + (float) rng.nextDouble() * 0.14f;
-            float b = 0.88f + (float) rng.nextDouble() * 0.10f;
+            int baseColor = colorProvider.getColor(colorTime + rng.nextFloat() * 8.0f, vel.normalize());
+            float baseR = ((baseColor >> 16) & 0xFF) / 255.0f;
+            float baseG = ((baseColor >> 8) & 0xFF) / 255.0f;
+            float baseB = (baseColor & 0xFF) / 255.0f;
+            float r = Mth.lerp(0.78f + ((float) rng.nextDouble() * 0.18f), baseR, 1.0f);
+            float g = Mth.lerp(0.78f + ((float) rng.nextDouble() * 0.18f), baseG, 1.0f);
+            float b = Mth.lerp(0.78f + ((float) rng.nextDouble() * 0.18f), baseB, 1.0f);
             mc.level.addParticle(new ConjureParticleOptions(packColor(r, g, b)), spawn.x, spawn.y, spawn.z, vel.x, vel.y, vel.z);
             if ((i & 3) == 0) {
                 mc.level.addParticle(new ConjureParticleOptions(packColor(r * 0.92f, g * 0.94f, b)), spawn.x, spawn.y, spawn.z, vel.x * 0.55, vel.y * 0.55, vel.z * 0.55);
@@ -501,6 +517,7 @@ public final class SpellCircleVisuals {
         int remainingTicks = 1;
         int sizeTier = 3;
         double scaleMultiplier = 1.0;
+        FrozenPigment colorizer = FrozenPigment.fromNBT(new net.minecraft.nbt.CompoundTag());
         long lastUpdateTick;
     }
 

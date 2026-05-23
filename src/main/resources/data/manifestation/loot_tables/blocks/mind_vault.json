@@ -6,7 +6,30 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "manifestation:mind_vault"
+          "name": "manifestation:mind_vault",
+          "functions": [
+            {
+              "function": "minecraft:copy_nbt",
+              "source": "block_entity",
+              "ops": [
+                {
+                  "source": "locked_profession",
+                  "target": "BlockEntityTag.locked_profession",
+                  "op": "replace"
+                },
+                {
+                  "source": "locked_level",
+                  "target": "BlockEntityTag.locked_level",
+                  "op": "replace"
+                },
+                {
+                  "source": "slots",
+                  "target": "BlockEntityTag.slots",
+                  "op": "replace"
+                }
+              ]
+            }
+          ]
         }
       ],
       "conditions": [

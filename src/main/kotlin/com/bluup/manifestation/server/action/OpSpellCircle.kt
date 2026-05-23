@@ -3,6 +3,7 @@ package com.bluup.manifestation.server.action
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.eval.OperationResult
+import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
@@ -11,6 +12,8 @@ import at.petrak.hexcasting.api.casting.iota.PatternIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
+import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
+import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.ManifestationServer
 import net.minecraft.server.level.ServerLevel
@@ -91,10 +94,21 @@ object OpSpellCircle : Action {
 
         val level = env.world as? ServerLevel
         if (level != null) {
-            ManifestationServer.sendSpellCircleTo(level, origin, facing.normalize(), lifetimeTicks, sizeTier, patterns)
+            ManifestationServer.sendSpellCircleTo(level, origin, facing.normalize(), lifetimeTicks, sizeTier, patterns, env.pigment)
+        }
+
+        if (env.extractMedia(CIRCLE_MEDIA_COST, true) > 0) {
+            throw MishapNotEnoughMedia(CIRCLE_MEDIA_COST)
         }
 
         val image2 = image.withUsedOp().copy(stack = stack)
-        return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
+        return OperationResult(
+            image2,
+            listOf(OperatorSideEffect.ConsumeMedia(CIRCLE_MEDIA_COST)),
+            continuation,
+            HexEvalSounds.NORMAL_EXECUTE
+        )
     }
+
+    private val CIRCLE_MEDIA_COST = (MediaConstants.DUST_UNIT / 500L).coerceAtLeast(1L)
 }

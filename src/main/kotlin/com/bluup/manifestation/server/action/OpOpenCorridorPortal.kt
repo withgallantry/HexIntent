@@ -177,8 +177,8 @@ object OpOpenCorridorPortal : Action {
             scale,
             targetYaw
         )
-        aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
-        bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb)
+        aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
+        bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
         aPortal.setPortalLabel(portalLabel)
         ownershipStore.put(
             caster.uuid,
@@ -342,28 +342,33 @@ object OpOpenCorridorPortal : Action {
 
     private data class PortalTintResolution(
         val dyeColor: DyeColor?,
-        val resolvedTintRgb: Int
+        val resolvedTintRgb: Int,
+        val colorizer: FrozenPigment?
     )
 
     private const val MAX_LABEL_LENGTH = 64
 
     private fun resolvePortalTint(caster: net.minecraft.server.level.ServerPlayer, explicitTintOverrideRgb: Int?): PortalTintResolution {
         if (explicitTintOverrideRgb != null) {
-            return PortalTintResolution(null, explicitTintOverrideRgb and 0xFFFFFF)
+            return PortalTintResolution(null, explicitTintOverrideRgb and 0xFFFFFF, null)
         }
 
         val activePigment = HexAPI.instance().getColorizer(caster)
         val activeItem = activePigment.item.item
         val explicitDye = (activeItem as? ItemDyePigment)?.dyeColor
 
+        val activeRgb = activePigment
+            .getColorProvider()
+            .getColor(0.0f, Vec3.ZERO) and 0xFFFFFF
+
         if (explicitDye != null) {
-            return PortalTintResolution(explicitDye, explicitDye.textColor and 0xFFFFFF)
+            return PortalTintResolution(explicitDye, activeRgb, activePigment)
         }
 
         val soulglimmer = FrozenPigment(ItemStack(HexItems.UUID_PIGMENT), caster.uuid)
         val soulRgb = soulglimmer
             .getColorProvider()
             .getColor(0.0f, Vec3.ZERO) and 0xFFFFFF
-        return PortalTintResolution(null, soulRgb)
+        return PortalTintResolution(null, soulRgb, soulglimmer)
     }
 }

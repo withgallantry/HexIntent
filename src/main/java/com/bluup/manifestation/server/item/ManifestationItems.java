@@ -30,7 +30,7 @@ public final class ManifestationItems {
         return Registry.register(
             BuiltInRegistries.ITEM,
             Manifestation.id(path),
-            new ItemStaff(new Item.Properties().stacksTo(1).rarity(Rarity.RARE))
+            new ItemManifestationStaff(new Item.Properties().stacksTo(1).rarity(Rarity.RARE))
         );
     }
 

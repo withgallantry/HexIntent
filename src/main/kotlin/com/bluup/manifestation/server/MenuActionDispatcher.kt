@@ -9,7 +9,6 @@ import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.iota.ListIota
-import at.petrak.hexcasting.api.casting.eval.env.StaffCastEnv
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
@@ -44,7 +43,6 @@ object MenuActionDispatcher {
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
     private const val HEXICAL_CHARM_ENV_CLASS = "miyucomics.hexical.features.charms.CharmCastEnv"
-    private const val HEXICAL_CHARM_UTIL_CLASS = "miyucomics.hexical.features.charms.CharmUtilities"
     private const val HEXICAL_CURIO_ITEM_CLASS = "miyucomics.hexical.features.curios.CurioItem"
     private const val HEXCASSETTE_ENV_CLASS = "miyucomics.hexcassettes.CassetteCastEnv"
     private const val HEXCASSETTE_ITEM_CLASS = "miyucomics.hexcassettes.CassetteItem"
@@ -325,8 +323,6 @@ object MenuActionDispatcher {
         // make to vm.image will be observable once we persist back.
         val vm: CastingVM = IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
 
-        suppressStaffCastSounds(vm)
-
         // Keep staff menu dispatch consistent with other sources: do not inherit
         // stale runtime staff stack from click-time; restore from captured session state.
         vm.image = buildStartingImage(sessionStack, inputIotas, sessionRavenmind)
@@ -414,14 +410,7 @@ object MenuActionDispatcher {
     }
 
     private fun isHexicalCharmedStack(stack: ItemStack): Boolean {
-        return try {
-            val utilClass = Class.forName(HEXICAL_CHARM_UTIL_CLASS)
-            val method = utilClass.getMethod("isStackCharmed", ItemStack::class.java)
-            (method.invoke(null, stack) as? Boolean) == true
-        } catch (_: Throwable) {
-            // If Hexical is not present, only trust explicit dispatches when stack has charm tag.
-            stack.tag?.contains("charmed") == true
-        }
+        return CharmCastSoundOverrides.isHexicalCharmedStack(stack)
     }
 
     private fun createHexicalCharmEnv(player: ServerPlayer, hand: InteractionHand, stack: ItemStack): CastingEnvironment? {
@@ -448,6 +437,10 @@ object MenuActionDispatcher {
         world: ServerLevel,
         resultingStack: List<Iota>
     ) {
+        if (CharmCastSoundOverrides.handlePostCastSound(player, world, stack)) {
+            return
+        }
+
         val item = stack.item
         if (item.javaClass.name != HEXICAL_CURIO_ITEM_CLASS) {
             return
@@ -460,19 +453,6 @@ object MenuActionDispatcher {
             method.invoke(item, player, stack, hand, world, resultingStack)
         } catch (t: Throwable) {
             Manifestation.LOGGER.debug("MenuActionDispatcher: failed to invoke Hexical Curio postCharmCast", t)
-        }
-    }
-
-    private fun suppressStaffCastSounds(vm: CastingVM) {
-        val staffEnv = vm.env as? StaffCastEnv ?: return
-
-        try {
-            val soundsPlayedField = StaffCastEnv::class.java.getDeclaredField("soundsPlayed")
-            soundsPlayedField.isAccessible = true
-            // StaffCastEnv only plays sounds while soundsPlayed < 100.
-            soundsPlayedField.setInt(staffEnv, 100)
-        } catch (t: Throwable) {
-            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to suppress staff cast sounds", t)
         }
     }
 

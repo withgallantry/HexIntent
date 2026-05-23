@@ -68,9 +68,9 @@ public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<M
         int iconLight = LightTexture.FULL_BRIGHT;
         float panelYRot = switch (facing) {
             case NORTH -> 0.0f;
-            case EAST -> 90.0f;
+            case EAST -> 270.0f;
             case SOUTH -> 180.0f;
-            case WEST -> 270.0f;
+            case WEST -> 90.0f;
             default -> 0.0f;
         };
 
