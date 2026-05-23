@@ -3,6 +3,7 @@ book = "hexcasting:thehexbook"
 default_lang = "en_us"
 default_branch = "main"
 
+
 resource_dirs = [
     "resources",
     "{$_common.src}/main/resources",
@@ -33,5 +34,96 @@ mod_name = "HexIntent"
 author = "withgallantry"
 show_landing_text = true
 
+[textures.override."manifestation:blossom_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:blossom_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:dark_forest_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:dark_forest_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:eclipse_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:eclipse_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:end_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:end_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:fern_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:fern_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:geode_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:geode_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:hydra_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:hydra_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:light_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:light_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:nether_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:nether_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:ocean_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:ocean_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:penitence_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:penitence_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:redstone_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:redstone_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:shadow_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:shadow_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:totem_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:totem_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
+[textures.override."manifestation:wind_staff"]
+texture = "manifestation:textures/item/staffs.png"
+
+[textures.override."manifestation:wind_staff_2"]
+texture = "manifestation:textures/item/staffs_2.png"
+
 [_common]
 src = "../src"
+
