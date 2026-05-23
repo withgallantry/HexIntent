@@ -1,7 +1,18 @@
 # HexIntent
 
-HexIntent is a Fabric companion mod for Hex Casting.
-Current release version: 2.1.3.
+Hexcasting is capable of extraordinary things, but so much of its beauty can be lost in the moment of casting. A pattern is drawn, the world changes, and the intricate thought behind it vanishes almost instantly.
+
+HexIntent is about giving that thought form.
+
+Loosely themed around the idea of a caster impressing their intent upon the world, this mod explores what it means for a spell to be more than just its end result. Instead of magic appearing only as an instant effect, HexIntent adds ways for intention itself to manifest: through menus, relays, interfaces, and other visible constructs that make a hex feel present, responsive, and alive.
+
+At the heart of the mod is the idea that a spell does not have to be a fixed instruction sealed away in a focus. A hex can present choices. It can be configured. It can adapt to the moment. If a caster wants to change a radius, alter a mode, or refine an effect, they should not always need to rewrite the whole working from scratch. By allowing menus and interactive elements to be crafted in hexcasting itself, HexIntent helps bridge the gap between abstract pattern and lived, in-world magic.
+
+This also opens the door to building more expressive hexes without requiring every solution to lean entirely on the more meta aspects of the art. Techniques like quines, recursion, and complex focus manipulation remain impressive and valuable, and HexIntent is not meant to replace them. Instead, it offers another path: one that makes certain kinds of flexibility and interaction more accessible, while still attaching a cost so that convenience feels earned and mastery remains meaningful.
+
+More than anything, HexIntent is about making a caster's will visible. It is about showing not just what a spell does, but what the caster means it to do. In that sense, the magic is not only the outcome.
+
+Current release version: 2.0.0.
 
 Usage details and pattern reference documentation are available on the docs site.
 
@@ -13,44 +24,23 @@ Example menu built using inputs, sections and buttons. Executes a teleport to a 
 
 ## Documentation
 
-- Hex Docs: [Docs Home](https://withgallantry.github.io/HexIntent/)
+- Start here: [Docs Home](https://withgallantry.github.io/HexIntent/)
+- Pattern reference: [patterns.html](https://withgallantry.github.io/HexIntent/patterns.html)
+- Pattern scribe: [hex-pattern-scribe.html](https://withgallantry.github.io/HexIntent/hex-pattern-scribe.html)
 
+## What You Can Do
 
-## Features
-
-### Menus
-
-- List, grid, and radial manifested menus.
-- UI intent primitives: button, input, numeric input, slider, checkbox, selectable list, section, dropdown.
-- Server-side anti-loop and dispatch throttling protections.
-
-### Intents and World Manifestations
-
-- Presence Intent for location-directed behavior.
-- Manifest Echo for delegated casting at an impetus.
-- Intent Relay blocks for linked destination activation with optional redstone signal output.
-- Corridor Portal (Manifest Threshold) support.
-- Destroy Manifestation for cleanup in an area.
-
-### Splinters
-
-- Manifest Splinter, Renew Splinter, Locate Splinter, Dismiss Splinters.
-- Splinter-cast Hex Trail visual channels.
-- Watchdog protection against repeated heavy splinter execution.
-- Configurable active splinter cap per owner.
-
-### Contained Splinter
-
-- Stores a focus and manifests anchored splinters from spell circles.
-- Circle hold-and-release behavior while the splinter executes.
-- Redstone interrupt support: signal dispels anchored splinter and allows circle continuation.
-- Config toggle to disable Splinter Caster behavior server-side.
-
-### Visual and UX
-
-- Client-side Hex Trail rendering with multiple particle modes.
-- Nearby-player broadcast for circle/splinter trail visibility.
-- ID namespacing by caster for trail channel isolation.
+- Build in-world interactive UIs with list, grid, and radial menus.
+- Use intent components like buttons, text input, numeric input, sliders, checkboxes, dropdowns, and select lists.
+- Open the casting screen uing a hex pattern, it requires a staff in hand to use. Great staff charms.
+- Clear the current casting stack quickly with a dedicated pattern.
+- Exit casting safely when interacting with world objects using `Exit If Interacting`. Useful for charms that occur on the right click.
+- Create and link corridor (thresholds).
+- Use splinter utilities for manifesting, renewing, locating, and cleaning up splinters. Slightly easier quines but at a cost.
+- Cast advanced visuals: spell circles, trails, particle scatter and equation-driven clouds.
+- 15 additional end game staffs.
+- Create relays that trigger multiple things at once.
+- Use mind vaults to store villagers minds, perfect for convienient flaying.
 
 ## Build
 
@@ -64,41 +54,6 @@ The built jar is written to `build/libs/`.
 
 Server config is in `config/manifestation.json`.
 
-All values are server-side and sanitized to safe bounds on load.
-
-### Config Keys
-
-| Key | Default | Range | Description |
-|---|---:|---|---|
-| `menuOpenLoopWindowMs` | `1400` | `200..10000` | Sliding time window used to detect repeated menu-open loops. |
-| `menuOpenLoopTriggerCount` | `3` | `2..12` | Number of open events inside the loop window that triggers protection. |
-| `intentRelayMaxRangeBlocks` | `-1` | `-1..32` | Max relay link distance in blocks. `-1` means unlimited. |
-| `intentRelayCooldownTicks` | `4` | `0..40` | Cooldown between successful relay activations. |
-| `intentRelayStepTriggerEnabled` | `true` | boolean | Enables floor step-trigger activation for relays. |
-| `portalLiveViewEnabled` | `true` | boolean | Enables live-view portal rendering features. |
-| `portalLiveViewCols` | `48` | `12..96` | Portal live-view horizontal resolution budget. |
-| `portalLiveViewRows` | `72` | `18..128` | Portal live-view vertical resolution budget. |
-| `portalLiveViewDistanceBlocks` | `48` | `8..128` | Max distance for portal live-view behavior. |
-| `menuDispatchRefillPerSecond` | `12.0` | `1.0..40.0` | Token refill rate for menu action dispatch limiting. |
-| `menuDispatchBurstTokens` | `36.0` | `4.0..120.0` | Maximum burst token capacity for menu dispatches. |
-| `menuDispatchViolationDecayMs` | `15000` | `1000..120000` | Violation decay time window for dispatch abuse tracking. |
-| `menuDispatchBaseCooldownMs` | `500` | `100..5000` | Base cooldown applied when dispatch protections trigger. |
-| `menuDispatchMaxCooldownMs` | `8000` | `250..60000` | Ceiling for adaptive dispatch cooldown; auto-clamped to be >= base cooldown. |
-| `splinterWatchdogMaxAvgExecMs` | `25.0` | `5.0..250.0` | Max moving-average execution time before splinter watchdog starts counting breaches. |
-| `splinterWatchdogMaxBreaches` | `5` | `1..64` | Breaches required before watchdog dispels an owner's splinters. |
-| `splinterMaxActivePerOwner` | `-1` | `-1..4096` | Max active splinters per owner. `-1` means unlimited. |
-| `splinterCasterEnabled` | `true` | boolean | Enables or disables Contained Splinter behavior (Splinter Caster block runtime behavior). |
-
-### Example
-
-```json
-{
-	"intentRelayMaxRangeBlocks": 16,
-	"intentRelayCooldownTicks": 4,
-	"intentRelayStepTriggerEnabled": true,
-	"splinterCasterEnabled": true,
-	"splinterMaxActivePerOwner": 64,
-	"splinterWatchdogMaxAvgExecMs": 25.0,
-	"splinterWatchdogMaxBreaches": 5
-}
-```
+- `intentRelayMaxRangeBlocks`: max link distance in blocks (`-1` means unlimited).
+- `intentRelayCooldownTicks`: cooldown between successful trigger activations.
+- `intentRelayStepTriggerEnabled`: enables floor-mounted "step on" activation for players.

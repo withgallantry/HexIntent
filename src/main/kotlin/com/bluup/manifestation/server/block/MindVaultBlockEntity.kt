@@ -181,7 +181,7 @@ class MindVaultBlockEntity(
 
     companion object {
         const val SLOT_COUNT = 6
-        const val FLAY_COOLDOWN_TICKS = 20L * 120L
+        const val FLAY_COOLDOWN_TICKS = 20L * 300L
 
         private const val TAG_LOCKED_PROFESSION = "locked_profession"
         private const val TAG_LOCKED_LEVEL = "locked_level"
