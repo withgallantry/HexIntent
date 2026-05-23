@@ -15,10 +15,8 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.api.pigment.FrozenPigment
-import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import at.petrak.hexcasting.common.items.pigment.ItemDyePigment
-import at.petrak.hexcasting.common.lib.HexItems
 import com.bluup.manifestation.server.PortalOwnershipStore
 import com.bluup.manifestation.server.block.CorridorPortalBlock
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity
@@ -34,7 +32,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.item.DyeColor
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
 
@@ -134,7 +131,7 @@ object OpOpenCorridorPortal : Action {
 
         val sourceYaw = Mth.wrapDegrees(caster.yRot)
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
-        val portalTint = resolvePortalTint(caster, pigmentTintOverrideRgb)
+        val portalTint = resolvePortalTint(env, pigmentTintOverrideRgb)
 
         if (env.extractMedia(mediaBudget, true) > 0) {
             throw MishapNotEnoughMedia(mediaBudget)
@@ -348,12 +345,12 @@ object OpOpenCorridorPortal : Action {
 
     private const val MAX_LABEL_LENGTH = 64
 
-    private fun resolvePortalTint(caster: net.minecraft.server.level.ServerPlayer, explicitTintOverrideRgb: Int?): PortalTintResolution {
+    private fun resolvePortalTint(env: CastingEnvironment, explicitTintOverrideRgb: Int?): PortalTintResolution {
         if (explicitTintOverrideRgb != null) {
             return PortalTintResolution(null, explicitTintOverrideRgb and 0xFFFFFF, null)
         }
 
-        val activePigment = HexAPI.instance().getColorizer(caster)
+        val activePigment = env.pigment
         val activeItem = activePigment.item.item
         val explicitDye = (activeItem as? ItemDyePigment)?.dyeColor
 
@@ -361,14 +358,6 @@ object OpOpenCorridorPortal : Action {
             .getColorProvider()
             .getColor(0.0f, Vec3.ZERO) and 0xFFFFFF
 
-        if (explicitDye != null) {
-            return PortalTintResolution(explicitDye, activeRgb, activePigment)
-        }
-
-        val soulglimmer = FrozenPigment(ItemStack(HexItems.UUID_PIGMENT), caster.uuid)
-        val soulRgb = soulglimmer
-            .getColorProvider()
-            .getColor(0.0f, Vec3.ZERO) and 0xFFFFFF
-        return PortalTintResolution(null, soulRgb, soulglimmer)
+        return PortalTintResolution(explicitDye, activeRgb, activePigment)
     }
 }
