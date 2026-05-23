@@ -1,0 +1,26 @@
+{
+    "key":  {
+                "S":  {
+                          "item":  "hexcasting:staff/edified"
+                      },
+                "R":  {
+                          "item":  "minecraft:calibrated_sculk_sensor"
+                      },
+                "A":  {
+                          "item":  "hexcasting:charged_amethyst"
+                      },
+                "N":  {
+                          "item":  "minecraft:netherite_ingot"
+                      }
+            },
+    "pattern":  [
+                    "RAR",
+                    "ASA",
+                    "RNR"
+                ],
+    "result":  {
+                   "count":  1,
+                   "item":  "manifestation:redstone_staff"
+               },
+    "type":  "minecraft:crafting_shaped"
+}

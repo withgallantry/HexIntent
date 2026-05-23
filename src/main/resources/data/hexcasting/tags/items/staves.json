@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "manifestation:blossom_staff",
+    "manifestation:dark_forest_staff",
+    "manifestation:eclipse_staff",
+    "manifestation:end_staff",
+    "manifestation:fern_staff",
+    "manifestation:geode_staff",
+    "manifestation:hydra_staff",
+    "manifestation:light_staff",
+    "manifestation:nether_staff",
+    "manifestation:ocean_staff",
+    "manifestation:penitence_staff",
+    "manifestation:redstone_staff",
+    "manifestation:shadow_staff",
+    "manifestation:totem_staff",
+    "manifestation:wind_staff"
+  ]
+}

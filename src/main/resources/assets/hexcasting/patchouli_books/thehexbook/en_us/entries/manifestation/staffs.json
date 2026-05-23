@@ -1,0 +1,25 @@
+{
+  "name": "hexcasting.entry.manifestation_staffs",
+  "category": "hexcasting:items",
+  "icon": "manifestation:eclipse_staff",
+  "sortnum": 904,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.staffs.lore"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:eclipse_staff",
+      "title": "item.manifestation.eclipse_staff",
+      "text": "hexcasting.page.manifestation.staffs.eclipse"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:totem_staff",
+      "title": "item.manifestation.totem_staff",
+      "text": "hexcasting.page.manifestation.staffs.totem"
+    }
+  ]
+}

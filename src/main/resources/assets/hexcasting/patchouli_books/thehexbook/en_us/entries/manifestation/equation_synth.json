@@ -1,0 +1,19 @@
+{
+  "name": "hexcasting.entry.manifestation_equation_synth",
+  "category": "hexcasting:items",
+  "icon": "manifestation:equation_synth",
+  "sortnum": 911,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:equation_synth",
+      "title": "Equation Synthesizer",
+      "text": "hexcasting.page.manifestation.equation_synth.overview"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.equation_synth.usage"
+    }
+  ]
+}

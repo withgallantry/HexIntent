@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "manifestation:block/intent_relay_redstone_overlay"
+      }
+    }
+  ]
+}
