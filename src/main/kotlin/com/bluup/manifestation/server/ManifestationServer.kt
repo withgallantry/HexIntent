@@ -1075,6 +1075,7 @@ object ManifestationServer : ModInitializer {
         origin: net.minecraft.world.phys.Vec3,
         facing: net.minecraft.world.phys.Vec3,
         lifetimeTicks: Int,
+        sizeTier: Int,
         patterns: List<Pair<String, HexDir>>
     ) {
         if (patterns.isEmpty()) {
@@ -1084,6 +1085,7 @@ object ManifestationServer : ModInitializer {
         val radius = 128.0
         val circleId = level.random.nextLong()
         val lifetime = lifetimeTicks.coerceIn(1, 1200)
+        val clampedTier = sizeTier.coerceIn(1, 6)
         val limitedPatterns = patterns.take(48)
 
         for (other in level.server.playerList.players) {
@@ -1101,6 +1103,7 @@ object ManifestationServer : ModInitializer {
             buf.writeDouble(facing.y)
             buf.writeDouble(facing.z)
             buf.writeVarInt(lifetime)
+            buf.writeVarInt(clampedTier)
             buf.writeVarInt(limitedPatterns.size)
             for ((signature, startDir) in limitedPatterns) {
                 buf.writeUtf(signature, 128)

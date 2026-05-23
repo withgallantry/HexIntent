@@ -2,6 +2,9 @@ package com.bluup.manifestation.client;
 
 import at.petrak.hexcasting.api.casting.math.HexDir;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
+import at.petrak.hexcasting.client.render.HexPatternLike;
+import at.petrak.hexcasting.client.render.HexPatternPoints;
+import at.petrak.hexcasting.client.render.PatternSettings;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -13,7 +16,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -35,6 +37,13 @@ public final class SpellCircleVisuals {
     private static final int CIRCLE_SEGMENTS = 64;
     private static final double BASE_RADIUS = 1.1;
     private static final double RADIUS_PER_PATTERN = 0.09;
+    private static final double CIRCLE_SPIN_RATE = 0.004;
+    private static final PatternSettings SPELL_GLYPH_SETTINGS = new PatternSettings(
+        "manifestation_circle_spell",
+        PatternSettings.PositionSettings.paddedSquare(0.08, 0.22, 0.0),
+        PatternSettings.StrokeSettings.fromStroke(0.11),
+        PatternSettings.ZappySettings.WOBBLY
+    );
 
     private SpellCircleVisuals() {
     }
@@ -48,6 +57,7 @@ public final class SpellCircleVisuals {
                 Vec3 origin = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 Vec3 normal = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 int lifetimeTicks = Mth.clamp(buf.readVarInt(), 1, MAX_TICKS);
+                int sizeTier = Mth.clamp(buf.readVarInt(), 1, 6);
                 int count = Mth.clamp(buf.readVarInt(), 0, MAX_PATTERNS);
 
                 List<HexPattern> patterns = new ArrayList<>(count);
@@ -79,6 +89,8 @@ public final class SpellCircleVisuals {
                     state.patterns = List.copyOf(patterns);
                     state.initialLifetimeTicks = lifetimeTicks;
                     state.remainingTicks = lifetimeTicks;
+                    state.sizeTier = sizeTier;
+                    state.scaleMultiplier = scaleForTier(sizeTier);
                     state.lastUpdateTick = now;
                     ACTIVE.put(key, state);
                 });
@@ -135,7 +147,7 @@ public final class SpellCircleVisuals {
                     continue;
                 }
 
-                renderCircleState(vc, mat, state, now, alpha);
+                renderCircleState(vc, mat, state, camera, now, alpha);
             }
         } finally {
             poseStack.popPose();
@@ -143,25 +155,31 @@ public final class SpellCircleVisuals {
         }
     }
 
-    private static void renderCircleState(VertexConsumer vc, Matrix4f mat, CircleState state, long now, float alpha) {
+    private static void renderCircleState(VertexConsumer vc, Matrix4f mat, CircleState state, Vec3 camera, long now, float alpha) {
         Basis basis = buildBasis(state.normal);
+        Basis spunBasis = rotateBasis(basis, now * CIRCLE_SPIN_RATE);
         double pulse = 1.0 + Math.sin(now * 0.14) * 0.035;
+        double scale = state.scaleMultiplier;
 
-        double radius = (BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * pulse;
-        double rimOuter = radius;
-        double rimInner = radius - 0.11;
-        double glyphOrbit = Math.max(0.4, radius - 0.32);
-        float glyphWidth = 0.042f;
+        double radius = ((BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * scale) * pulse;
+        double outerRingRadius = radius;
+        double innerRingRadius = Math.max(0.28 * scale, radius - (0.24 * scale));
+        double triangleRadius = innerRingRadius * 0.78;
+        double glyphOrbit = Math.max(0.4 * scale, radius - (0.34 * scale));
+        float outerRingWidth = (float) (0.043 * scale);
+        float innerRingWidth = (float) (0.032 * scale);
+        float triangleWidth = (float) (0.03 * scale);
 
-        float coreR = 0.14f;
-        float coreG = 0.82f;
-        float coreB = 0.78f;
+        float coreR = 0.24f;
+        float coreG = 0.90f;
+        float coreB = 0.86f;
         float rimR = 0.55f;
         float rimG = 1.0f;
         float rimB = 0.96f;
 
-        drawDisc(vc, mat, state.origin, basis, rimInner, coreR, coreG, coreB, alpha * 0.35f);
-        drawRing(vc, mat, state.origin, basis, rimInner, rimOuter, rimR, rimG, rimB, alpha * 0.82f);
+        drawCircleOutline(vc, mat, state.origin, spunBasis, outerRingRadius, outerRingWidth, rimR, rimG, rimB, alpha * 0.92f);
+        drawCircleOutline(vc, mat, state.origin, spunBasis, innerRingRadius, innerRingWidth, coreR, coreG, coreB, alpha * 0.86f);
+        drawTriangleOutline(vc, mat, state.origin, spunBasis, triangleRadius, triangleWidth, coreR, coreG, coreB, alpha * 0.82f);
 
         int count = state.patterns.size();
         if (count <= 0) {
@@ -169,11 +187,17 @@ public final class SpellCircleVisuals {
         }
 
         for (int i = 0; i < count; i++) {
-            double theta = ((Math.PI * 2.0) * i / count) + (now * 0.015);
-            Vec3 radial = basis.u().scale(Math.cos(theta)).add(basis.v().scale(Math.sin(theta)));
-            Vec3 glyphCenter = state.origin.add(radial.scale(glyphOrbit)).add(state.normal.scale(0.012));
-            float glyphScale = (float) Mth.clamp(0.32 - (count * 0.004), 0.13, 0.3);
-            renderPatternGlyph(vc, mat, state.patterns.get(i), glyphCenter, basis, glyphScale, glyphWidth, alpha);
+            double theta = ((Math.PI * 2.0) * i / count);
+            Vec3 radial = spunBasis.u().scale(Math.cos(theta)).add(spunBasis.v().scale(Math.sin(theta)));
+            Vec3 tangent = spunBasis.u().scale(-Math.sin(theta)).add(spunBasis.v().scale(Math.cos(theta))).normalize();
+            double side = Math.signum(camera.subtract(state.origin).dot(spunBasis.n()));
+            if (side == 0.0) {
+                side = 1.0;
+            }
+            Vec3 glyphCenter = state.origin.add(radial.scale(glyphOrbit)).add(spunBasis.n().scale(0.02 * scale * side));
+            float glyphScaleBase = (float) Mth.clamp(0.32 - (count * 0.004), 0.13, 0.3);
+            float glyphScale = glyphScaleBase * (float) scale;
+            renderPatternGlyph(vc, mat, state.patterns.get(i), glyphCenter, tangent, radial.normalize(), glyphScale, alpha, i, now);
         }
     }
 
@@ -182,12 +206,15 @@ public final class SpellCircleVisuals {
         Matrix4f mat,
         HexPattern pattern,
         Vec3 center,
-        Basis basis,
+        Vec3 tangent,
+        Vec3 radial,
         float glyphScale,
-        float width,
-        float alpha
+        float alpha,
+        int glyphIndex,
+        long tick
     ) {
-        List<Vec3> points = patternPointsInPlane(pattern, center, basis, glyphScale);
+        double seed = (pattern.anglesSignature().hashCode() * 31.0) + (glyphIndex * 131.0) + (tick * 0.025);
+        List<Vec3> points = patternPointsInPlane(pattern, center, tangent, radial, glyphScale, seed);
         if (points.size() < 2) {
             return;
         }
@@ -195,63 +222,107 @@ public final class SpellCircleVisuals {
         float r = 0.90f;
         float g = 1.0f;
         float b = 0.96f;
+        float width = (float) SPELL_GLYPH_SETTINGS.getOuterWidth(1.0) * 0.9f * glyphScale;
+        Vec3 normal = tangent.cross(radial).normalize();
         for (int i = 1; i < points.size(); i++) {
             Vec3 from = points.get(i - 1);
             Vec3 to = points.get(i);
-            drawThickSegment(vc, mat, from, to, basis.n(), width, r, g, b, alpha * 0.95f);
+            drawThickSegment(vc, mat, from, to, normal, width, r, g, b, alpha * 0.95f);
         }
     }
 
-    private static List<Vec3> patternPointsInPlane(HexPattern pattern, Vec3 center, Basis basis, float scale) {
-        List<?> raw = pattern.toLines(scale, new Vec2(0.0f, 0.0f));
-        if (raw.isEmpty()) {
+    private static List<Vec3> patternPointsInPlane(
+        HexPattern pattern,
+        Vec3 center,
+        Vec3 tangent,
+        Vec3 radial,
+        float scale,
+        double seed
+    ) {
+        PatternSettings settings = new PatternSettings(
+            SPELL_GLYPH_SETTINGS.getName(),
+            SPELL_GLYPH_SETTINGS.posSets,
+            new PatternSettings.StrokeSettings(
+                SPELL_GLYPH_SETTINGS.strokeSets.innerWidth() * scale,
+                SPELL_GLYPH_SETTINGS.strokeSets.outerWidth() * scale,
+                SPELL_GLYPH_SETTINGS.strokeSets.startDotRadius() * scale,
+                SPELL_GLYPH_SETTINGS.strokeSets.gridDotsRadius() * scale
+            ),
+            SPELL_GLYPH_SETTINGS.zapSets
+        );
+
+        HexPatternPoints points = HexPatternPoints.getStaticPoints(HexPatternLike.of(pattern), settings, seed);
+        if (points.zappyPointsScaled.isEmpty()) {
             return List.of();
         }
 
-        List<Vec3> out = new ArrayList<>(raw.size());
-        for (Object obj : raw) {
-            if (!(obj instanceof Vec2 point)) {
-                continue;
-            }
-            out.add(center.add(basis.u().scale(point.x)).add(basis.v().scale(point.y)));
+        double xCenter = points.fullWidth * 0.5;
+        double yCenter = points.fullHeight * 0.5;
+
+        List<Vec3> out = new ArrayList<>(points.zappyPointsScaled.size());
+        for (var point : points.zappyPointsScaled) {
+            double x = point.x - xCenter;
+            double y = point.y - yCenter;
+            out.add(center.add(tangent.scale(x)).add(radial.scale(y)));
         }
         return out;
     }
 
-    private static void drawDisc(VertexConsumer vc, Matrix4f mat, Vec3 center, Basis basis, double radius, float r, float g, float b, float a) {
-        for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
-            double t0 = (Math.PI * 2.0) * i / CIRCLE_SEGMENTS;
-            double t1 = (Math.PI * 2.0) * (i + 1) / CIRCLE_SEGMENTS;
-
-            Vec3 outer0 = center.add(basis.u().scale(Math.cos(t0) * radius)).add(basis.v().scale(Math.sin(t0) * radius));
-            Vec3 outer1 = center.add(basis.u().scale(Math.cos(t1) * radius)).add(basis.v().scale(Math.sin(t1) * radius));
-            emitQuadDoubleSided(vc, mat, center, outer0, outer1, center, r, g, b, a);
-        }
-    }
-
-    private static void drawRing(
+    private static void drawCircleOutline(
         VertexConsumer vc,
         Matrix4f mat,
         Vec3 center,
         Basis basis,
-        double inner,
-        double outer,
+        double radius,
+        float width,
         float r,
         float g,
         float b,
         float a
     ) {
+        Vec3 normal = basis.n();
+        Vec3 prev = null;
         for (int i = 0; i < CIRCLE_SEGMENTS; i++) {
-            double t0 = (Math.PI * 2.0) * i / CIRCLE_SEGMENTS;
-            double t1 = (Math.PI * 2.0) * (i + 1) / CIRCLE_SEGMENTS;
-
-            Vec3 in0 = center.add(basis.u().scale(Math.cos(t0) * inner)).add(basis.v().scale(Math.sin(t0) * inner));
-            Vec3 out0 = center.add(basis.u().scale(Math.cos(t0) * outer)).add(basis.v().scale(Math.sin(t0) * outer));
-            Vec3 out1 = center.add(basis.u().scale(Math.cos(t1) * outer)).add(basis.v().scale(Math.sin(t1) * outer));
-            Vec3 in1 = center.add(basis.u().scale(Math.cos(t1) * inner)).add(basis.v().scale(Math.sin(t1) * inner));
-
-            emitQuadDoubleSided(vc, mat, in0, out0, out1, in1, r, g, b, a);
+            double t = (Math.PI * 2.0) * i / CIRCLE_SEGMENTS;
+            Vec3 point = center.add(basis.u().scale(Math.cos(t) * radius)).add(basis.v().scale(Math.sin(t) * radius));
+            if (prev != null) {
+                drawThickSegment(vc, mat, prev, point, normal, width, r, g, b, a);
+            }
+            prev = point;
         }
+
+        Vec3 first = center.add(basis.u().scale(radius));
+        if (prev != null) {
+            drawThickSegment(vc, mat, prev, first, normal, width, r, g, b, a);
+        }
+    }
+
+    private static void drawTriangleOutline(
+        VertexConsumer vc,
+        Matrix4f mat,
+        Vec3 center,
+        Basis basis,
+        double radius,
+        float width,
+        float r,
+        float g,
+        float b,
+        float a
+    ) {
+        Vec3 normal = basis.n();
+        double spin = 0.0;
+
+        Vec3[] corners = new Vec3[3];
+        for (int i = 0; i < 3; i++) {
+            double angle = spin + (Math.PI * 2.0 * i / 3.0) - (Math.PI / 2.0);
+            corners[i] = center
+                .add(basis.u().scale(Math.cos(angle) * radius))
+                .add(basis.v().scale(Math.sin(angle) * radius));
+        }
+
+        drawThickSegment(vc, mat, corners[0], corners[1], normal, width, r, g, b, a);
+        drawThickSegment(vc, mat, corners[1], corners[2], normal, width, r, g, b, a);
+        drawThickSegment(vc, mat, corners[2], corners[0], normal, width, r, g, b, a);
     }
 
     private static void drawThickSegment(
@@ -320,7 +391,7 @@ public final class SpellCircleVisuals {
         }
 
         Basis basis = buildBasis(state.normal);
-        double radius = BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN);
+        double radius = (BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * state.scaleMultiplier;
         Random rng = new Random(id ^ (state.lastUpdateTick * 31L));
 
         int ringBursts = 92;
@@ -330,32 +401,14 @@ public final class SpellCircleVisuals {
             Vec3 radial = basis.u().scale(Math.cos(t)).add(basis.v().scale(Math.sin(t))).normalize();
             Vec3 spawn = state.origin
                 .add(radial.scale(radius + radialJitter))
-                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.08));
+                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.08 * state.scaleMultiplier));
 
-            Vec3 vel = radial.scale(0.05 + rng.nextDouble() * 0.06)
-                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.03));
+            Vec3 vel = radial.scale((0.05 + rng.nextDouble() * 0.06) * state.scaleMultiplier)
+                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.03 * state.scaleMultiplier));
 
             mc.level.addParticle(ParticleTypes.ENCHANT, spawn.x, spawn.y, spawn.z, vel.x, vel.y, vel.z);
             if ((i & 3) == 0) {
-                mc.level.addParticle(ParticleTypes.END_ROD, spawn.x, spawn.y, spawn.z, vel.x * 0.6, vel.y * 0.6, vel.z * 0.6);
-            }
-        }
-
-        for (HexPattern pattern : state.patterns) {
-            List<Vec3> points = patternPointsInPlane(pattern, state.origin, basis, 0.16f);
-            for (Vec3 p : points) {
-                Vec3 jitter = basis.u().scale((rng.nextDouble() - 0.5) * 0.04)
-                    .add(basis.v().scale((rng.nextDouble() - 0.5) * 0.04));
-                Vec3 spawn = p.add(jitter);
-                mc.level.addParticle(
-                    ParticleTypes.ENCHANT,
-                    spawn.x,
-                    spawn.y,
-                    spawn.z,
-                    (rng.nextDouble() - 0.5) * 0.03,
-                    (rng.nextDouble() - 0.5) * 0.03,
-                    (rng.nextDouble() - 0.5) * 0.03
-                );
+                mc.level.addParticle(ParticleTypes.ENCHANT, spawn.x, spawn.y, spawn.z, vel.x * 0.45, vel.y * 0.45, vel.z * 0.45);
             }
         }
     }
@@ -402,6 +455,19 @@ public final class SpellCircleVisuals {
         return out.normalize();
     }
 
+    private static Basis rotateBasis(Basis basis, double angleRad) {
+        double c = Math.cos(angleRad);
+        double s = Math.sin(angleRad);
+        Vec3 u = basis.u().scale(c).add(basis.v().scale(s));
+        Vec3 v = basis.u().scale(-s).add(basis.v().scale(c));
+        return new Basis(u, v, basis.n());
+    }
+
+    private static double scaleForTier(int tier) {
+        int t = Mth.clamp(tier, 1, 6);
+        return 0.25 + ((t - 1) * 0.375);
+    }
+
     private record CircleKey(String dimensionId, long id) {
     }
 
@@ -412,6 +478,8 @@ public final class SpellCircleVisuals {
         List<HexPattern> patterns = List.of();
         int initialLifetimeTicks = 1;
         int remainingTicks = 1;
+        int sizeTier = 3;
+        double scaleMultiplier = 1.0;
         long lastUpdateTick;
     }
 

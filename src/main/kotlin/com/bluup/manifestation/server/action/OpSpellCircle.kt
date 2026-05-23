@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel
 
 /**
  * Stack shape on entry (top -> bottom):
+ *   optional size tier (number 1..6, default 3)
  *   lifetime ticks (number)
  *   circle facing (vector)
  *   circle origin (vector)
@@ -25,6 +26,7 @@ import net.minecraft.server.level.ServerLevel
 object OpSpellCircle : Action {
     private const val MAX_PATTERNS = 48
     private const val MAX_TICKS = 1200
+    private const val DEFAULT_SIZE_TIER = 3
 
     override fun operate(
         env: CastingEnvironment,
@@ -34,6 +36,19 @@ object OpSpellCircle : Action {
         val stack = image.stack.toMutableList()
         if (stack.size < 4) {
             throw MishapNotEnoughArgs(4, stack.size)
+        }
+
+        var sizeTier = DEFAULT_SIZE_TIER
+        if (stack.size >= 5) {
+            val maybeTier = stack.lastOrNull()
+            if (maybeTier is DoubleIota) {
+                val parsedTier = Math.round(maybeTier.double).toInt()
+                if (parsedTier < 1 || parsedTier > 6) {
+                    throw MishapInvalidIota.ofType(maybeTier, 0, "number between 1 and 6")
+                }
+                sizeTier = parsedTier
+                stack.removeAt(stack.lastIndex)
+            }
         }
 
         val ticksIota = stack.removeAt(stack.lastIndex)
@@ -76,7 +91,7 @@ object OpSpellCircle : Action {
 
         val level = env.world as? ServerLevel
         if (level != null) {
-            ManifestationServer.sendSpellCircleTo(level, origin, facing.normalize(), lifetimeTicks, patterns)
+            ManifestationServer.sendSpellCircleTo(level, origin, facing.normalize(), lifetimeTicks, sizeTier, patterns)
         }
 
         val image2 = image.withUsedOp().copy(stack = stack)
