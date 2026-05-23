@@ -1,0 +1,21 @@
+{
+  "name": "hexcasting.entry.manifestation_charm_audio",
+  "category": "hexcasting:patterns/spells",
+  "icon": "hexcasting:cypher",
+  "sortnum": 903,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.charm_audio_intro"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:set_charm_cast_sound",
+      "anchor": "manifestation:set_charm_cast_sound",
+      "input": "string | text | null, item entity?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.charm_audio.set_charm_cast_sound"
+    }
+  ]
+}
