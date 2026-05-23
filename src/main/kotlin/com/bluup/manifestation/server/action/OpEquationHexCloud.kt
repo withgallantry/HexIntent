@@ -17,6 +17,8 @@ import com.bluup.manifestation.server.ManifestationServer
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.phys.Vec3
 
 /**
  * Stack shape on entry (top -> bottom):
@@ -43,11 +45,15 @@ object OpEquationHexCloud : Action {
         val cloudId = (idIota as? DoubleIota)?.let { Math.round(it.double) }
             ?: throw MishapInvalidIota.ofType(idIota, 0, "number")
 
-        val origin = when (anchorOrOffsetIota) {
+        val follow = when (anchorOrOffsetIota) {
             is EntityIota -> {
                 val entity = anchorOrOffsetIota.entity
                 env.assertEntityInRange(entity)
-                entity.position().add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
+                FollowBinding(
+                    entity.position().add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0),
+                    entity,
+                    Vec3.ZERO
+                )
             }
 
             is Vec3Iota -> {
@@ -56,16 +62,21 @@ object OpEquationHexCloud : Action {
                     stack.removeAt(stack.lastIndex)
                     val entity = maybeEntityAnchor.entity
                     env.assertEntityInRange(entity)
-                    entity.position()
-                        .add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
-                        .add(anchorOrOffsetIota.vec3)
+                    FollowBinding(
+                        entity.position()
+                            .add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
+                            .add(anchorOrOffsetIota.vec3),
+                        entity,
+                        anchorOrOffsetIota.vec3
+                    )
                 } else {
-                    anchorOrOffsetIota.vec3
+                    FollowBinding(anchorOrOffsetIota.vec3, null, null)
                 }
             }
 
             else -> throw MishapInvalidIota.ofType(anchorOrOffsetIota, 2, "vector or entity")
         }
+        val origin = follow.origin
         env.assertVecInRange(origin)
 
         val equation = equationIota as? EquationParticleIota
@@ -101,9 +112,22 @@ object OpEquationHexCloud : Action {
         }
 
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
-        ManifestationServer.sendEquationCloudTo(caster, origin, cloudId, equation)
+        ManifestationServer.sendEquationCloudTo(
+            caster,
+            origin,
+            cloudId,
+            equation,
+            follow.entity?.id,
+            follow.offset
+        )
 
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
     }
+
+    private data class FollowBinding(
+        val origin: Vec3,
+        val entity: Entity?,
+        val offset: Vec3?
+    )
 }

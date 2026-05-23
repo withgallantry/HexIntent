@@ -2,9 +2,9 @@ package com.bluup.manifestation.client;
 
 import at.petrak.hexcasting.api.casting.math.HexDir;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
-import at.petrak.hexcasting.client.render.HexPatternLike;
-import at.petrak.hexcasting.client.render.HexPatternPoints;
-import at.petrak.hexcasting.client.render.PatternSettings;
+import at.petrak.hexcasting.client.render.PatternColors;
+import at.petrak.hexcasting.client.render.WorldlyPatternRenderHelpers;
+import at.petrak.hexcasting.common.particles.ConjureParticleOptions;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -12,11 +12,15 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
+import org.joml.Quaternionf;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -38,12 +42,6 @@ public final class SpellCircleVisuals {
     private static final double BASE_RADIUS = 1.1;
     private static final double RADIUS_PER_PATTERN = 0.09;
     private static final double CIRCLE_SPIN_RATE = 0.004;
-    private static final PatternSettings SPELL_GLYPH_SETTINGS = new PatternSettings(
-        "manifestation_circle_spell",
-        PatternSettings.PositionSettings.paddedSquare(0.08, 0.22, 0.0),
-        PatternSettings.StrokeSettings.fromStroke(0.11),
-        PatternSettings.ZappySettings.WOBBLY
-    );
 
     private SpellCircleVisuals() {
     }
@@ -147,15 +145,24 @@ public final class SpellCircleVisuals {
                     continue;
                 }
 
-                renderCircleState(vc, mat, state, camera, now, alpha);
+                renderCircleState(vc, mat, poseStack, buffers, state, camera, now, alpha);
             }
         } finally {
             poseStack.popPose();
-            buffers.endBatch(RenderType.lightning());
+            buffers.endBatch();
         }
     }
 
-    private static void renderCircleState(VertexConsumer vc, Matrix4f mat, CircleState state, Vec3 camera, long now, float alpha) {
+    private static void renderCircleState(
+        VertexConsumer vc,
+        Matrix4f mat,
+        PoseStack poseStack,
+        MultiBufferSource buffers,
+        CircleState state,
+        Vec3 camera,
+        long now,
+        float alpha
+    ) {
         Basis basis = buildBasis(state.normal);
         Basis spunBasis = rotateBasis(basis, now * CIRCLE_SPIN_RATE);
         double pulse = 1.0 + Math.sin(now * 0.14) * 0.035;
@@ -163,9 +170,10 @@ public final class SpellCircleVisuals {
 
         double radius = ((BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * scale) * pulse;
         double outerRingRadius = radius;
-        double innerRingRadius = Math.max(0.28 * scale, radius - (0.24 * scale));
+        double innerRingRadius = Math.max(0.24 * scale, radius * 0.58);
         double triangleRadius = innerRingRadius * 0.78;
-        double glyphOrbit = Math.max(0.4 * scale, radius - (0.34 * scale));
+        double glyphOrbit = (outerRingRadius + innerRingRadius) * 0.5;
+        double ringBandWidth = Math.max(0.08 * scale, outerRingRadius - innerRingRadius);
         float outerRingWidth = (float) (0.043 * scale);
         float innerRingWidth = (float) (0.032 * scale);
         float triangleWidth = (float) (0.03 * scale);
@@ -195,77 +203,79 @@ public final class SpellCircleVisuals {
                 side = 1.0;
             }
             Vec3 glyphCenter = state.origin.add(radial.scale(glyphOrbit)).add(spunBasis.n().scale(0.02 * scale * side));
-            float glyphScaleBase = (float) Mth.clamp(0.32 - (count * 0.004), 0.13, 0.3);
-            float glyphScale = glyphScaleBase * (float) scale;
-            renderPatternGlyph(vc, mat, state.patterns.get(i), glyphCenter, tangent, radial.normalize(), glyphScale, alpha, i, now);
+            float glyphScale = (float) Mth.clamp(
+                (ringBandWidth * 1.18) / (1.0 + (count * 0.006)),
+                0.30 * scale,
+                0.92 * scale
+            );
+            int light = LevelRenderer.getLightColor(Minecraft.getInstance().level, BlockPos.containing(glyphCenter));
+            renderPatternGlyph(
+                poseStack,
+                buffers,
+                state.patterns.get(i),
+                glyphCenter,
+                tangent,
+                radial.normalize(),
+                glyphScale,
+                i,
+                light
+            );
         }
     }
 
     private static void renderPatternGlyph(
-        VertexConsumer vc,
-        Matrix4f mat,
+        PoseStack poseStack,
+        MultiBufferSource buffers,
         HexPattern pattern,
         Vec3 center,
         Vec3 tangent,
         Vec3 radial,
         float glyphScale,
-        float alpha,
         int glyphIndex,
-        long tick
+        int light
     ) {
-        double seed = (pattern.anglesSignature().hashCode() * 31.0) + (glyphIndex * 131.0) + (tick * 0.025);
-        List<Vec3> points = patternPointsInPlane(pattern, center, tangent, radial, glyphScale, seed);
-        if (points.size() < 2) {
+        Vec3 tangentN = tangent.normalize();
+        Vec3 radialN = radial.normalize();
+        Vec3 normal = tangentN.cross(radialN);
+        if (normal.lengthSqr() <= 1.0e-8) {
             return;
         }
+        normal = normal.normalize();
 
-        float r = 0.90f;
-        float g = 1.0f;
-        float b = 0.96f;
-        float width = (float) SPELL_GLYPH_SETTINGS.getOuterWidth(1.0) * 0.9f * glyphScale;
-        Vec3 normal = tangent.cross(radial).normalize();
-        for (int i = 1; i < points.size(); i++) {
-            Vec3 from = points.get(i - 1);
-            Vec3 to = points.get(i);
-            drawThickSegment(vc, mat, from, to, normal, width, r, g, b, alpha * 0.95f);
-        }
-    }
+        // Keep seed stable across frames so HexCasting render caches can be reused.
+        double seed = (pattern.anglesSignature().hashCode() * 31.0) + (glyphIndex * 131.0);
 
-    private static List<Vec3> patternPointsInPlane(
-        HexPattern pattern,
-        Vec3 center,
-        Vec3 tangent,
-        Vec3 radial,
-        float scale,
-        double seed
-    ) {
-        PatternSettings settings = new PatternSettings(
-            SPELL_GLYPH_SETTINGS.getName(),
-            SPELL_GLYPH_SETTINGS.posSets,
-            new PatternSettings.StrokeSettings(
-                SPELL_GLYPH_SETTINGS.strokeSets.innerWidth() * scale,
-                SPELL_GLYPH_SETTINGS.strokeSets.outerWidth() * scale,
-                SPELL_GLYPH_SETTINGS.strokeSets.startDotRadius() * scale,
-                SPELL_GLYPH_SETTINGS.strokeSets.gridDotsRadius() * scale
-            ),
-            SPELL_GLYPH_SETTINGS.zapSets
+        Matrix3f basis = new Matrix3f(
+            (float) tangentN.x,
+            (float) radialN.x,
+            (float) normal.x,
+            (float) tangentN.y,
+            (float) radialN.y,
+            (float) normal.y,
+            (float) tangentN.z,
+            (float) radialN.z,
+            (float) normal.z
         );
+        Quaternionf orientation = new Quaternionf().setFromNormalized(basis);
 
-        HexPatternPoints points = HexPatternPoints.getStaticPoints(HexPatternLike.of(pattern), settings, seed);
-        if (points.zappyPointsScaled.isEmpty()) {
-            return List.of();
-        }
-
-        double xCenter = points.fullWidth * 0.5;
-        double yCenter = points.fullHeight * 0.5;
-
-        List<Vec3> out = new ArrayList<>(points.zappyPointsScaled.size());
-        for (var point : points.zappyPointsScaled) {
-            double x = point.x - xCenter;
-            double y = point.y - yCenter;
-            out.add(center.add(tangent.scale(x)).add(radial.scale(y)));
-        }
-        return out;
+        poseStack.pushPose();
+        poseStack.translate(center.x, center.y, center.z);
+        poseStack.mulPose(orientation);
+        poseStack.scale(glyphScale, glyphScale, 1.0f);
+        poseStack.translate(-0.5, -0.5, 0.0);
+        WorldlyPatternRenderHelpers.renderPattern(
+            pattern,
+            WorldlyPatternRenderHelpers.WORLDLY_SETTINGS,
+            PatternColors.DEFAULT_PATTERN_COLOR,
+            seed,
+            poseStack,
+            buffers,
+            normal,
+            -0.001f,
+            light,
+            1
+        );
+        poseStack.popPose();
     }
 
     private static void drawCircleOutline(
@@ -403,14 +413,25 @@ public final class SpellCircleVisuals {
                 .add(radial.scale(radius + radialJitter))
                 .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.08 * state.scaleMultiplier));
 
-            Vec3 vel = radial.scale((0.05 + rng.nextDouble() * 0.06) * state.scaleMultiplier)
-                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.03 * state.scaleMultiplier));
+            Vec3 vel = radial.scale((0.018 + rng.nextDouble() * 0.03) * state.scaleMultiplier)
+                .add(state.normal.scale((rng.nextDouble() - 0.5) * 0.018 * state.scaleMultiplier))
+                .add(0.0, -(0.03 + rng.nextDouble() * 0.03) * state.scaleMultiplier, 0.0);
 
-            mc.level.addParticle(ParticleTypes.ENCHANT, spawn.x, spawn.y, spawn.z, vel.x, vel.y, vel.z);
+            float r = 0.60f + (float) rng.nextDouble() * 0.26f;
+            float g = 0.84f + (float) rng.nextDouble() * 0.14f;
+            float b = 0.88f + (float) rng.nextDouble() * 0.10f;
+            mc.level.addParticle(new ConjureParticleOptions(packColor(r, g, b)), spawn.x, spawn.y, spawn.z, vel.x, vel.y, vel.z);
             if ((i & 3) == 0) {
-                mc.level.addParticle(ParticleTypes.ENCHANT, spawn.x, spawn.y, spawn.z, vel.x * 0.45, vel.y * 0.45, vel.z * 0.45);
+                mc.level.addParticle(new ConjureParticleOptions(packColor(r * 0.92f, g * 0.94f, b)), spawn.x, spawn.y, spawn.z, vel.x * 0.55, vel.y * 0.55, vel.z * 0.55);
             }
         }
+    }
+
+    private static int packColor(float r, float g, float b) {
+        int rr = Mth.clamp((int) (r * 255.0f), 0, 255);
+        int gg = Mth.clamp((int) (g * 255.0f), 0, 255);
+        int bb = Mth.clamp((int) (b * 255.0f), 0, 255);
+        return (rr << 16) | (gg << 8) | bb;
     }
 
     private static float alphaFor(int remainingTicks, int initialTicks) {

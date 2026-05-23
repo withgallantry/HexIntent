@@ -28,7 +28,6 @@ import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpOpenCastingScreen
 import com.bluup.manifestation.server.action.OpManifestEcho
-import com.bluup.manifestation.server.action.OpParticleScatter
 import com.bluup.manifestation.server.action.OpParticleBlobScatter
 import com.bluup.manifestation.server.action.OpPresenceIntent
 import com.bluup.manifestation.server.action.OpClearStack
@@ -209,14 +208,15 @@ object ManifestationServer : ModInitializer {
         registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
-        registerAction("particle_scatter", "qaqeaddw", HexDir.NORTH_EAST, OpParticleScatter)
-        registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
+        if (ManifestationConfig.particleBlobLoaderEnabled()) {
+            registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
+        }
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
-        registerAction("spell_circle", "qaqeaddaq", HexDir.NORTH_EAST, OpSpellCircle)
+        registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
         registerAction("silence_next_cast", "qaqeadwq", HexDir.NORTH_EAST, OpSilenceNextCastSound)
-        registerAction("exit_if_interacting", "aqawqadedq", HexDir.SOUTH_WEST, OpExitIfInteracting)
-        registerAction("open_casting_screen", "aqawqaded", HexDir.SOUTH_WEST, OpOpenCastingScreen)
-        registerAction("clear_stack", "aqawqadedd", HexDir.SOUTH_WEST, OpClearStack)
+        registerAction("exit_if_interacting", "qaqqqqe", HexDir.EAST, OpExitIfInteracting)
+        registerAction("open_casting_screen", "aqaeawqqwqwqqw", HexDir.SOUTH_WEST, OpOpenCastingScreen)
+        registerAction("clear_stack", "aqaeawqqwa", HexDir.SOUTH_WEST, OpClearStack)
     }
 
     private fun registerAction(idPath: String, signature: String, startDir: HexDir, action: Action) {
@@ -1024,7 +1024,9 @@ object ManifestationServer : ModInitializer {
         player: ServerPlayer,
         origin: net.minecraft.world.phys.Vec3,
         cloudId: Long,
-        equation: EquationParticleIota
+        equation: EquationParticleIota,
+        followEntityId: Int? = null,
+        followOffset: net.minecraft.world.phys.Vec3? = null
     ) {
         val level = player.serverLevel()
         val radius = 128.0
@@ -1040,6 +1042,14 @@ object ManifestationServer : ModInitializer {
             buf.writeDouble(origin.x)
             buf.writeDouble(origin.y)
             buf.writeDouble(origin.z)
+            buf.writeBoolean(followEntityId != null)
+            if (followEntityId != null) {
+                val offset = followOffset ?: net.minecraft.world.phys.Vec3.ZERO
+                buf.writeVarInt(followEntityId)
+                buf.writeDouble(offset.x)
+                buf.writeDouble(offset.y)
+                buf.writeDouble(offset.z)
+            }
 
             buf.writeUtf(equation.xExpr, EquationParticleConfig.MAX_EXPR_CHARS)
             buf.writeUtf(equation.yExpr, EquationParticleConfig.MAX_EXPR_CHARS)

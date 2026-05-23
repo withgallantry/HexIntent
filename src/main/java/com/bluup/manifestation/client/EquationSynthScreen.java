@@ -31,6 +31,7 @@ public final class EquationSynthScreen extends Screen {
     private static final int SHAPE_ITEM_H = 20;
     private static final double PREVIEW_CLOUD_RADIUS = 0.45;
     private static final int ACTION_BUTTON_GAP = 10;
+    private static final int PANEL_CONTENT_TOP_PADDING = 6;
 
     private enum PanelState {
         SHAPE,
@@ -92,7 +93,6 @@ public final class EquationSynthScreen extends Screen {
     private Button animationPanelButton;
     private Button animationPresetButton;
     private DensitySlider densitySlider;
-    private Button previewButton;
     private Button writeButton;
     private Button closeButton;
 
@@ -252,9 +252,6 @@ public final class EquationSynthScreen extends Screen {
         }).bounds(this.leftPanelX + 114, 0, 110, 20).build());
         syncColorModeButton();
 
-        this.previewButton = this.addRenderableWidget(Button.builder(Component.literal("Preview"), b -> recomputePreview())
-            .bounds(this.leftPanelX + 228, 0, 42, 20)
-            .build());
         this.writeButton = this.addRenderableWidget(Button.builder(Component.literal("Write").withStyle(ChatFormatting.LIGHT_PURPLE), b -> writeToFocus())
             .bounds(this.leftPanelX + 8, 0, this.inputWidth, 20)
             .build());
@@ -544,10 +541,10 @@ public final class EquationSynthScreen extends Screen {
         setWidgetVisible(this.pointCount, formulaVisible);
         setWidgetVisible(this.useUButton, formulaVisible);
         setWidgetVisible(this.colorModeButton, formulaVisible);
-        setWidgetVisible(this.previewButton, formulaVisible);
         setWidgetVisible(this.writeButton, true);
 
         if (formulaVisible) {
+            y += PANEL_CONTENT_TOP_PADDING;
             this.shapePresetButton.setY(y);
             y += 26;
 
@@ -569,7 +566,6 @@ public final class EquationSynthScreen extends Screen {
             y += 36;
             this.useUButton.setY(y);
             this.colorModeButton.setY(y);
-            this.previewButton.setY(y);
 
             y += 32;
         }
@@ -589,6 +585,7 @@ public final class EquationSynthScreen extends Screen {
         setWidgetVisible(this.colorExprB, colorVisible);
 
         if (colorVisible) {
+            y += PANEL_CONTENT_TOP_PADDING;
             this.colorA_R.setY(y);
             this.colorA_G.setY(y);
             this.colorA_B.setY(y);
@@ -613,6 +610,7 @@ public final class EquationSynthScreen extends Screen {
         setWidgetVisible(this.animationPresetButton, animationVisible);
         setWidgetVisible(this.densitySlider, animationVisible);
         if (animationVisible) {
+            y += PANEL_CONTENT_TOP_PADDING;
             this.animationPresetButton.setY(y);
             y += 36;
             this.densitySlider.setY(y);

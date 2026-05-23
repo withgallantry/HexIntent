@@ -32,16 +32,24 @@ object OpExitIfInteracting : Action {
         continuation: SpellContinuation
     ): OperationResult {
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
-        val shouldExit = isAimingAtInteractable(caster)
+        val blockHit = aimedBlockHit(caster)
+        val shouldExit = blockHit != null && isInteractable(caster, blockHit)
+
+        if (shouldExit && blockHit != null) {
+            triggerInteraction(caster, env.castingHand, blockHit)
+        }
 
         val image2 = image.withUsedOp()
         val newContinuation = if (shouldExit) SpellContinuation.Done else continuation
         return OperationResult(image2, listOf(), newContinuation, HexEvalSounds.MUTE)
     }
 
-    private fun isAimingAtInteractable(player: ServerPlayer): Boolean {
+    private fun aimedBlockHit(player: ServerPlayer): BlockHitResult? {
         val hit = player.pick(5.0, 0.0f, false)
-        val blockHit = hit as? BlockHitResult ?: return false
+        return hit as? BlockHitResult
+    }
+
+    private fun isInteractable(player: ServerPlayer, blockHit: BlockHitResult): Boolean {
 
         val level = player.serverLevel()
         val pos = blockHit.blockPos
@@ -65,5 +73,17 @@ object OpExitIfInteracting : Action {
             block is EnderChestBlock ||
             block is BarrelBlock ||
             block is ShulkerBoxBlock
+    }
+
+    private fun triggerInteraction(player: ServerPlayer, hand: net.minecraft.world.InteractionHand, blockHit: BlockHitResult) {
+        val level = player.serverLevel()
+        val pos = blockHit.blockPos
+        val state = level.getBlockState(pos)
+        if (state.isAir) {
+            return
+        }
+
+        // Replay the block's normal right-click behavior so this guard does not swallow interaction.
+        state.use(level, player, hand, blockHit)
     }
 }

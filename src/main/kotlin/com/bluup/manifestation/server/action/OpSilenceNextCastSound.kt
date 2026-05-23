@@ -11,7 +11,7 @@ import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerPlayer
 
 /**
- * Arms one-shot sound suppression for the player's next pattern execution.
+ * Arms sound suppression for the remainder of the player's current cast batch.
  *
  * Takes no arguments and does not modify the stack.
  */

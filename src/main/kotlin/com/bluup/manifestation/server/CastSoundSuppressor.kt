@@ -6,40 +6,21 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Tracks one-shot cast-sound suppression requests per player.
  *
- * The operator arms for the next pattern execution in the same cast batch.
- * Any leftover arming state is cleared when the current cast batch ends.
+ * The operator arms suppression for the remainder of the current cast batch.
+ * Suppression state is cleared when the cast batch ends.
  */
 object CastSoundSuppressor {
-    private const val ARMING_STEPS = 1
-    private val pendingByPlayer: MutableMap<UUID, Int> = ConcurrentHashMap()
+    private val mutedForBatch: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
 
     fun armNextCast(playerId: UUID) {
-        pendingByPlayer.compute(playerId) { _, existing ->
-            maxOf(existing ?: 0, ARMING_STEPS)
-        }
+        mutedForBatch.add(playerId)
     }
 
     fun shouldSuppressCurrentExecution(playerId: UUID): Boolean {
-        val state = pendingByPlayer[playerId] ?: return false
-        return when {
-            state <= 0 -> {
-                pendingByPlayer.remove(playerId)
-                false
-            }
-
-            state > 1 -> {
-                pendingByPlayer[playerId] = state - 1
-                false
-            }
-
-            else -> {
-                pendingByPlayer.remove(playerId)
-                true
-            }
-        }
+        return mutedForBatch.contains(playerId)
     }
 
     fun clearForPlayer(playerId: UUID) {
-        pendingByPlayer.remove(playerId)
+        mutedForBatch.remove(playerId)
     }
 }

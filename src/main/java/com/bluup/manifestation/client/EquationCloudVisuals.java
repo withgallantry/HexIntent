@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -41,6 +42,15 @@ public final class EquationCloudVisuals {
                 UUID sourceId = buf.readUUID();
                 long id = buf.readLong();
                 Vec3 origin = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
+                boolean hasFollowEntity = buf.readBoolean();
+                Integer followEntityId = null;
+                Vec3 followOffset = null;
+                if (hasFollowEntity) {
+                    followEntityId = buf.readVarInt();
+                    followOffset = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
+                }
+                final Integer resolvedFollowEntityId = followEntityId;
+                final Vec3 resolvedFollowOffset = followOffset;
 
                 String x = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
                 String y = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
@@ -98,7 +108,7 @@ public final class EquationCloudVisuals {
                     long now = client.level.getGameTime();
                     CloudKey key = new CloudKey(sourceId, id);
                     CloudState state = ACTIVE.computeIfAbsent(key, ignored -> new CloudState());
-                    state.applyUpdate(dimensionId, origin, config, now);
+                    state.applyUpdate(dimensionId, origin, config, resolvedFollowEntityId, resolvedFollowOffset, now);
                 });
             }
         );
@@ -144,7 +154,7 @@ public final class EquationCloudVisuals {
                     continue;
                 }
 
-                Vec3 origin = state.currentOrigin(now);
+                Vec3 origin = state.currentOrigin(now, mc, mc.getFrameTime());
                 double dist = origin.distanceTo(camera);
                 int step = computeSampleStep(state.points.size(), dist);
                 int phase = (int) (now % step);
@@ -300,11 +310,20 @@ public final class EquationCloudVisuals {
         Vec3 toOrigin = Vec3.ZERO;
         long moveStartTick;
         int moveTicks = MOVE_TICKS;
+        Integer followEntityId;
+        Vec3 followOffset = Vec3.ZERO;
 
         long lastUpdateTick;
         boolean initialized;
 
-        void applyUpdate(String dimensionId, Vec3 newOrigin, EquationParticleConfig newConfig, long now) {
+        void applyUpdate(
+            String dimensionId,
+            Vec3 newOrigin,
+            EquationParticleConfig newConfig,
+            Integer followEntityId,
+            Vec3 followOffset,
+            long now
+        ) {
             long fp = fingerprint(newConfig);
             boolean sameShape = initialized
                 && Objects.equals(this.dimensionId, dimensionId)
@@ -317,7 +336,7 @@ public final class EquationCloudVisuals {
                 this.moveTicks = MOVE_TICKS;
                 this.initialized = true;
             } else if (sameShape) {
-                Vec3 start = currentOrigin(now);
+                Vec3 start = currentOriginFromSnapshots(now);
                 this.fromOrigin = start;
                 this.toOrigin = newOrigin;
                 this.moveStartTick = now;
@@ -344,10 +363,31 @@ public final class EquationCloudVisuals {
             this.config = newConfig;
             this.configFingerprint = fp;
             this.dimensionId = dimensionId;
+            this.followEntityId = followEntityId;
+            this.followOffset = followOffset == null ? Vec3.ZERO : followOffset;
             this.lastUpdateTick = now;
         }
 
-        Vec3 currentOrigin(long now) {
+        Vec3 currentOrigin(long now, Minecraft mc, float partialTick) {
+            if (followEntityId != null && mc.level != null) {
+                Entity followed = mc.level.getEntity(followEntityId);
+                if (followed != null) {
+                    Vec3 tracked = followed.getPosition(partialTick)
+                        .add(0.0, followed.getBbHeight() * 0.5, 0.0)
+                        .add(followOffset);
+                    fromOrigin = tracked;
+                    toOrigin = tracked;
+                    moveStartTick = now;
+                    moveTicks = MOVE_TICKS;
+                    return tracked;
+                }
+            }
+
+
+            return currentOriginFromSnapshots(now);
+        }
+
+        private Vec3 currentOriginFromSnapshots(long now) {
             if (moveTicks <= 1) {
                 return toOrigin;
             }

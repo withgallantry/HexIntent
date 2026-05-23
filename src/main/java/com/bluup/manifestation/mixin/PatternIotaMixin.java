@@ -4,6 +4,7 @@ import at.petrak.hexcasting.api.casting.eval.sideeffects.EvalSound;
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM;
 import at.petrak.hexcasting.api.casting.iota.PatternIota;
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation;
+import at.petrak.hexcasting.api.mod.HexTags;
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds;
 import com.bluup.manifestation.server.CastSoundSuppressor;
 import com.bluup.manifestation.server.StaffCastSoundController;
@@ -67,7 +68,7 @@ public abstract class PatternIotaMixin {
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return itemId != null
             && "manifestation".equals(itemId.getNamespace())
-            && itemId.getPath().endsWith("_staff");
+            && stack.is(HexTags.Items.STAVES);
     }
 
     @ModifyArg(
