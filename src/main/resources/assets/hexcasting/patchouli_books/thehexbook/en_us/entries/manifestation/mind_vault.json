@@ -1,0 +1,19 @@
+{
+  "name": "hexcasting.entry.manifestation_mind_vault",
+  "category": "hexcasting:items",
+  "icon": "manifestation:mind_vault",
+  "sortnum": 904,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:mind_vault",
+      "title": "item.manifestation.mind_vault",
+      "text": "hexcasting.page.manifestation.mind_vault.overview"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intents.store_mind_vault"
+    }
+  ]
+}

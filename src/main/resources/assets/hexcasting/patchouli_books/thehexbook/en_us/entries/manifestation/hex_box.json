@@ -1,0 +1,19 @@
+{
+  "name": "hexcasting.entry.manifestation_hex_box",
+  "category": "hexcasting:items",
+  "icon": "manifestation:hex_box",
+  "sortnum": 905,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:hex_box",
+      "title": "item.manifestation.hex_box",
+      "text": "hexcasting.page.manifestation.hex_box.overview"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.hex_box.usage"
+    }
+  ]
+}
