@@ -84,7 +84,7 @@ object ManifestationServer : ModInitializer {
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
     private const val MAX_INPUT_LIST_ITEMS = 128
-    private const val MAX_INPUT_STRING_CHARS = 256
+    private const val MAX_INPUT_STRING_CHARS = 500
     private const val MAX_IMPORT_JSON_CHARS = 200_000
     private const val MAX_EQUATION_CHARS = EquationParticleConfig.MAX_EXPR_CHARS
 

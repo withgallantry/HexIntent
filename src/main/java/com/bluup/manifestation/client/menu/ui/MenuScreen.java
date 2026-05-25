@@ -40,6 +40,7 @@ import java.util.Map;
 public final class MenuScreen extends Screen {
 
     // Shared layout constants.
+    private static final int MAX_INPUT_STRING_CHARS = 500;
     private static final int BUTTON_HEIGHT = 20;
     private static final int SELECT_LIST_ROW_HEIGHT = 20;
     private static final int SECTION_HEIGHT = 26;
@@ -548,6 +549,7 @@ public final class MenuScreen extends Screen {
         if (entry.isInput()) {
             EditBox box = new EditBox(this.font, x, y, width, BUTTON_HEIGHT, entry.label());
             box.setHint(entry.label());
+            box.setMaxLength(MAX_INPUT_STRING_CHARS);
             inputBoxes.put(index, box);
             this.addRenderableWidget(box);
             return;

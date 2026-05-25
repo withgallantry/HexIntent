@@ -50,6 +50,8 @@ object SplinterRuntime {
 
     private val dirtyOwners: MutableSet<UUID> = mutableSetOf()
     private val ownerPerfStates: MutableMap<UUID, OwnerPerfState> = mutableMapOf()
+    private val ownerRecordCursors: MutableMap<UUID, Int> = mutableMapOf()
+    private var ownerRoundRobinCursor: Int = 0
 
     fun register() {
         ServerTickEvents.END_SERVER_TICK.register(ServerTickEvents.EndTick { server ->
@@ -63,6 +65,8 @@ object SplinterRuntime {
         ServerLifecycleEvents.SERVER_STOPPING.register(ServerLifecycleEvents.ServerStopping { _ ->
             dirtyOwners.clear()
             ownerPerfStates.clear()
+            ownerRecordCursors.clear()
+            ownerRoundRobinCursor = 0
         })
     }
 
@@ -208,6 +212,7 @@ object SplinterRuntime {
             flushSnapshots(server)
         }
         ownerPerfStates.remove(owner)
+        ownerRecordCursors.remove(owner)
     }
 
     private fun prepareSummonInternal(
@@ -295,20 +300,56 @@ object SplinterRuntime {
     private fun tick(server: MinecraftServer) {
         val store = SplinterStateStore.get(server)
         val owners = store.allOwners().toList()
-        var executedThisTick = 0
+        val ownersSet = owners.toSet()
+        ownerRecordCursors.keys.retainAll(ownersSet)
 
-        for (owner in owners) {
-            if (executedThisTick >= MAX_EXECUTIONS_PER_TICK) {
-                break
-            }
+        if (owners.isEmpty()) {
+            ownerRoundRobinCursor = 0
+            flushSnapshots(server)
+            return
+        }
+
+        val maxExecutionsThisTick = ManifestationConfig.splinterMaxExecutionsPerTick().coerceAtLeast(1)
+        val maxRecordsScannedThisTick = ManifestationConfig.splinterMaxRecordScansPerTick()
+            .coerceAtLeast(maxExecutionsThisTick)
+
+        val startOwnerIndex = ownerRoundRobinCursor.mod(owners.size)
+        var ownersVisited = 0
+        var executedThisTick = 0
+        var scannedThisTick = 0
+
+        while (
+            ownersVisited < owners.size &&
+            executedThisTick < maxExecutionsThisTick &&
+            scannedThisTick < maxRecordsScannedThisTick
+        ) {
+            val ownerIndex = (startOwnerIndex + ownersVisited) % owners.size
+            val owner = owners[ownerIndex]
+            ownersVisited++
 
             val player = server.playerList.getPlayer(owner)
             val records = store.allByOwner(owner)
+            if (records.isEmpty()) {
+                ownerRecordCursors.remove(owner)
+                ownerPerfStates.remove(owner)
+                continue
+            }
 
-            for (record in records) {
-                if (executedThisTick >= MAX_EXECUTIONS_PER_TICK) {
-                    break
-                }
+            val startRecordIndex = ownerRecordCursors[owner]?.let { cursor ->
+                cursor.mod(records.size)
+            } ?: 0
+            var inspectedForOwner = 0
+            var ownerThrottled = false
+
+            while (
+                inspectedForOwner < records.size &&
+                executedThisTick < maxExecutionsThisTick &&
+                scannedThisTick < maxRecordsScannedThisTick
+            ) {
+                val recordIndex = (startRecordIndex + inspectedForOwner) % records.size
+                val record = records[recordIndex]
+                inspectedForOwner++
+                scannedThisTick++
 
                 val isCircleOwned = record.circleImpetusPos != null
                 if (!isCircleOwned && player == null) {
@@ -370,10 +411,12 @@ object SplinterRuntime {
                         markOwnerDirty(owner)
                     }
                     ownerPerfStates.remove(owner)
+                    ownerRecordCursors.remove(owner)
                     player?.displayClientMessage(
                         Component.literal("Your splinters were dispelled: repeated heavy execution tripped server protection."),
                         false
                     )
+                    ownerThrottled = true
                     break
                 }
 
@@ -385,10 +428,19 @@ object SplinterRuntime {
                 }
             }
 
+            val remainingForOwner = store.count(owner)
+            if (remainingForOwner == 0 || ownerThrottled) {
+                ownerRecordCursors.remove(owner)
+            } else {
+                ownerRecordCursors[owner] = (startRecordIndex + inspectedForOwner).mod(remainingForOwner)
+            }
+
             if (store.count(owner) == 0) {
                 ownerPerfStates.remove(owner)
             }
         }
+
+        ownerRoundRobinCursor = (startOwnerIndex + ownersVisited).mod(owners.size)
 
         flushSnapshots(server)
     }
@@ -565,5 +617,4 @@ object SplinterRuntime {
     private const val PERF_WARMUP_SAMPLES = 6
     private const val CIRCLE_CASTER_NAME = "Manifestation Circle"
     const val MAX_PAYLOAD_IOTAS = 512
-    const val MAX_EXECUTIONS_PER_TICK = 64
 }

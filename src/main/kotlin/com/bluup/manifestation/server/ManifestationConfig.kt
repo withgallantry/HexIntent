@@ -28,6 +28,8 @@ object ManifestationConfig {
     private const val DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 25.0
     private const val DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES = 5
     private const val DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
+    private const val DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK = 24
+    private const val DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 512
     private const val DEFAULT_SPLINTER_CASTER_ENABLED = true
 
     private const val DEFAULT_CONSTELLATION_FEATURE_ENABLED = false
@@ -63,6 +65,10 @@ object ManifestationConfig {
     private const val MAX_SPLINTER_WATCHDOG_MAX_BREACHES = 64
     private const val MIN_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
     private const val MAX_SPLINTER_MAX_ACTIVE_PER_OWNER = 4096
+    private const val MIN_SPLINTER_MAX_EXECUTIONS_PER_TICK = 1
+    private const val MAX_SPLINTER_MAX_EXECUTIONS_PER_TICK = 256
+    private const val MIN_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 8
+    private const val MAX_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 16_384
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val configPath = FabricLoader.getInstance().configDir.resolve("manifestation.json")
@@ -119,6 +125,12 @@ object ManifestationConfig {
     private var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER
 
     @Volatile
+    private var splinterMaxExecutionsPerTick: Int = DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK
+
+    @Volatile
+    private var splinterMaxRecordScansPerTick: Int = DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK
+
+    @Volatile
     private var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
 
     @Volatile
@@ -148,6 +160,8 @@ object ManifestationConfig {
         splinterWatchdogMaxAvgExecMs = effective.splinterWatchdogMaxAvgExecMs
         splinterWatchdogMaxBreaches = effective.splinterWatchdogMaxBreaches
         splinterMaxActivePerOwner = effective.splinterMaxActivePerOwner
+        splinterMaxExecutionsPerTick = effective.splinterMaxExecutionsPerTick
+        splinterMaxRecordScansPerTick = effective.splinterMaxRecordScansPerTick
         splinterCasterEnabled = effective.splinterCasterEnabled
 
         constellationFeatureEnabled = effective.constellationFeatureEnabled
@@ -164,7 +178,8 @@ object ManifestationConfig {
                 "menuDispatchRefillPerSecond={}, menuDispatchBurstTokens={}, menuDispatchViolationDecayMs={}, " +
                 "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}, " +
                 "splinterWatchdogMaxAvgExecMs={}, splinterWatchdogMaxBreaches={}, " +
-                "splinterMaxActivePerOwner={}, splinterCasterEnabled={}, constellationFeatureEnabled={}, particleBlobLoaderEnabled={}",
+                "splinterMaxActivePerOwner={}, splinterMaxExecutionsPerTick={}, splinterMaxRecordScansPerTick={}, " +
+                "splinterCasterEnabled={}, constellationFeatureEnabled={}, particleBlobLoaderEnabled={}",
             menuLoopWindowMs,
             menuLoopTriggerCount,
             intentRelayMaxRangeBlocks,
@@ -182,6 +197,8 @@ object ManifestationConfig {
             splinterWatchdogMaxAvgExecMs,
             splinterWatchdogMaxBreaches,
             splinterMaxActivePerOwner,
+            splinterMaxExecutionsPerTick,
+            splinterMaxRecordScansPerTick,
             splinterCasterEnabled,
             constellationFeatureEnabled,
             particleBlobLoaderEnabled
@@ -221,6 +238,10 @@ object ManifestationConfig {
     fun splinterWatchdogMaxBreaches(): Int = splinterWatchdogMaxBreaches
 
     fun splinterMaxActivePerOwner(): Int = splinterMaxActivePerOwner
+
+    fun splinterMaxExecutionsPerTick(): Int = splinterMaxExecutionsPerTick
+
+    fun splinterMaxRecordScansPerTick(): Int = splinterMaxRecordScansPerTick
 
     fun splinterCasterEnabled(): Boolean = splinterCasterEnabled
 
@@ -324,6 +345,14 @@ object ManifestationConfig {
                 MIN_SPLINTER_MAX_ACTIVE_PER_OWNER,
                 MAX_SPLINTER_MAX_ACTIVE_PER_OWNER
             ),
+            splinterMaxExecutionsPerTick = raw.splinterMaxExecutionsPerTick.coerceIn(
+                MIN_SPLINTER_MAX_EXECUTIONS_PER_TICK,
+                MAX_SPLINTER_MAX_EXECUTIONS_PER_TICK
+            ),
+            splinterMaxRecordScansPerTick = raw.splinterMaxRecordScansPerTick.coerceIn(
+                MIN_SPLINTER_MAX_RECORD_SCANS_PER_TICK,
+                MAX_SPLINTER_MAX_RECORD_SCANS_PER_TICK
+            ),
             splinterCasterEnabled = raw.splinterCasterEnabled,
             constellationFeatureEnabled = raw.constellationFeatureEnabled,
             particleBlobLoaderEnabled = raw.particleBlobLoaderEnabled
@@ -354,6 +383,8 @@ object ManifestationConfig {
         var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
         var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES,
         var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER,
+        var splinterMaxExecutionsPerTick: Int = DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK,
+        var splinterMaxRecordScansPerTick: Int = DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK,
         var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED,
         var constellationFeatureEnabled: Boolean = DEFAULT_CONSTELLATION_FEATURE_ENABLED,
         var particleBlobLoaderEnabled: Boolean = DEFAULT_PARTICLE_BLOB_LOADER_ENABLED
