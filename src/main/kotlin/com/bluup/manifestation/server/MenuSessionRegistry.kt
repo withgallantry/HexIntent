@@ -142,6 +142,7 @@ object MenuSessionRegistry {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun isCircleContextValid(player: ServerPlayer, circleContext: CircleContext?): Boolean {
         if (circleContext == null) {
             return false

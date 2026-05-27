@@ -8,6 +8,7 @@ import at.petrak.hexcasting.client.render.PatternColors;
 import at.petrak.hexcasting.client.render.WorldlyPatternRenderHelpers;
 import at.petrak.hexcasting.common.particles.ConjureParticleOptions;
 import com.bluup.manifestation.common.ManifestationNetworking;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Comparator;
 
 public final class SpellCircleVisuals {
     private static final Map<CircleKey, CircleState> ACTIVE = new HashMap<>();
@@ -42,7 +44,8 @@ public final class SpellCircleVisuals {
     private static final int CIRCLE_SEGMENTS = 64;
     private static final double BASE_RADIUS = 1.1;
     private static final double RADIUS_PER_PATTERN = 0.09;
-    private static final double CIRCLE_SPIN_RATE = 0.004;
+    private static final double CIRCLE_SPIN_RATE = 0.010;
+    private static final double OVERLAP_LAYER_STEP = 0.0018;
 
     private SpellCircleVisuals() {
     }
@@ -55,6 +58,7 @@ public final class SpellCircleVisuals {
                 long id = buf.readLong();
                 Vec3 origin = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 Vec3 normal = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
+                Vec3 openingAngle = new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble());
                 int lifetimeTicks = Mth.clamp(buf.readVarInt(), 1, MAX_TICKS);
                 int sizeTier = Mth.clamp(buf.readVarInt(), 1, 6);
                 var colorTag = buf.readNbt();
@@ -84,12 +88,17 @@ public final class SpellCircleVisuals {
                         return;
                     }
 
+                    if (!isFinite(origin) || !isFinite(normal) || !isFinite(openingAngle)) {
+                        return;
+                    }
+
                     long now = client.level.getGameTime();
                     CircleKey key = new CircleKey(dimensionId, id);
                     CircleState state = new CircleState();
                     state.dimensionId = dimensionId;
                     state.origin = origin;
                     state.normal = safeNormal(normal);
+                    state.openingAngle = openingAngle;
                     state.patterns = List.copyOf(patterns);
                     state.initialLifetimeTicks = lifetimeTicks;
                     state.remainingTicks = lifetimeTicks;
@@ -135,15 +144,28 @@ public final class SpellCircleVisuals {
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
         long now = mc.level.getGameTime();
 
-        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        VertexConsumer vc = buffers.getBuffer(RenderType.lightning());
+        MultiBufferSource.BufferSource glyphBuffers = mc.renderBuffers().bufferSource();
+        MultiBufferSource.BufferSource lineBuffers = MultiBufferSource.immediate(new BufferBuilder(8192));
+        VertexConsumer vc = lineBuffers.getBuffer(RenderType.lightning());
 
         poseStack.pushPose();
         poseStack.translate(-camera.x, -camera.y, -camera.z);
         try {
             Matrix4f mat = poseStack.last().pose();
-            for (CircleState state : ACTIVE.values()) {
+            List<Map.Entry<CircleKey, CircleState>> circles = new ArrayList<>(ACTIVE.entrySet());
+            circles.sort(Comparator
+                .comparingDouble((Map.Entry<CircleKey, CircleState> entry) -> entry.getValue().origin.distanceToSqr(camera))
+                .reversed()
+                .thenComparing(entry -> entry.getKey().dimensionId())
+                .thenComparingLong(entry -> entry.getKey().id()));
+
+            int overlapLayer = 0;
+            for (Map.Entry<CircleKey, CircleState> entry : circles) {
+                CircleState state = entry.getValue();
                 if (!Objects.equals(currentDimension, state.dimensionId)) {
+                    continue;
+                }
+                if (!isFinite(state.origin) || !isFinite(state.normal) || !isFinite(state.openingAngle)) {
                     continue;
                 }
 
@@ -152,11 +174,11 @@ public final class SpellCircleVisuals {
                     continue;
                 }
 
-                renderCircleState(vc, mat, poseStack, buffers, state, now, alpha);
+                renderCircleState(vc, mat, poseStack, glyphBuffers, state, now, alpha, overlapLayer++);
             }
         } finally {
             poseStack.popPose();
-            buffers.endBatch();
+            lineBuffers.endBatch(RenderType.lightning());
         }
     }
 
@@ -167,12 +189,15 @@ public final class SpellCircleVisuals {
         MultiBufferSource buffers,
         CircleState state,
         long now,
-        float alpha
+        float alpha,
+        int overlapLayer
     ) {
-        Basis basis = buildBasis(state.normal);
+        Basis basis = buildBasis(state.normal, state.openingAngle);
         Basis spunBasis = rotateBasis(basis, now * CIRCLE_SPIN_RATE);
+        Vec3 lineOrigin = state.origin.add(spunBasis.n().scale(OVERLAP_LAYER_STEP * overlapLayer));
         double pulse = 1.0 + Math.sin(now * 0.14) * 0.035;
-        double scale = state.scaleMultiplier;
+        double openingScale = openingScaleFor(state.remainingTicks, state.initialLifetimeTicks);
+        double scale = state.scaleMultiplier * openingScale;
 
         double radius = ((BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * scale) * pulse;
         double outerRingRadius = radius;
@@ -196,9 +221,9 @@ public final class SpellCircleVisuals {
         float rimG = Mth.clamp(tintG * 0.72f + 0.28f, 0.0f, 1.0f);
         float rimB = Mth.clamp(tintB * 0.72f + 0.28f, 0.0f, 1.0f);
 
-        drawCircleOutline(vc, mat, state.origin, spunBasis, outerRingRadius, outerRingWidth, rimR, rimG, rimB, alpha * 0.92f);
-        drawCircleOutline(vc, mat, state.origin, spunBasis, innerRingRadius, innerRingWidth, coreR, coreG, coreB, alpha * 0.86f);
-        drawTriangleOutline(vc, mat, state.origin, spunBasis, triangleRadius, triangleWidth, coreR, coreG, coreB, alpha * 0.82f);
+        drawCircleOutline(vc, mat, lineOrigin, spunBasis, outerRingRadius, outerRingWidth, rimR, rimG, rimB, alpha * 0.92f);
+        drawCircleOutline(vc, mat, lineOrigin, spunBasis, innerRingRadius, innerRingWidth, coreR, coreG, coreB, alpha * 0.86f);
+        drawTriangleOutline(vc, mat, lineOrigin, spunBasis, triangleRadius, triangleWidth, coreR, coreG, coreB, alpha * 0.82f);
 
         int count = state.patterns.size();
         if (count <= 0) {
@@ -357,14 +382,20 @@ public final class SpellCircleVisuals {
         float b,
         float a
     ) {
+        if (!isFinite(from) || !isFinite(to) || !isFinite(normal)) {
+            return;
+        }
+
         Vec3 tangent = to.subtract(from);
         if (tangent.lengthSqr() <= 1.0e-8) {
             return;
         }
 
-        Vec3 side = normal.cross(tangent).normalize();
+        Vec3 side = normal.cross(tangent);
         if (side.lengthSqr() <= 1.0e-8) {
             side = orthogonal(normal);
+        } else {
+            side = side.normalize();
         }
         Vec3 off = side.scale(width * 0.5);
 
@@ -388,6 +419,10 @@ public final class SpellCircleVisuals {
         float b,
         float a
     ) {
+        if (!isFinite(p0) || !isFinite(p1) || !isFinite(p2) || !isFinite(p3)) {
+            return;
+        }
+
         vertex(vc, mat, p0, r, g, b, a);
         vertex(vc, mat, p1, r, g, b, a);
         vertex(vc, mat, p2, r, g, b, a);
@@ -410,7 +445,7 @@ public final class SpellCircleVisuals {
             return;
         }
 
-        Basis basis = buildBasis(state.normal);
+        Basis basis = buildBasis(state.normal, state.openingAngle);
         double radius = (BASE_RADIUS + (state.patterns.size() * RADIUS_PER_PATTERN)) * state.scaleMultiplier;
         Random rng = new Random(id ^ (state.lastUpdateTick * 31L));
 
@@ -464,10 +499,30 @@ public final class SpellCircleVisuals {
         return Mth.clamp(Math.min(fadeIn, fadeOut), 0.0f, 1.0f);
     }
 
-    private static Basis buildBasis(Vec3 normal) {
+    private static double openingScaleFor(int remainingTicks, int initialTicks) {
+        if (remainingTicks <= 0) {
+            return 0.0;
+        }
+
+        int warmup = Math.min(FADE_TICKS, initialTicks);
+        if (warmup <= 0) {
+            return 1.0;
+        }
+
+        float progress = remainingTicks >= (initialTicks - warmup)
+            ? (initialTicks - remainingTicks + 1) / (float) Math.max(1, warmup)
+            : 1.0f;
+        float eased = progress * progress * (3.0f - (2.0f * progress));
+        return Mth.clamp(eased, 0.0f, 1.0f);
+    }
+
+    private static Basis buildBasis(Vec3 normal, Vec3 openingAngle) {
         Vec3 n = safeNormal(normal);
-        Vec3 reference = Math.abs(n.y) > 0.92 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
-        Vec3 u = n.cross(reference);
+        Vec3 u = projectOntoPlane(openingAngle, n);
+        if (u.lengthSqr() <= 1.0e-8) {
+            Vec3 fallback = Math.abs(n.y) > 0.92 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(0.0, 1.0, 0.0);
+            u = projectOntoPlane(fallback, n);
+        }
         if (u.lengthSqr() <= 1.0e-8) {
             u = new Vec3(0.0, 0.0, 1.0);
         }
@@ -476,11 +531,22 @@ public final class SpellCircleVisuals {
         return new Basis(u, v, n);
     }
 
+    private static Vec3 projectOntoPlane(Vec3 v, Vec3 normal) {
+        return v.subtract(normal.scale(v.dot(normal)));
+    }
+
     private static Vec3 safeNormal(Vec3 normal) {
+        if (!isFinite(normal)) {
+            return new Vec3(0.0, 1.0, 0.0);
+        }
         if (normal.lengthSqr() <= 1.0e-8) {
             return new Vec3(0.0, 1.0, 0.0);
         }
         return normal.normalize();
+    }
+
+    private static boolean isFinite(Vec3 v) {
+        return Double.isFinite(v.x) && Double.isFinite(v.y) && Double.isFinite(v.z);
     }
 
     private static Vec3 orthogonal(Vec3 v) {
@@ -512,6 +578,7 @@ public final class SpellCircleVisuals {
         String dimensionId = "";
         Vec3 origin = Vec3.ZERO;
         Vec3 normal = new Vec3(0.0, 1.0, 0.0);
+        Vec3 openingAngle = new Vec3(1.0, 0.0, 0.0);
         List<HexPattern> patterns = List.of();
         int initialLifetimeTicks = 1;
         int remainingTicks = 1;

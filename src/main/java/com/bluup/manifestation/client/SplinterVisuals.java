@@ -2,6 +2,7 @@ package com.bluup.manifestation.client;
 
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -107,7 +108,7 @@ public final class SplinterVisuals {
 
         String dimensionId = mc.level.dimension().location().toString();
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
-        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(4096));
         long gameTime = mc.level.getGameTime();
 
         try {

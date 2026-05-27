@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel
 
 /**
  * Stack shape on entry (top -> bottom):
+ *   optional angle vector (vector, projected onto circle plane)
  *   optional size tier (number 1..6, default 3)
  *   lifetime ticks (number)
  *   circle facing (vector)
@@ -42,15 +43,33 @@ object OpSpellCircle : Action {
         }
 
         var sizeTier = DEFAULT_SIZE_TIER
-        if (stack.size >= 5) {
-            val maybeTier = stack.lastOrNull()
-            if (maybeTier is DoubleIota) {
-                val parsedTier = Math.round(maybeTier.double).toInt()
-                if (parsedTier < 1 || parsedTier > 6) {
-                    throw MishapInvalidIota.ofType(maybeTier, 0, "number between 1 and 6")
+        var angleVector: net.minecraft.world.phys.Vec3? = null
+        var consumedTier = false
+
+        while (stack.size > 4) {
+            val optional = stack.lastOrNull() ?: break
+            when {
+                optional is DoubleIota && !consumedTier -> {
+                    val parsedTier = Math.round(optional.double).toInt()
+                    if (parsedTier < 1 || parsedTier > 6) {
+                        throw MishapInvalidIota.ofType(optional, 0, "number between 1 and 6")
+                    }
+                    sizeTier = parsedTier
+                    consumedTier = true
+                    stack.removeAt(stack.lastIndex)
                 }
-                sizeTier = parsedTier
-                stack.removeAt(stack.lastIndex)
+
+                optional is Vec3Iota && angleVector == null -> {
+                    if (optional.vec3.lengthSqr() <= 1.0e-8) {
+                        throw MishapInvalidIota.ofType(optional, 0, "non-zero vector")
+                    }
+                    angleVector = optional.vec3
+                    stack.removeAt(stack.lastIndex)
+                }
+
+                else -> {
+                    throw MishapInvalidIota.ofType(optional, 0, "number between 1 and 6 or vector")
+                }
             }
         }
 
@@ -70,6 +89,14 @@ object OpSpellCircle : Action {
         if (facing.lengthSqr() <= 1.0e-8) {
             throw MishapInvalidIota.ofType(facingIota, 1, "non-zero vector")
         }
+        val normal = facing.normalize()
+
+        val requestedAngle = angleVector ?: defaultAngleVector(normal)
+        val projectedAngle = requestedAngle.subtract(normal.scale(requestedAngle.dot(normal)))
+        if (projectedAngle.lengthSqr() <= 1.0e-8) {
+            throw MishapInvalidIota.ofType(facingIota, 1, "facing not parallel to angle vector")
+        }
+        val openingAngle = projectedAngle.normalize()
 
         val origin = (originIota as? Vec3Iota)?.vec3
             ?: throw MishapInvalidIota.ofType(originIota, 2, "vector")
@@ -92,10 +119,8 @@ object OpSpellCircle : Action {
             patterns.add(pattern.anglesSignature() to pattern.startDir)
         }
 
-        val level = env.world as? ServerLevel
-        if (level != null) {
-            ManifestationServer.sendSpellCircleTo(level, origin, facing.normalize(), lifetimeTicks, sizeTier, patterns, env.pigment)
-        }
+        val level: ServerLevel = env.world
+        ManifestationServer.sendSpellCircleTo(level, origin, normal, openingAngle, lifetimeTicks, sizeTier, patterns, env.pigment)
 
         if (env.extractMedia(CIRCLE_MEDIA_COST, true) > 0) {
             throw MishapNotEnoughMedia(CIRCLE_MEDIA_COST)
@@ -111,4 +136,13 @@ object OpSpellCircle : Action {
     }
 
     private val CIRCLE_MEDIA_COST = (MediaConstants.DUST_UNIT / 500L).coerceAtLeast(1L)
+
+    private fun defaultAngleVector(normal: net.minecraft.world.phys.Vec3): net.minecraft.world.phys.Vec3 {
+        val up = net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0)
+        return if (kotlin.math.abs(normal.dot(up)) > 0.92) {
+            net.minecraft.world.phys.Vec3(1.0, 0.0, 0.0)
+        } else {
+            up
+        }
+    }
 }

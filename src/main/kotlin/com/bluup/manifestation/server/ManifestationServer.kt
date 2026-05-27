@@ -104,14 +104,6 @@ object ManifestationServer : ModInitializer {
         EchoRuntime.register()
         SplinterRuntime.register()
 
-        // Register a listener for all CastingEnvironment creations
-        at.petrak.hexcasting.api.casting.eval.CastingEnvironment.addCreateEventListener { env, userData ->
-            // Inject Manifestation hooks or perform environment-specific setup here
-            // Example: log or register menu actions if needed
-            Manifestation.LOGGER.info("Manifestation: Detected new CastingEnvironment of type {} (userData={})", env.javaClass.name, userData)
-            // If you need to register per-environment hooks, do it here
-        }
-
         Manifestation.LOGGER.info(
             "Manifestation: registered menu constructors, menu actions, ui iota types, and dispatch receiver."
         )
@@ -205,9 +197,7 @@ object ManifestationServer : ModInitializer {
         registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
-        if (ManifestationConfig.particleBlobLoaderEnabled()) {
-            registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
-        }
+        registerAction("particle_blob_scatter", "qaqeadd", HexDir.NORTH_EAST, OpParticleBlobScatter)
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
         registerAction("set_charm_cast_sound", "wedwwdwee", HexDir.EAST, OpSetCharmCastSound)
@@ -301,6 +291,14 @@ object ManifestationServer : ModInitializer {
                             tags.add(tag)
                         }
                         inputs.add(MenuActionDispatcher.InputDatum.iotaList(order, tags))
+                    }
+
+                    null -> {
+                        Manifestation.LOGGER.warn(
+                            "Manifestation dispatch: rejecting packet from {} due to null input kind",
+                            player.name.string
+                        )
+                        return@registerGlobalReceiver
                     }
                 }
             }
@@ -1081,6 +1079,7 @@ object ManifestationServer : ModInitializer {
         level: ServerLevel,
         origin: net.minecraft.world.phys.Vec3,
         facing: net.minecraft.world.phys.Vec3,
+        openingAngle: net.minecraft.world.phys.Vec3,
         lifetimeTicks: Int,
         sizeTier: Int,
         patterns: List<Pair<String, HexDir>>,
@@ -1110,6 +1109,9 @@ object ManifestationServer : ModInitializer {
             buf.writeDouble(facing.x)
             buf.writeDouble(facing.y)
             buf.writeDouble(facing.z)
+            buf.writeDouble(openingAngle.x)
+            buf.writeDouble(openingAngle.y)
+            buf.writeDouble(openingAngle.z)
             buf.writeVarInt(lifetime)
             buf.writeVarInt(clampedTier)
             buf.writeNbt(colorizer.serializeToNBT())

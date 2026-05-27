@@ -38,7 +38,7 @@ public class ItemManifestationStaff extends ItemStaff {
     protected static final AttributeModifier MEDIA_COST_REDUCTION = new AttributeModifier(
         UUID.fromString("54fa889d-ac03-4e44-a3ee-2068efa1f44d"),
         "Manifestation Staff Media Reduction",
-        -0.5,
+        -0.2,
         AttributeModifier.Operation.MULTIPLY_TOTAL
     );
 

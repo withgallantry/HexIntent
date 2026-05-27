@@ -79,6 +79,7 @@ class ParticleImporterBlock(properties: Properties) : Block(properties), EntityB
         return InteractionResult.CONSUME
     }
 
+    @Suppress("DEPRECATION")
     override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, isMoving: Boolean) {
         if (state.block != newState.block) {
             val be = level.getBlockEntity(pos) as? ParticleImporterBlockEntity

@@ -49,7 +49,8 @@ public final class MenuScreen extends Screen {
     private static final int PANEL_PADDING = 8;
 
     // List layout constants.
-    private static final int LIST_BUTTON_WIDTH = 200;
+    private static final int LIST_BUTTON_MIN_WIDTH = 200;
+    private static final int LIST_BUTTON_MAX_WIDTH = 420;
 
     // Grid layout constants.
     private static final int GRID_BUTTON_WIDTH = 120;
@@ -219,6 +220,8 @@ public final class MenuScreen extends Screen {
         private final boolean multiSelect;
         private final java.util.LinkedHashSet<Integer> selectedIndices = new java.util.LinkedHashSet<>();
         private int scrollOffset;
+        private boolean draggingScrollbar;
+        private int scrollbarDragOffset;
 
         MenuSelectList(int x, int y, int width, Component label, List<Component> options, int maxRows, boolean multiSelect) {
             super(x, y, width, Math.max(SELECT_LIST_ROW_HEIGHT, Math.min(maxRows, 12) * SELECT_LIST_ROW_HEIGHT), label);
@@ -230,6 +233,27 @@ public final class MenuScreen extends Screen {
 
         private int maxScroll() {
             return Math.max(0, options.size() - visibleRows);
+        }
+
+        private int scrollbarThumbHeight() {
+            float ratio = visibleRows / (float) options.size();
+            return Math.max(8, (int) ((height - 4) * ratio));
+        }
+
+        private int scrollbarThumbY(int thumbHeight) {
+            int range = (height - 4) - thumbHeight;
+            return getY() + 2 + (maxScroll() == 0 ? 0 : Math.round(range * (scrollOffset / (float) maxScroll())));
+        }
+
+        private void setScrollFromThumbTop(int thumbTop, int thumbHeight) {
+            int range = (height - 4) - thumbHeight;
+            if (range <= 0 || maxScroll() == 0) {
+                scrollOffset = 0;
+                return;
+            }
+            int clampedTop = Mth.clamp(thumbTop, getY() + 2, getY() + 2 + range);
+            float ratio = (clampedTop - (getY() + 2)) / (float) range;
+            scrollOffset = Mth.clamp(Math.round(ratio * maxScroll()), 0, maxScroll());
         }
 
         List<Integer> selectedSorted() {
@@ -257,6 +281,27 @@ public final class MenuScreen extends Screen {
                 return false;
             }
 
+            if (maxScroll() > 0) {
+                int x = getX();
+                int y = getY();
+                int w = width;
+                int h = height;
+                int railX0 = x + w - 4;
+                int railX1 = x + w - 2;
+                if (mouseX >= railX0 && mouseX <= railX1 && mouseY >= y + 2 && mouseY <= y + h - 2) {
+                    int thumbH = scrollbarThumbHeight();
+                    int thumbY = scrollbarThumbY(thumbH);
+                    draggingScrollbar = true;
+                    if (mouseY >= thumbY && mouseY <= thumbY + thumbH) {
+                        scrollbarDragOffset = (int) mouseY - thumbY;
+                    } else {
+                        scrollbarDragOffset = thumbH / 2;
+                        setScrollFromThumbTop((int) mouseY - scrollbarDragOffset, thumbH);
+                    }
+                    return true;
+                }
+            }
+
             int localY = (int) mouseY - getY();
             int row = localY / SELECT_LIST_ROW_HEIGHT;
             int optionIndex = scrollOffset + row;
@@ -278,6 +323,26 @@ public final class MenuScreen extends Screen {
         }
 
         @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            if (!draggingScrollbar || button != 0) {
+                return false;
+            }
+
+            int thumbH = scrollbarThumbHeight();
+            setScrollFromThumbTop((int) mouseY - scrollbarDragOffset, thumbH);
+            return true;
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            if (button == 0 && draggingScrollbar) {
+                draggingScrollbar = false;
+                return true;
+            }
+            return super.mouseReleased(mouseX, mouseY, button);
+        }
+
+        @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             int x = getX();
             int y = getY();
@@ -290,21 +355,31 @@ public final class MenuScreen extends Screen {
             graphics.fill(x, y, x + 1, y + h, themed(0xFF9DC8FF, 0xFF8EE8FF));
             graphics.fill(x + w - 1, y, x + w, y + h, themed(0xFF9DC8FF, 0xFF8EE8FF));
 
+            int textWidth = Math.max(10, w - (maxScroll() > 0 ? 14 : 8));
             for (int row = 0; row < visibleRows; row++) {
                 int optionIndex = scrollOffset + row;
-                if (optionIndex >= options.size()) {
-                    break;
-                }
-
                 int rowY = y + row * SELECT_LIST_ROW_HEIGHT;
-                boolean selected = selectedIndices.contains(optionIndex);
-                int rowColor = selected ? themed(0xAA3A2B67, 0xAA245F7E) : themed(0x5530254A, 0x55304B59);
+                boolean inRange = optionIndex >= 0 && optionIndex < options.size();
+                boolean selected = inRange && selectedIndices.contains(optionIndex);
+                int rowColor = selected
+                    ? themed(0xAA3A2B67, 0xAA245F7E)
+                    : themed(0x5530254A, 0x55304B59);
                 graphics.fill(x + 1, rowY + 1, x + w - 1, rowY + SELECT_LIST_ROW_HEIGHT - 1, rowColor);
 
-                String prefix = selected ? (multiSelect ? "[x] " : "> ") : (multiSelect ? "[ ] " : "  ");
-                String optionText = prefix + options.get(optionIndex).getString();
-                String fitted = font.plainSubstrByWidth(optionText, Math.max(10, w - 8));
-                graphics.drawString(font, fitted, x + 4, rowY + 6, themed(0xFFE2D6FF, 0xFFD2F3FF), false);
+                if (inRange) {
+                    String prefix = selected ? (multiSelect ? "[x] " : "> ") : (multiSelect ? "[ ] " : "  ");
+                    String optionText = prefix + options.get(optionIndex).getString();
+                    String fitted = fitTextWithEllipsis(optionText, textWidth);
+                    graphics.drawString(font, fitted, x + 4, rowY + 6, themed(0xFFE2D6FF, 0xFFD2F3FF), false);
+                }
+            }
+
+            if (options.isEmpty()) {
+                String emptyLabel = "(empty)";
+                int emptyColor = themed(0xBFB5D8, 0xA7CFE0);
+                int emptyX = x + (w - font.width(emptyLabel)) / 2;
+                int emptyY = y + (SELECT_LIST_ROW_HEIGHT - font.lineHeight) / 2 + 1;
+                graphics.drawString(font, emptyLabel, emptyX, emptyY, emptyColor, false);
             }
 
             if (maxScroll() > 0) {
@@ -312,10 +387,8 @@ public final class MenuScreen extends Screen {
                 int railX1 = x + w - 2;
                 graphics.fill(railX0, y + 2, railX1, y + h - 2, themed(0x77443062, 0x77407086));
 
-                float ratio = visibleRows / (float) options.size();
-                int thumbH = Math.max(8, (int) ((h - 4) * ratio));
-                int range = (h - 4) - thumbH;
-                int thumbY = y + 2 + (maxScroll() == 0 ? 0 : Math.round(range * (scrollOffset / (float) maxScroll())));
+                int thumbH = scrollbarThumbHeight();
+                int thumbY = scrollbarThumbY(thumbH);
                 graphics.fill(railX0, thumbY, railX1, thumbY + thumbH, themed(0xFFC1A2FF, 0xFF9DEBFF));
             }
         }
@@ -451,10 +524,19 @@ public final class MenuScreen extends Screen {
 
     private int panelWidthForColumns(int columns) {
         if (columns <= 1) {
-            return LIST_BUTTON_WIDTH + PANEL_PADDING * 2;
+            return listButtonWidth() + PANEL_PADDING * 2;
         }
         int innerWidth = columns * GRID_BUTTON_WIDTH + (columns - 1) * BUTTON_SPACING;
         return innerWidth + PANEL_PADDING * 2;
+    }
+
+    private int listButtonWidth() {
+        int availableInnerWidth = this.width - (MIN_PANEL_MARGIN * 2) - (PANEL_PADDING * 2);
+        int clampedMax = Math.max(LIST_BUTTON_MIN_WIDTH, Math.min(LIST_BUTTON_MAX_WIDTH, availableInnerWidth));
+        if (availableInnerWidth <= 0) {
+            return LIST_BUTTON_MIN_WIDTH;
+        }
+        return Math.max(120, clampedMax);
     }
 
     private int panelWidthForLayout(List<MenuEntry> entries, int columns) {
@@ -837,6 +919,9 @@ public final class MenuScreen extends Screen {
             drawSectionLabels(graphics, panelX, panelY, entries, columns);
             drawRuneLinks(graphics, panelX, panelY, entries, columns, pulse);
             drawHoverShimmer(graphics, mouseX, mouseY, pulse);
+            if (entries.isEmpty()) {
+                drawEmptyEntriesHint(graphics, panelX, panelY, panelWidth, panelHeight);
+            }
         }
         drawSigils(graphics, panelX, panelY, panelWidth, panelHeight, pulse);
 
@@ -1554,6 +1639,7 @@ public final class MenuScreen extends Screen {
     private List<PositionedEntry> computeListPlacements(List<MenuEntry> entries, int panelX, int panelY) {
         List<PositionedEntry> placements = new ArrayList<>(entries.size());
         int rowStartY = panelY + PANEL_PADDING + this.font.lineHeight + TITLE_MARGIN;
+        int buttonWidth = listButtonWidth();
         int y = rowStartY;
 
         for (int i = 0; i < entries.size(); i++) {
@@ -1564,11 +1650,21 @@ public final class MenuScreen extends Screen {
                 y += BUTTON_SPACING;
             }
             placements.add(
-                new PositionedEntry(i, entry, new EntryBounds(x, y, LIST_BUTTON_WIDTH, height))
+                new PositionedEntry(i, entry, new EntryBounds(x, y, buttonWidth, height))
             );
             y += height;
         }
         return placements;
+    }
+
+    private String fitTextWithEllipsis(String raw, int maxTextWidth) {
+        if (this.font.width(raw) <= maxTextWidth) {
+            return raw;
+        }
+
+        String ellipsis = "...";
+        int allowed = Math.max(6, maxTextWidth - this.font.width(ellipsis));
+        return this.font.plainSubstrByWidth(raw, allowed) + ellipsis;
     }
 
     private List<PositionedEntry> computeGridPlacements(List<MenuEntry> entries, int panelX, int panelY, int columns) {
@@ -1710,5 +1806,12 @@ public final class MenuScreen extends Screen {
             graphics.fill(x1, y, x1 + 1, y + sy, color);
             graphics.fill(x, y1, x + sx, y1 + 1, color);
         }
+    }
+
+    private void drawEmptyEntriesHint(GuiGraphics graphics, int panelX, int panelY, int panelWidth, int panelHeight) {
+        String hint = "No entries";
+        int x = panelX + (panelWidth - this.font.width(hint)) / 2;
+        int y = panelY + (panelHeight / 2) - (this.font.lineHeight / 2);
+        graphics.drawString(this.font, hint, x, y, themed(0xCBBBE2, 0xB2D8E8), false);
     }
 }

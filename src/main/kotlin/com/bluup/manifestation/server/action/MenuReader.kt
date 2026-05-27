@@ -42,12 +42,6 @@ internal object MenuReader {
     data class ReadResult(val title: Component, val entries: List<MenuEntry>)
 
     fun readMenu(stack: MutableList<Iota>): ReadResult {
-        Manifestation.LOGGER.info(
-            "MenuReader.readMenu: stack size = {}, top 4 = {}",
-            stack.size,
-            stack.takeLast(4).map { "${it::class.simpleName}(${it.display().string})" }
-        )
-
         if (stack.size < 2) {
             throw MishapNotEnoughArgs(2, stack.size)
         }
@@ -57,15 +51,6 @@ internal object MenuReader {
         val buttonsIota = stack.removeAt(stack.lastIndex)
 
         val title: Component = titleIota.display()
-        Manifestation.LOGGER.info(
-            "MenuReader: title = '{}' (type {})",
-            title.string, titleIota::class.simpleName
-        )
-
-        Manifestation.LOGGER.info(
-            "MenuReader: buttons-slot iota type {}",
-            buttonsIota::class.simpleName
-        )
         if (buttonsIota !is ListIota) {
             Manifestation.LOGGER.warn(
                 "MenuReader: buttons slot is NOT a ListIota — it is {}. Mishapping.",
@@ -82,10 +67,6 @@ internal object MenuReader {
         for (entryIota in buttonsIota.list) {
             val entry = tryReadEntry(entryIota, index)
             if (entry != null) {
-                Manifestation.LOGGER.info(
-                    "MenuReader: entry[{}] ACCEPTED — kind={}, label='{}', {} actions",
-                    index, entry.kind(), entry.label().string, entry.actions().size
-                )
                 entries.add(entry)
             } else {
                 Manifestation.LOGGER.warn(
@@ -95,11 +76,6 @@ internal object MenuReader {
             }
             index++
         }
-
-        Manifestation.LOGGER.info(
-            "MenuReader: final result — title='{}', {} of {} entries accepted",
-            title.string, entries.size, index
-        )
         return ReadResult(title, entries)
     }
 
@@ -152,10 +128,6 @@ internal object MenuReader {
                 val stored = mutableListOf<StoredIota>()
                 var actionIndex = 0
                 for (action in entryIota.actions) {
-                    Manifestation.LOGGER.info(
-                        "    button[{}].action[{}]: type = {}",
-                        index, actionIndex, action::class.simpleName
-                    )
                     stored.add(StoredIota.of(action))
                     actionIndex++
                 }

@@ -10,6 +10,10 @@
       "text": "hexcasting.page.manifestation.splinters_intro"
     },
     {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters_intro.2"
+    },
+    {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:manifest_splinter",
       "anchor": "manifestation:manifest_splinter",
@@ -18,12 +22,20 @@
       "text": "hexcasting.page.manifestation.splinters.manifest_splinter"
     },
     {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.manifest_splinter.2"
+    },
+    {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:renew_splinter",
       "anchor": "manifestation:renew_splinter",
       "input": "vec, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.renew_splinter"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.renew_splinter.2"
     },
     {
       "type": "hexcasting:pattern",
@@ -40,46 +52,6 @@
       "input": "",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.destroy_splinters"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:hex_trail",
-      "anchor": "manifestation:hex_trail",
-      "input": "vec, vec, vec, num, num, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.hex_trail"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:particle_blob_scatter",
-      "anchor": "manifestation:particle_blob_scatter",
-      "input": "[vec | pair], num",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.particle_scatter"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:particle_blob_scatter",
-      "anchor": "manifestation:particle_blob_scatter",
-      "input": "vec, blob, ticks?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.particle_blob_scatter"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:equation_hex_cloud",
-      "anchor": "manifestation:equation_hex_cloud",
-      "input": "target, equation, num",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:spell_circle",
-      "anchor": "manifestation:spell_circle",
-      "input": "[pattern], vec, vec, num, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.spell_circle"
     }
   ]
 }

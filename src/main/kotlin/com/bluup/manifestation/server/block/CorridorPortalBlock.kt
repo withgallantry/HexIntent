@@ -106,9 +106,10 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
             return
         }
 
-        portal.tryTeleport(server, entity, state)
+        portal.tryTeleport(server, entity)
     }
 
+    @Suppress("DEPRECATION")
     override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, isMoving: Boolean) {
         if (state.block != newState.block) {
             val server = level as? ServerLevel

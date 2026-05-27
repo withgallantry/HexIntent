@@ -10,6 +10,10 @@
       "text": "hexcasting.page.manifestation.intro"
     },
     {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intro.2"
+    },
+    {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_list_menu",
       "anchor": "manifestation:create_list_menu",
@@ -66,12 +70,20 @@
       "text": "hexcasting.page.manifestation.menus.set_charm_cast_sound"
     },
     {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.menus.set_charm_cast_sound.2"
+    },
+    {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:manifest_echo",
       "anchor": "manifestation:manifest_echo",
       "input": "vec, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.manifest_echo"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intents.manifest_echo.2"
     },
     {
       "type": "hexcasting:pattern",
@@ -104,6 +116,54 @@
       "input": "vec, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.destroy_manifestation"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:hex_trail",
+      "anchor": "manifestation:hex_trail",
+      "input": "vec, vec, vec, num, num, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.3"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.4"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:equation_hex_cloud",
+      "anchor": "manifestation:equation_hex_cloud",
+      "input": "target, equation, num",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.3"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:spell_circle",
+      "anchor": "manifestation:spell_circle",
+      "input": "[pattern], vec, vec, num, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.spell_circle"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.spell_circle.2"
     }
   ]
 }

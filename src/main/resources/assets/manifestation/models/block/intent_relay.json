@@ -2,8 +2,8 @@
 	"format_version": "1.21.11",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"particle": "manifestation:block/intent_circle",
-		"all": "manifestation:block/intent_circle"
+		"particle": "manifestation:block/intent_circle/intent_circle",
+		"all": "manifestation:block/intent_circle/intent_circle"
 	},
 	"elements": [
 		{

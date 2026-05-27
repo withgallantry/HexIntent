@@ -324,7 +324,7 @@ class CorridorPortalBlockEntity(
         }
     }
 
-    fun tryTeleport(level: ServerLevel, entity: Entity, state: BlockState) {
+    fun tryTeleport(level: ServerLevel, entity: Entity) {
         if (thresholdMode) {
             return
         }

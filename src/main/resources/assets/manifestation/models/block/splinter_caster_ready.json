@@ -1,12 +1,12 @@
 {
   "parent": "block/cube",
   "textures": {
-    "particle": "manifestation:block/splinter_caster_front_focused",
-    "down": "manifestation:block/splinter_caster_bottom_focused",
-    "up": "manifestation:block/splinter_caster_top_focused",
-    "north": "manifestation:block/splinter_caster_front_focused",
-    "south": "manifestation:block/splinter_caster_back_focused",
-    "east": "manifestation:block/splinter_caster_right_focused",
-    "west": "manifestation:block/splinter_caster_left_focused"
+    "particle": "manifestation:block/splinter_caster/splinter_caster_front_focused_16x16",
+    "down": "manifestation:block/splinter_caster/splinter_caster_bottom_focused_16x16",
+    "up": "manifestation:block/splinter_caster/splinter_caster_top_focused_16x16",
+    "north": "manifestation:block/splinter_caster/splinter_caster_front_focused_16x16",
+    "south": "manifestation:block/splinter_caster/splinter_caster_back_focused_16x16",
+    "east": "manifestation:block/splinter_caster/splinter_caster_right_focused_16x16",
+    "west": "manifestation:block/splinter_caster/splinter_caster_left_focused_16x16"
   }
 }

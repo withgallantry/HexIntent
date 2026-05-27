@@ -538,6 +538,7 @@ class IntentRelayBlockEntity(
             AttachFace.FLOOR -> Direction.UP
             AttachFace.CEILING -> Direction.DOWN
             AttachFace.WALL -> state.getValue(FaceAttachedHorizontalDirectionalBlock.FACING)
+            null -> Direction.UP
         }
     }
 

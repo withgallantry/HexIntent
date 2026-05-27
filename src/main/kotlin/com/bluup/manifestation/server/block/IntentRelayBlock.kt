@@ -61,6 +61,8 @@ class IntentRelayBlock(properties: Properties) : FaceAttachedHorizontalDirection
                 net.minecraft.core.Direction.EAST -> EAST_WALL_SHAPE
                 else -> Shapes.block()
             }
+
+            null -> FLOOR_SHAPE
         }
     }
 

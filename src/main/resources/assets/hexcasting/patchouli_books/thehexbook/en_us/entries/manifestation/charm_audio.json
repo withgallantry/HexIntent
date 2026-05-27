@@ -16,6 +16,14 @@
       "input": "string | text | null, item entity?",
       "output": "none",
       "text": "hexcasting.page.manifestation.charm_audio.set_charm_cast_sound"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.charm_audio.set_charm_cast_sound.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.charm_audio.set_charm_cast_sound.3"
     }
   ]
 }

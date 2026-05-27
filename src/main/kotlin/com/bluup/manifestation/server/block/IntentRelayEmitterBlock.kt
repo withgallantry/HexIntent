@@ -60,6 +60,7 @@ class IntentRelayEmitterBlock(properties: Properties) : FaceAttachedHorizontalDi
         AttachFace.FLOOR -> pos.below()
         AttachFace.CEILING -> pos.above()
         AttachFace.WALL -> pos.relative(state.getValue(FACING).opposite)
+        null -> pos
     }
 
     companion object {

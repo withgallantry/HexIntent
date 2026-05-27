@@ -17,10 +17,13 @@ import com.bluup.manifestation.server.iota.UiSelectListIota
  * Constructor operator for typed selectable list entries.
  *
  * Stack shape on entry (top -> bottom):
+ *   multi select? (optional boolean)
  *   label
  *   max rows
  *   [option, option, ...]
- *   multi select? (optional boolean, defaults false)
+ *
+ * Backward compatibility:
+ *   also accepts the optional boolean beneath options.
  */
 object OpUiSelectList : Action {
     override fun operate(
@@ -31,6 +34,13 @@ object OpUiSelectList : Action {
         val stack = image.stack.toMutableList()
         if (stack.size < 3) {
             throw MishapNotEnoughArgs(3, stack.size)
+        }
+
+        // Prefer the documented form where optional multi-select is on top.
+        // Keep support for the older form where it sits beneath options.
+        var parsedMultiSelect: Boolean? = null
+        if (stack.size >= 4 && stack[stack.lastIndex] is BooleanIota) {
+            parsedMultiSelect = (stack.removeAt(stack.lastIndex) as BooleanIota).bool
         }
 
         val label = stack.removeAt(stack.lastIndex)
@@ -58,10 +68,12 @@ object OpUiSelectList : Action {
             throw MishapInvalidIota.ofType(optionsIota, 2, "non_empty_list")
         }
 
-        val multiSelect = if (stack.isNotEmpty() && stack[stack.lastIndex] is BooleanIota) {
-            (stack.removeAt(stack.lastIndex) as BooleanIota).bool
-        } else {
-            false
+        val multiSelect = when {
+            parsedMultiSelect != null -> parsedMultiSelect
+            stack.isNotEmpty() && stack[stack.lastIndex] is BooleanIota -> {
+                (stack.removeAt(stack.lastIndex) as BooleanIota).bool
+            }
+            else -> false
         }
 
         val maxRowsClamped = maxRows.coerceIn(1, 12)

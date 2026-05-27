@@ -41,6 +41,7 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
+    exclude "assets/manifestation/textures/block/old/**"
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }

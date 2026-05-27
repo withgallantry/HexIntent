@@ -23,10 +23,10 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 public final class MindVaultBlockEntityRenderer implements BlockEntityRenderer<MindVaultBlockEntity> {
-    private static final ResourceLocation TEX_SLOT_READY = Manifestation.id("block/mindvault_slot_ready");
-    private static final ResourceLocation TEX_SLOT_COOLDOWN = Manifestation.id("block/mindvault_slot_cooldown");
-    private static final ResourceLocation TEX_SLOT_EMPTY = Manifestation.id("block/mindvault_slot_empty");
-    private static final ResourceLocation TEX_TYPE_NONE = Manifestation.id("block/mindvault_type_icon_none");
+    private static final ResourceLocation TEX_SLOT_READY = Manifestation.id("block/mind_vault/mindvault_slot_ready");
+    private static final ResourceLocation TEX_SLOT_COOLDOWN = Manifestation.id("block/mind_vault/mindvault_slot_cooldown");
+    private static final ResourceLocation TEX_SLOT_EMPTY = Manifestation.id("block/mind_vault/mindvault_slot_empty");
+    private static final ResourceLocation TEX_TYPE_NONE = Manifestation.id("block/mind_vault/mindvault_type_icon_none");
 
     private static final float Z_TYPE = -0.5014f;
     private static final float Z_TYPE_ITEM = -0.5016f;

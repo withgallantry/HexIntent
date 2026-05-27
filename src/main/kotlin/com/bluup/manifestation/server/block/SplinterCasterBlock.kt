@@ -287,6 +287,7 @@ class SplinterCasterBlock(properties: Properties) : BlockCircleComponent(propert
         return IXplatAbstractions.INSTANCE.findDataHolder(stack) != null
     }
 
+    @Suppress("DEPRECATION")
     override fun onRemove(
         state: BlockState,
         level: Level,

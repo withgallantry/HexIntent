@@ -2,6 +2,7 @@ package com.bluup.manifestation.client;
 
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.bluup.manifestation.server.block.IntentRelayBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -89,7 +90,7 @@ public final class IntentShifterRuneEffects {
         }
 
         Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
-        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(4096));
         try {
             for (ActiveRunes runes : ACTIVE.values()) {
                 Vec3 outward = new Vec3(runes.outward.getStepX(), runes.outward.getStepY(), runes.outward.getStepZ());

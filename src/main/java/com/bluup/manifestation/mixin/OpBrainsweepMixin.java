@@ -26,8 +26,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import org.slf4j.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,8 +37,6 @@ public abstract class OpBrainsweepMixin {
         CastingEnvironment env,
         CallbackInfoReturnable<SpellAction.Result> cir
     ) {
-        Logger logger = org.slf4j.LoggerFactory.getLogger("Manifestation/OpBrainsweepMixin");
-        logger.info("[Manifestation] OpBrainsweepMixin invoked. Args: {}", args);
         if (args == null || args.size() < 2) {
             return;
         }

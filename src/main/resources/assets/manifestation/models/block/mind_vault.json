@@ -1,12 +1,12 @@
 {
   "parent": "minecraft:block/cube",
   "textures": {
-    "particle": "manifestation:block/mindvault_front",
-    "down": "manifestation:block/mindvault_bottom",
-    "up": "manifestation:block/mindvault_top",
-    "north": "manifestation:block/mindvault_front",
-    "south": "manifestation:block/mindvault_side",
-    "west": "manifestation:block/mindvault_side",
-    "east": "manifestation:block/mindvault_side"
+    "particle": "manifestation:block/mind_vault/mindvault_front",
+    "down": "manifestation:block/mind_vault/mindvault_bottom",
+    "up": "manifestation:block/mind_vault/mindvault_top",
+    "north": "manifestation:block/mind_vault/mindvault_front",
+    "south": "manifestation:block/mind_vault/mindvault_side",
+    "west": "manifestation:block/mind_vault/mindvault_side",
+    "east": "manifestation:block/mind_vault/mindvault_side"
   }
 }

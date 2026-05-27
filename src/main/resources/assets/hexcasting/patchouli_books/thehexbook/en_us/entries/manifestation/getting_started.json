@@ -8,6 +8,10 @@
     {
       "type": "patchouli:text",
       "text": "hexcasting.page.manifestation.intro"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intro.2"
     }
   ]
 }
