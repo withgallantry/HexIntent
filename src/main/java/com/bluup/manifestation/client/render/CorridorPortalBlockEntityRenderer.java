@@ -60,9 +60,15 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final float PERMANENT_WIDTH_END_TICKS = 20.0f;
     private static final float PERMANENT_PATCH_START_TICKS = 4.0f;
     private static final float PERMANENT_PATCH_SOFTNESS = 0.20f;
+    private static final float PERMANENT_RIM_REVEAL_TICKS = 8.0f;
     private static final float PERMANENT_SEAM_HALF_WIDTH_U = 0.035f;
     private static final float PERMANENT_SEAM_MIN_HALF_WIDTH_U = 0.006f;
     private static final float PERMANENT_SEAM_CENTER_BIAS = 0.18f;
+    private static final int PERMANENT_RIM_SEGMENTS = 18;
+    private static final float PERMANENT_RIM_SIDE_WIDTH = 0.058f;
+    private static final float PERMANENT_RIM_TOP_WIDTH = 0.086f;
+    private static final float PERMANENT_RIM_WOBBLE_AMPLITUDE = 0.008f;
+    private static final float PERMANENT_RIM_WOBBLE_RATE = 2.05f;
     private static final int PERMANENT_REVEAL_COLUMNS = 24;
     private static final int PERMANENT_REVEAL_ROWS = 36;
     private static final ResourceLocation THRESHOLD_GLYPH_SPRITE = new ResourceLocation("manifestation", "block/spell_circle");
@@ -256,6 +262,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
         if (activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
+            float rimRevealProgress = resolvePermanentRimRevealProgress(blockEntity, activationAge);
             drawPermanentCorridorSquarePortal(
                 poseStack,
                 portalVc,
@@ -270,7 +277,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 trailTailColour,
                 trailHeadColour,
                 rimOuterColour,
-                rimInnerColour
+                rimInnerColour,
+                rimRevealProgress
             );
             poseStack.popPose();
             return;
@@ -297,7 +305,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 trailTailColour,
                 trailHeadColour,
                 rimOuterColour,
-                rimInnerColour
+                rimInnerColour,
+                1.0f
             );
             poseStack.popPose();
             return;
@@ -347,7 +356,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int trailTailColour,
         int trailHeadColour,
         int rimOuterColour,
-        int rimInnerColour
+        int rimInnerColour,
+        float rimRevealProgress
     ) {
         poseStack.pushPose();
         poseStack.scale(PERMANENT_HALF_WIDTH / HALF_WIDTH, PERMANENT_HALF_HEIGHT / HALF_HEIGHT, 1.0f);
@@ -356,8 +366,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawPortalSquare(poseStack, portalVc, -Z_EPSILON, 1.0f, scale);
         drawMembraneTint(poseStack, fxVc, light, 1.0f, scale, time, 1, membraneTintColour);
         drawInternalPortalAccent(poseStack, energyVc, light, 1.0f, scale, time, 1, internalAccentColour);
-        drawEdgeVeil(poseStack, fxVc, light, 1.0f, scale, time, 1, edgeVeilColour);
-        drawPurpleGlow(poseStack, energyVc, light, 1.0f, scale, time, 1, rimOuterColour, rimInnerColour);
+        drawPermanentSquareInnerRim(poseStack, fxVc, energyVc, light, scale, time, edgeVeilColour, rimOuterColour, rimInnerColour, rimRevealProgress);
 
         poseStack.popPose();
     }
@@ -413,6 +422,228 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         );
 
         poseStack.popPose();
+    }
+
+    private void drawPermanentSquareInnerRim(
+        PoseStack poseStack,
+        VertexConsumer veilVc,
+        VertexConsumer glowVc,
+        int light,
+        float scale,
+        float time,
+        int edgeColor,
+        int outerColor,
+        int innerColor,
+        float revealProgress
+    ) {
+        if (revealProgress <= 0.001f) {
+            return;
+        }
+
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+        float halfW = HALF_WIDTH * scale;
+        float halfH = HALF_HEIGHT * scale;
+        if (halfW <= 0.0001f || halfH <= 0.0001f) {
+            return;
+        }
+
+        float glowPulse = 0.74f + (0.18f * Mth.sin(time * 2.1f)) + (0.08f * Mth.sin(time * 6.2f));
+        float veilPulse = 0.72f + (0.14f * Mth.sin(time * 1.9f)) + (0.06f * Mth.sin(time * 4.7f));
+        int glowOuterAlpha = Mth.clamp((int) (112f * glowPulse * revealProgress), 0, 255);
+        int glowInnerAlpha = Mth.clamp((int) (188f * glowPulse * revealProgress), 0, 255);
+        int veilOuterAlpha = Mth.clamp((int) (74f * veilPulse * revealProgress), 0, 255);
+        int veilInnerColor = mixRgb(0x0B0108, edgeColor, 0.40f);
+
+        drawPermanentSquareInnerRimPass(glowVc, mat4, normal, light, halfW, halfH, scale, Z_EPSILON + 0.0014f, 1.0f, time, revealProgress, outerColor, glowOuterAlpha, innerColor, glowInnerAlpha);
+        drawPermanentSquareInnerRimPass(glowVc, mat4, normal, light, halfW, halfH, scale, -Z_EPSILON - 0.0014f, -1.0f, time, revealProgress, outerColor, glowOuterAlpha, innerColor, glowInnerAlpha);
+        drawPermanentSquareInnerRimPass(veilVc, mat4, normal, light, halfW, halfH, scale, Z_EPSILON + 0.0011f, 1.0f, time, revealProgress, edgeColor, veilOuterAlpha, veilInnerColor, 0);
+        drawPermanentSquareInnerRimPass(veilVc, mat4, normal, light, halfW, halfH, scale, -Z_EPSILON - 0.0011f, -1.0f, time, revealProgress, edgeColor, veilOuterAlpha, veilInnerColor, 0);
+    }
+
+    private void drawPermanentSquareInnerRimPass(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float scale,
+        float z,
+        float nz,
+        float time,
+        float revealProgress,
+        int outerColor,
+        int outerAlpha,
+        int innerColor,
+        int innerAlpha
+    ) {
+        if (outerAlpha <= 0 && innerAlpha <= 0) {
+            return;
+        }
+
+        int outerR = (outerColor >> 16) & 0xFF;
+        int outerG = (outerColor >> 8) & 0xFF;
+        int outerB = outerColor & 0xFF;
+        int innerR = (innerColor >> 16) & 0xFF;
+        int innerG = (innerColor >> 8) & 0xFF;
+        int innerB = innerColor & 0xFF;
+
+        float cornerSideInset = PERMANENT_RIM_SIDE_WIDTH * scale * revealProgress;
+        float cornerTopInset = PERMANENT_RIM_TOP_WIDTH * scale * revealProgress;
+
+        for (int i = 0; i < PERMANENT_RIM_SEGMENTS; i++) {
+            float t0 = i / (float) PERMANENT_RIM_SEGMENTS;
+            float t1 = (i + 1) / (float) PERMANENT_RIM_SEGMENTS;
+
+            float y0 = Mth.lerp(t0, -halfH, halfH);
+            float y1 = Mth.lerp(t1, -halfH, halfH);
+            float yRatio0 = Mth.lerp(t0, -1.0f, 1.0f);
+            float yRatio1 = Mth.lerp(t1, -1.0f, 1.0f);
+            float leftInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_SIDE_WIDTH * scale, yRatio0, time, revealProgress, 0.0f);
+            float leftInset1 = resolvePermanentSquareRimInset(PERMANENT_RIM_SIDE_WIDTH * scale, yRatio1, time, revealProgress, 0.0f);
+            float rightInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_SIDE_WIDTH * scale, yRatio0, time, revealProgress, 1.7f);
+            float rightInset1 = resolvePermanentSquareRimInset(PERMANENT_RIM_SIDE_WIDTH * scale, yRatio1, time, revealProgress, 1.7f);
+
+            quadBidirectional(
+                vc,
+                mat4,
+                normal,
+                -halfW, y0,
+                -halfW + leftInset0, y0,
+                -halfW + leftInset1, y1,
+                -halfW, y1,
+                z,
+                light,
+                nz,
+                outerR, outerG, outerB, outerAlpha,
+                innerR, innerG, innerB, innerAlpha,
+                innerR, innerG, innerB, innerAlpha,
+                outerR, outerG, outerB, outerAlpha
+            );
+
+            quadBidirectional(
+                vc,
+                mat4,
+                normal,
+                halfW - rightInset0, y0,
+                halfW, y0,
+                halfW, y1,
+                halfW - rightInset1, y1,
+                z,
+                light,
+                nz,
+                innerR, innerG, innerB, innerAlpha,
+                outerR, outerG, outerB, outerAlpha,
+                outerR, outerG, outerB, outerAlpha,
+                innerR, innerG, innerB, innerAlpha
+            );
+
+            float x0 = Mth.lerp(t0, -halfW, halfW);
+            float x1 = Mth.lerp(t1, -halfW, halfW);
+            float xRatio0 = Mth.lerp(t0, -1.0f, 1.0f);
+            float xRatio1 = Mth.lerp(t1, -1.0f, 1.0f);
+            float topInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_TOP_WIDTH * scale, xRatio0, time, revealProgress, 3.1f);
+            float topInset1 = resolvePermanentSquareRimInset(PERMANENT_RIM_TOP_WIDTH * scale, xRatio1, time, revealProgress, 3.1f);
+            float bottomInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_TOP_WIDTH * scale, xRatio0, time, revealProgress, 4.6f);
+            float bottomInset1 = resolvePermanentSquareRimInset(PERMANENT_RIM_TOP_WIDTH * scale, xRatio1, time, revealProgress, 4.6f);
+
+            quadBidirectional(
+                vc,
+                mat4,
+                normal,
+                x0, halfH - topInset0,
+                x0, halfH,
+                x1, halfH,
+                x1, halfH - topInset1,
+                z,
+                light,
+                nz,
+                innerR, innerG, innerB, innerAlpha,
+                outerR, outerG, outerB, outerAlpha,
+                outerR, outerG, outerB, outerAlpha,
+                innerR, innerG, innerB, innerAlpha
+            );
+
+            quadBidirectional(
+                vc,
+                mat4,
+                normal,
+                x0, -halfH,
+                x0, -halfH + bottomInset0,
+                x1, -halfH + bottomInset1,
+                x1, -halfH,
+                z,
+                light,
+                nz,
+                outerR, outerG, outerB, outerAlpha,
+                innerR, innerG, innerB, innerAlpha,
+                innerR, innerG, innerB, innerAlpha,
+                outerR, outerG, outerB, outerAlpha
+            );
+        }
+
+        drawPermanentSquareRimCorner(vc, mat4, normal, light, z, nz, -1.0f, 1.0f, halfW, halfH, cornerSideInset, cornerTopInset, outerR, outerG, outerB, outerAlpha, innerR, innerG, innerB, innerAlpha);
+        drawPermanentSquareRimCorner(vc, mat4, normal, light, z, nz, 1.0f, 1.0f, halfW, halfH, cornerSideInset, cornerTopInset, outerR, outerG, outerB, outerAlpha, innerR, innerG, innerB, innerAlpha);
+        drawPermanentSquareRimCorner(vc, mat4, normal, light, z, nz, -1.0f, -1.0f, halfW, halfH, cornerSideInset, cornerTopInset, outerR, outerG, outerB, outerAlpha, innerR, innerG, innerB, innerAlpha);
+        drawPermanentSquareRimCorner(vc, mat4, normal, light, z, nz, 1.0f, -1.0f, halfW, halfH, cornerSideInset, cornerTopInset, outerR, outerG, outerB, outerAlpha, innerR, innerG, innerB, innerAlpha);
+    }
+
+    private void drawPermanentSquareRimCorner(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float z,
+        float nz,
+        float sx,
+        float sy,
+        float halfW,
+        float halfH,
+        float sideInset,
+        float topInset,
+        int outerR,
+        int outerG,
+        int outerB,
+        int outerAlpha,
+        int innerR,
+        int innerG,
+        int innerB,
+        int innerAlpha
+    ) {
+        if (sideInset <= 0.0001f && topInset <= 0.0001f) {
+            return;
+        }
+
+        float xOuter = sx * halfW;
+        float yOuter = sy * halfH;
+        float xInner = xOuter - (sx * sideInset);
+        float yInner = yOuter - (sy * topInset);
+
+        quadBidirectional(
+            vc,
+            mat4,
+            normal,
+            xOuter, yInner,
+            xOuter, yOuter,
+            xInner, yOuter,
+            xInner, yInner,
+            z,
+            light,
+            nz,
+            outerR, outerG, outerB, outerAlpha,
+            outerR, outerG, outerB, outerAlpha,
+            outerR, outerG, outerB, outerAlpha,
+            innerR, innerG, innerB, innerAlpha
+        );
+    }
+
+    private float resolvePermanentSquareRimInset(float baseWidth, float normalizedPosition, float time, float revealProgress, float phase) {
+        float cornerFade = 1.0f - Mth.clamp(Math.abs(normalizedPosition), 0.0f, 1.0f);
+        float middleWeight = cornerFade * cornerFade;
+        float wobble = PERMANENT_RIM_WOBBLE_AMPLITUDE * revealProgress * middleWeight * Mth.sin((time * PERMANENT_RIM_WOBBLE_RATE) + (normalizedPosition * 6.4f) + phase);
+        return Math.max(0.0001f, (baseWidth * revealProgress) + wobble);
     }
 
     private float resolvePermanentCenterOffset(Direction.Axis axis, float renderYawDegrees) {
@@ -734,6 +965,19 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
 
         return (float) Math.max(0.0, worldTicks - openedAt);
+    }
+
+    private float resolvePermanentRimRevealProgress(CorridorPortalBlockEntity blockEntity, float activationAge) {
+        if (blockEntity.getOpenedAtGameTime() <= 0L) {
+            return 1.0f;
+        }
+
+        float revealProgress = Mth.clamp(
+            (activationAge - PERMANENT_OPEN_STAGE_TICKS) / PERMANENT_RIM_REVEAL_TICKS,
+            0.0f,
+            1.0f
+        );
+        return easeOutCubic(revealProgress);
     }
 
     private float resolvePermanentOpeningHalfWidth(float activationAge) {
@@ -1063,14 +1307,27 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 float a0 = Mth.TWO_PI * i / OUTLINE_SEGMENTS;
                 float a1 = Mth.TWO_PI * (i + 1) / OUTLINE_SEGMENTS;
 
-                PortalPoint inner0 = portalPoint(shape, a0, halfW, halfH, envelope, scale, time);
-                PortalPoint inner1 = portalPoint(shape, a1, halfW, halfH, envelope, scale, time);
+                PortalPoint edge0 = portalPoint(shape, a0, halfW, halfH, envelope, scale, time);
+                PortalPoint edge1 = portalPoint(shape, a1, halfW, halfH, envelope, scale, time);
 
-                float width0 = outlineWidth(shape, inner0, envelope, scale);
-                float width1 = outlineWidth(shape, inner1, envelope, scale);
+                float width0 = outlineWidth(shape, edge0, envelope, scale);
+                float width1 = outlineWidth(shape, edge1, envelope, scale);
 
-                PortalPoint outer0 = offsetPortalPoint(shape, inner0, width0, halfW, halfH);
-                PortalPoint outer1 = offsetPortalPoint(shape, inner1, width1, halfW, halfH);
+                PortalPoint outer0;
+                PortalPoint outer1;
+                PortalPoint inner0;
+                PortalPoint inner1;
+                if (shape == 1) {
+                    outer0 = edge0;
+                    outer1 = edge1;
+                    inner0 = offsetPortalPoint(shape, edge0, -width0, halfW, halfH);
+                    inner1 = offsetPortalPoint(shape, edge1, -width1, halfW, halfH);
+                } else {
+                    inner0 = edge0;
+                    inner1 = edge1;
+                    outer0 = offsetPortalPoint(shape, edge0, width0, halfW, halfH);
+                    outer1 = offsetPortalPoint(shape, edge1, width1, halfW, halfH);
+                }
 
                 quadBidirectional(vc, mat4, normal, outer0.x, outer0.y, inner0.x, inner0.y, inner1.x, inner1.y, outer1.x, outer1.y, z, light, nz,
                     outerR, outerG, outerB, alphaOuter,
