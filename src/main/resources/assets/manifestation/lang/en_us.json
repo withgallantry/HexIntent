@@ -211,6 +211,7 @@
   "hexcasting.mishap.manifestation.intent_relay_no_space": "Manifest Relay cannot manifest on that face; the space is blocked or unsupported.",
   "hexcasting.mishap.manifestation.intent_relay_signal_range": "Manifest Relay signal strength must be between 0 and 15.",
   "hexcasting.mishap.manifestation.portal_no_space": "Manifest Threshold cannot manifest. The space is occupied.",
+  "hexcasting.mishap.manifestation.permanent_threshold_frame_invalid": "Permanent Threshold requires a complete 4x5 deepslate frame ring at both source and destination.",
   "hexcasting.mishap.manifestation.mind_vault_full": "Mind Vault cannot hold more villagers.",
   "hexcasting.mishap.manifestation.mind_vault_type_mismatch": "Mind Vault only accepts villagers matching its locked profile.",
   "hexcasting.mishap.manifestation.mind_vault_unavailable": "Mind Vault has no villager available; all stored minds are cooling.",

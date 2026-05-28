@@ -8,6 +8,7 @@ import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.server.PortalOwnershipStore
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.DustParticleOptions
@@ -60,6 +61,9 @@ class CorridorPortalBlockEntity(
     private var renderScale: Float = 1.0f
     private var renderYawDegrees: Float = 0.0f
     private var thresholdMode: Boolean = false
+    private var permanentFrameMode: Boolean = false
+    private var localPermanentFrame: PermanentThresholdFrame? = null
+    private var linkedPermanentFrame: PermanentThresholdFrame? = null
     private var portalBackdropColor: Int = DEFAULT_PORTAL_BACKDROP_COLOR
     private var portalMidColor: Int = DEFAULT_PORTAL_MID_COLOR
     private var portalHighlightColor: Int = DEFAULT_PORTAL_HIGHLIGHT_COLOR
@@ -79,7 +83,10 @@ class CorridorPortalBlockEntity(
         owner: UUID?,
         mediaBudget: Long,
         scale: Float,
-        yawDegrees: Float
+        yawDegrees: Float,
+        permanentFrame: Boolean = false,
+        localFrame: PermanentThresholdFrame? = null,
+        linkedFrame: PermanentThresholdFrame? = null
     ) {
         targetDimensionId = targetDimension
         targetPos = target.immutable()
@@ -88,9 +95,12 @@ class CorridorPortalBlockEntity(
         lastSustainDrainGameTime = level.gameTime
         openedAtGameTime = level.gameTime
         collapseStartedAtGameTime = -1L
-        renderScale = scale.coerceIn(0.1f, 3.0f)
+        renderScale = if (permanentFrame) 1.0f else scale.coerceIn(0.1f, 3.0f)
         renderYawDegrees = Mth.wrapDegrees(yawDegrees)
         thresholdMode = false
+        permanentFrameMode = permanentFrame
+        localPermanentFrame = if (permanentFrame) localFrame else null
+        linkedPermanentFrame = if (permanentFrame) linkedFrame else null
         updateThresholdBlockState(level, false)
         resetPortalColors()
         portalLabel = null
@@ -118,6 +128,9 @@ class CorridorPortalBlockEntity(
         renderScale = scale.coerceIn(0.1f, 3.0f)
         renderYawDegrees = Mth.wrapDegrees(yawDegrees)
         thresholdMode = true
+        permanentFrameMode = false
+        localPermanentFrame = null
+        linkedPermanentFrame = null
         updateThresholdBlockState(level, true)
         resetPortalColors()
         portalLabel = null
@@ -147,11 +160,12 @@ class CorridorPortalBlockEntity(
     fun renderEnvelope(partialTick: Float): Float {
         val world = level ?: return 1.0f
         val now = world.gameTime.toDouble() + partialTick.toDouble()
+        val openAnimTicks = if (permanentFrameMode) PERMANENT_OPEN_ANIM_TICKS else OPEN_ANIM_TICKS
 
         val open = if (openedAtGameTime <= 0L) {
             1.0f
         } else {
-            smoothstep(progress(now, openedAtGameTime, OPEN_ANIM_TICKS))
+            smoothstep(progress(now, openedAtGameTime, openAnimTicks))
         }
 
         val close = if (collapseStartedAtGameTime < 0L) {
@@ -174,15 +188,19 @@ class CorridorPortalBlockEntity(
         return progress(now, start, CLOSE_ANIM_TICKS)
     }
 
+    fun getOpenedAtGameTime(): Long = openedAtGameTime
+
     fun getRenderTargetPos(): BlockPos? = targetPos
 
     fun getRenderTargetDimensionId(): String? = targetDimensionId
 
-    fun getRenderScale(): Float = renderScale
+    fun getRenderScale(): Float = if (permanentFrameMode) 1.0f else renderScale
 
     fun getRenderYawDegrees(): Float = renderYawDegrees
 
     fun isThresholdMode(): Boolean = thresholdMode
+
+    fun isPermanentFrameMode(): Boolean = permanentFrameMode
 
     fun getPortalBackdropColor(): Int = portalBackdropColor
 
@@ -248,6 +266,11 @@ class CorridorPortalBlockEntity(
 
         if (thresholdMode) {
             serverTickThreshold(level)
+            return
+        }
+
+        if (permanentFrameMode) {
+            serverTickPermanent(level)
             return
         }
 
@@ -324,8 +347,25 @@ class CorridorPortalBlockEntity(
         }
     }
 
+    private fun serverTickPermanent(level: ServerLevel) {
+        if (collapseStartedAtGameTime >= 0L) {
+            if (level.gameTime >= collapseStartedAtGameTime + CLOSE_ANIM_TICKS) {
+                removePairNow(level)
+            }
+            return
+        }
+
+        if (!ensurePermanentLinkValid(level)) {
+            startPairCollapse(level)
+        }
+    }
+
     fun tryTeleport(level: ServerLevel, entity: Entity) {
         if (thresholdMode) {
+            return
+        }
+
+        if (permanentFrameMode && !ensurePermanentLinkValid(level)) {
             return
         }
 
@@ -597,6 +637,17 @@ class CorridorPortalBlockEntity(
         renderScale = if (tag.contains(TAG_RENDER_SCALE)) tag.getFloat(TAG_RENDER_SCALE) else 1.0f
         renderYawDegrees = if (tag.contains(TAG_RENDER_YAW_DEGREES)) tag.getFloat(TAG_RENDER_YAW_DEGREES) else 0.0f
         thresholdMode = tag.getBoolean(TAG_THRESHOLD_MODE)
+        permanentFrameMode = tag.getBoolean(TAG_PERMANENT_FRAME_MODE)
+        localPermanentFrame = if (tag.contains(TAG_LOCAL_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
+            PermanentThresholdFrame.deserialize(tag.getCompound(TAG_LOCAL_PERMANENT_FRAME))
+        } else {
+            null
+        }
+        linkedPermanentFrame = if (tag.contains(TAG_LINKED_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
+            PermanentThresholdFrame.deserialize(tag.getCompound(TAG_LINKED_PERMANENT_FRAME))
+        } else {
+            null
+        }
         portalBackdropColor = if (tag.contains(TAG_PORTAL_BACKDROP_COLOR)) tag.getInt(TAG_PORTAL_BACKDROP_COLOR) else DEFAULT_PORTAL_BACKDROP_COLOR
         portalMidColor = if (tag.contains(TAG_PORTAL_MID_COLOR)) tag.getInt(TAG_PORTAL_MID_COLOR) else DEFAULT_PORTAL_MID_COLOR
         portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
@@ -641,6 +692,9 @@ class CorridorPortalBlockEntity(
         tag.putFloat(TAG_RENDER_SCALE, renderScale)
         tag.putFloat(TAG_RENDER_YAW_DEGREES, renderYawDegrees)
         tag.putBoolean(TAG_THRESHOLD_MODE, thresholdMode)
+        tag.putBoolean(TAG_PERMANENT_FRAME_MODE, permanentFrameMode)
+        localPermanentFrame?.let { tag.put(TAG_LOCAL_PERMANENT_FRAME, it.serialize()) }
+        linkedPermanentFrame?.let { tag.put(TAG_LINKED_PERMANENT_FRAME, it.serialize()) }
         tag.putInt(TAG_PORTAL_BACKDROP_COLOR, portalBackdropColor)
         tag.putInt(TAG_PORTAL_MID_COLOR, portalMidColor)
         tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
@@ -678,6 +732,9 @@ class CorridorPortalBlockEntity(
         private const val TAG_RENDER_SCALE = "RenderScale"
         private const val TAG_RENDER_YAW_DEGREES = "RenderYawDegrees"
         private const val TAG_THRESHOLD_MODE = "ThresholdMode"
+        private const val TAG_PERMANENT_FRAME_MODE = "PermanentFrameMode"
+        private const val TAG_LOCAL_PERMANENT_FRAME = "LocalPermanentFrame"
+        private const val TAG_LINKED_PERMANENT_FRAME = "LinkedPermanentFrame"
         private const val TAG_THRESHOLD_PATTERNS = "ThresholdPatterns"
         private const val TAG_PORTAL_BACKDROP_COLOR = "PortalBackdropColor"
         private const val TAG_PORTAL_MID_COLOR = "PortalMidColor"
@@ -702,6 +759,7 @@ class CorridorPortalBlockEntity(
         private const val MEDIA_DRAIN_PER_STEP = 20_000L
         private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 20_000L
         private const val OPEN_ANIM_TICKS = 18L
+        private const val PERMANENT_OPEN_ANIM_TICKS = 30L
         private const val CLOSE_ANIM_TICKS = 18L
         private const val FLOW_PARTICLE_INTERVAL_TICKS = 5L
         private const val FLOW_PARTICLES_PER_BURST = 1
@@ -787,6 +845,56 @@ class CorridorPortalBlockEntity(
         return selfKey <= targetKey
     }
 
+    private fun ensurePermanentLinkValid(level: ServerLevel): Boolean {
+        if (!permanentFrameMode) {
+            return true
+        }
+
+        val localFrame = resolveLocalPermanentFrame(level) ?: return false
+        if (!PermanentThresholdFrames.isValid(level, localFrame)) {
+            return false
+        }
+
+        val target = targetPos ?: return false
+        val targetDim = targetDimensionId ?: return false
+        val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
+        val targetLevel = level.server.getLevel(targetKey) ?: return false
+        if (!targetLevel.chunkSource.hasChunk(target.x shr 4, target.z shr 4)) {
+            return true
+        }
+
+        val targetState = targetLevel.getBlockState(target)
+        if (targetState.block != ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+            return false
+        }
+
+        val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity ?: return false
+        if (!targetPortal.permanentFrameMode) {
+            return false
+        }
+
+        if (!targetPortal.isReciprocalLinkTo(level.dimension().location().toString(), worldPosition)) {
+            return false
+        }
+
+        val remoteFrame = targetPortal.resolveLocalPermanentFrame(targetLevel) ?: return false
+        return PermanentThresholdFrames.isValid(targetLevel, remoteFrame)
+    }
+
+    private fun resolveLocalPermanentFrame(level: ServerLevel): PermanentThresholdFrame? {
+        val existing = localPermanentFrame
+        if (existing != null) {
+            return existing
+        }
+
+        val resolved = PermanentThresholdFrames.findByAnchor(level, worldPosition, blockState.getValue(CorridorPortalBlock.AXIS))
+        if (resolved != null) {
+            localPermanentFrame = resolved
+            setChanged()
+        }
+        return resolved
+    }
+
     private fun startPairCollapse(level: ServerLevel) {
         if (thresholdMode) {
             beginCollapse(level)
@@ -817,6 +925,8 @@ class CorridorPortalBlockEntity(
         val target = targetPos
         val targetDim = targetDimensionId
 
+        clearOwnershipReference(level)
+
         if (level.getBlockState(worldPosition).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
             playCollapseEffects(level, worldPosition)
             level.removeBlock(worldPosition, false)
@@ -844,6 +954,8 @@ class CorridorPortalBlockEntity(
         if (thresholdMode) {
             return
         }
+
+        clearOwnershipReference(level)
 
         val target = targetPos ?: return
         val targetDim = targetDimensionId ?: return
@@ -963,5 +1075,13 @@ class CorridorPortalBlockEntity(
         if (state.getValue(CorridorPortalBlock.THRESHOLD) != threshold) {
             level.setBlock(worldPosition, state.setValue(CorridorPortalBlock.THRESHOLD, threshold), 3)
         }
+    }
+
+    private fun clearOwnershipReference(level: ServerLevel) {
+        val owner = ownerUuid ?: return
+        PortalOwnershipStore.get(level.server).removeIfContains(
+            owner,
+            PortalOwnershipStore.PortalEndpoint(level.dimension().location().toString(), worldPosition)
+        )
     }
 }

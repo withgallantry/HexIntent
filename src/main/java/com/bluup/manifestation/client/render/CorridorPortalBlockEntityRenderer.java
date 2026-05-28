@@ -1,8 +1,11 @@
 package com.bluup.manifestation.client.render;
 
 import at.petrak.hexcasting.client.ClientTickCounter;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.bluup.manifestation.server.block.CorridorPortalBlock;
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity;
+import com.bluup.manifestation.server.block.PermanentThresholdFrame;
+import com.bluup.manifestation.server.block.PermanentThresholdFrames;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -15,11 +18,14 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+
+import java.io.IOException;
 
 public final class CorridorPortalBlockEntityRenderer implements BlockEntityRenderer<CorridorPortalBlockEntity> {
     private static final int STRIPS = 40;
@@ -28,7 +34,46 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final float HALF_WIDTH = 0.50f;
     private static final float THRESHOLD_HALF_SIZE = 0.50f;
     private static final float Z_EPSILON = 0.0025f;
+    private static final float PERMANENT_CENTER_OFFSET = 0.50f;
+    private static final float PERMANENT_HALF_WIDTH = 1.0f;
+    private static final float PERMANENT_HALF_HEIGHT = 1.5f;
+    private static final float PERMANENT_FRAME_HALF_WIDTH = 2.0f;
+    private static final float PERMANENT_FRAME_HALF_HEIGHT = 2.5f;
+    private static final float PERMANENT_FRAME_Z = 0.0125f;
+    private static final int PERMANENT_BASE_TINT_COLOR = 0x731FDB;
+    private static final float PERMANENT_BASE_ALPHA = 0.98f;
+    private static final int PERMANENT_MIST_TINT_COLOR = 0x5A2AA8;
+    private static final float PERMANENT_MIST_ALPHA = 0.26f;
+    private static final int PERMANENT_EDGE_TINT_COLOR = 0xF1E9FF;
+    private static final float PERMANENT_EDGE_ALPHA = 0.58f;
+    private static final int PERMANENT_ACTIVE_EDGE_COLOR = 0xFBF4FF;
+    private static final float PERMANENT_ACTIVE_EDGE_ALPHA = 0.72f;
+    private static final float PERMANENT_OPEN_STAGE_TICKS = 28.0f;
+    private static final float PERMANENT_SEAM_START_TICKS = 4.0f;
+    private static final float PERMANENT_SEAM_END_TICKS = 8.0f;
+    private static final float PERMANENT_WIDTH_START_TICKS = 8.0f;
+    private static final float PERMANENT_WIDTH_END_TICKS = 20.0f;
+    private static final float PERMANENT_SEAM_HALF_WIDTH_U = 0.035f;
+    private static final int PERMANENT_REVEAL_COLUMNS = 24;
+    private static final int PERMANENT_REVEAL_ROWS = 36;
     private static final ResourceLocation THRESHOLD_GLYPH_SPRITE = new ResourceLocation("manifestation", "block/spell_circle");
+    private static final ResourceLocation PERMANENT_FRAME_GLOW_LEFT = new ResourceLocation("manifestation", "textures/block/permanent_threshold/inner_threshold_glow_left.png");
+    private static final ResourceLocation PERMANENT_FRAME_GLOW_RIGHT = new ResourceLocation("manifestation", "textures/block/permanent_threshold/inner_threshold_glow_right.png");
+    private static final ResourceLocation PERMANENT_PORTAL_BASE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_base_dark.png");
+    private static final ResourceLocation PERMANENT_PORTAL_MIST = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_mist_layer.png");
+    private static final ResourceLocation PERMANENT_PORTAL_EDGE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_rect_edge_glow.png");
+    private static final ResourceLocation PERMANENT_PORTAL_RIPPLE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_ripple_lines.png");
+    private static final ResourceLocation[] PERMANENT_OPENING_FRAMES = new ResourceLocation[] {
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_00.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_01.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_02.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_03.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_04.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_05.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_06.png"),
+        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_07.png")
+    };
+    private static final AlphaMask[] PERMANENT_OPENING_MASK_CACHE = new AlphaMask[PERMANENT_OPENING_FRAMES.length];
 
     public CorridorPortalBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -118,6 +163,28 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
+        if (blockEntity.isPermanentFrameMode()) {
+            if (!shouldRenderPermanentPortal(blockEntity, state)) {
+                poseStack.popPose();
+                return;
+            }
+
+            drawPermanentThresholdPortal(
+                blockEntity,
+                poseStack,
+                buffer,
+                packedLight,
+                scale,
+                state.getValue(CorridorPortalBlock.AXIS),
+                blockEntity.getRenderYawDegrees(),
+                worldTicks
+            );
+            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
+            poseStack.popPose();
+            renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
+            return;
+        }
+
         // Jagged tear around portal. This took a lot to get looking so so lol.
         drawPortalTear(poseStack, portalVc, Z_EPSILON, envelope, scale, time);
         drawPortalTear(poseStack, portalVc, -Z_EPSILON, envelope, scale, time + 1.7f);
@@ -130,6 +197,445 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
         poseStack.popPose();
         renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
+    }
+
+    private boolean shouldRenderPermanentPortal(CorridorPortalBlockEntity blockEntity, BlockState state) {
+        if (blockEntity.getLevel() == null || !state.hasProperty(CorridorPortalBlock.AXIS)) {
+            return true;
+        }
+
+        PermanentThresholdFrame frame = PermanentThresholdFrames.INSTANCE.findContaining(
+            blockEntity.getLevel(),
+            blockEntity.getBlockPos(),
+            state.getValue(CorridorPortalBlock.AXIS)
+        );
+        if (frame == null) {
+            return true;
+        }
+
+        return PermanentThresholdFrames.INSTANCE.isCanonicalOrigin(frame, blockEntity.getBlockPos());
+    }
+
+    private void drawPermanentThresholdPortal(
+        CorridorPortalBlockEntity blockEntity,
+        PoseStack poseStack,
+        MultiBufferSource buffer,
+        int light,
+        float scale,
+        Direction.Axis axis,
+        float renderYawDegrees,
+        double worldTicks
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(resolvePermanentCenterOffset(axis, renderYawDegrees) * scale, 0.0f, 0.0f);
+
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+
+        float halfW = PERMANENT_HALF_WIDTH * scale;
+        float halfH = PERMANENT_HALF_HEIGHT * scale;
+
+        if (halfW <= 0.0001f || halfH <= 0.0001f) {
+            poseStack.popPose();
+            return;
+        }
+
+        float activationAge = resolvePermanentActivationAge(blockEntity, worldTicks);
+        VertexConsumer baseVc = buffer.getBuffer(RenderType.entitySolid(PERMANENT_PORTAL_BASE));
+        VertexConsumer mistVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_MIST));
+        VertexConsumer edgeVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_EDGE));
+        if (activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
+            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA);
+            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA);
+            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA);
+            poseStack.popPose();
+            return;
+        }
+
+        if (activationAge < PERMANENT_SEAM_START_TICKS) {
+            poseStack.popPose();
+            return;
+        }
+
+        AlphaMask currentMask = getPermanentOpeningMask(resolvePermanentOpeningMaskFrame(activationAge));
+        if (currentMask == null) {
+            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA);
+            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA);
+            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA);
+            poseStack.popPose();
+            return;
+        }
+
+        float previousAge = Math.max(activationAge - 1.0f, 0.0f);
+        AlphaMask previousMask = getPermanentOpeningMask(resolvePermanentOpeningMaskFrame(previousAge));
+        if (previousMask == null) {
+            previousMask = currentMask;
+        }
+
+        float currentHalfWidth = resolvePermanentOpeningHalfWidth(activationAge);
+        float previousHalfWidth = resolvePermanentOpeningHalfWidth(previousAge);
+
+        drawMaskedPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, currentMask, currentHalfWidth, false);
+        drawMaskedPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, currentMask, currentHalfWidth, true);
+        drawMaskedPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, currentMask, currentHalfWidth, true);
+        drawPermanentActiveBand(
+            buffer.getBuffer(RenderType.translucent()),
+            mat4,
+            normal,
+            light,
+            halfW,
+            halfH,
+            Z_EPSILON + 0.0025f,
+            currentMask,
+            previousMask,
+            currentHalfWidth,
+            previousHalfWidth,
+            worldTicks
+        );
+
+        poseStack.popPose();
+    }
+
+    private float resolvePermanentCenterOffset(Direction.Axis axis, float renderYawDegrees) {
+        double yawRad = Math.toRadians(renderYawDegrees);
+        double horizontalAlignment = axis == Direction.Axis.Z ? Math.cos(yawRad) : Math.sin(yawRad);
+        return horizontalAlignment >= 0.0 ? PERMANENT_CENTER_OFFSET : -PERMANENT_CENTER_OFFSET;
+    }
+
+    private void drawPermanentTexturedLayer(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float z,
+        int rgb,
+        float alpha
+    ) {
+        if (alpha <= 0.001f) {
+            return;
+        }
+
+        int a = Mth.clamp((int) (255.0f * alpha), 0, 255);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        texturedQuadBidirectional(
+            vc,
+            mat4,
+            normal,
+            -halfW, -halfH,
+            halfW, -halfH,
+            halfW, halfH,
+            -halfW, halfH,
+            z,
+            light,
+            1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            r, g, b, a
+        );
+    }
+
+    private void drawMaskedPermanentTexturedLayer(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float z,
+        int rgb,
+        float alpha,
+        AlphaMask mask,
+        float visibleHalfWidth,
+        boolean alphaMask
+    ) {
+        if (alpha <= 0.001f || mask == null || visibleHalfWidth <= 0.0f) {
+            return;
+        }
+
+        int baseAlpha = Mth.clamp((int) (255.0f * alpha), 0, 255);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        float cellHalfWidth = 0.5f / PERMANENT_REVEAL_COLUMNS;
+
+        for (int row = 0; row < PERMANENT_REVEAL_ROWS; row++) {
+            float v0 = row / (float) PERMANENT_REVEAL_ROWS;
+            float v1 = (row + 1) / (float) PERMANENT_REVEAL_ROWS;
+            float y0 = Mth.lerp(v0, -halfH, halfH);
+            float y1 = Mth.lerp(v1, -halfH, halfH);
+            float sampleV = (v0 + v1) * 0.5f;
+
+            for (int column = 0; column < PERMANENT_REVEAL_COLUMNS; column++) {
+                float u0 = column / (float) PERMANENT_REVEAL_COLUMNS;
+                float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
+                float sampleU = (u0 + u1) * 0.5f;
+                float reveal = samplePermanentReveal(mask, sampleU, sampleV, visibleHalfWidth, cellHalfWidth);
+                if (reveal <= 0.02f) {
+                    continue;
+                }
+
+                int cellAlpha = alphaMask
+                    ? Mth.clamp((int) (baseAlpha * reveal), 0, 255)
+                    : baseAlpha;
+                if (cellAlpha <= 0) {
+                    continue;
+                }
+
+                float x0 = Mth.lerp(u0, -halfW, halfW);
+                float x1 = Mth.lerp(u1, -halfW, halfW);
+                texturedQuadBidirectional(
+                    vc,
+                    mat4,
+                    normal,
+                    x0, y0,
+                    x1, y0,
+                    x1, y1,
+                    x0, y1,
+                    z,
+                    light,
+                    1.0f,
+                    u0, v0,
+                    u1, v0,
+                    u1, v1,
+                    u0, v1,
+                    r, g, b, cellAlpha
+                );
+            }
+        }
+    }
+
+    private void drawPermanentActiveBand(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float z,
+        AlphaMask currentMask,
+        AlphaMask previousMask,
+        float currentHalfWidth,
+        float previousHalfWidth,
+        double worldTicks
+    ) {
+        if (currentMask == null || previousMask == null || currentHalfWidth <= 0.0f) {
+            return;
+        }
+
+        int r = (PERMANENT_ACTIVE_EDGE_COLOR >> 16) & 0xFF;
+        int g = (PERMANENT_ACTIVE_EDGE_COLOR >> 8) & 0xFF;
+        int b = PERMANENT_ACTIVE_EDGE_COLOR & 0xFF;
+        int baseAlpha = Mth.clamp((int) (255.0f * PERMANENT_ACTIVE_EDGE_ALPHA * (0.82f + (0.18f * Mth.sin((float) (worldTicks * 0.42))))), 0, 255);
+        float cellHalfWidth = 0.5f / PERMANENT_REVEAL_COLUMNS;
+
+        for (int row = 0; row < PERMANENT_REVEAL_ROWS; row++) {
+            float v0 = row / (float) PERMANENT_REVEAL_ROWS;
+            float v1 = (row + 1) / (float) PERMANENT_REVEAL_ROWS;
+            float y0 = Mth.lerp(v0, -halfH, halfH);
+            float y1 = Mth.lerp(v1, -halfH, halfH);
+            float sampleV = (v0 + v1) * 0.5f;
+
+            for (int column = 0; column < PERMANENT_REVEAL_COLUMNS; column++) {
+                float u0 = column / (float) PERMANENT_REVEAL_COLUMNS;
+                float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
+                float sampleU = (u0 + u1) * 0.5f;
+
+                float currentReveal = samplePermanentReveal(currentMask, sampleU, sampleV, currentHalfWidth, cellHalfWidth);
+                float previousReveal = samplePermanentReveal(previousMask, sampleU, sampleV, previousHalfWidth, cellHalfWidth);
+                float activeBand = Mth.clamp((currentReveal - previousReveal) * 3.5f, 0.0f, 1.0f);
+                if (activeBand <= 0.02f) {
+                    continue;
+                }
+
+                int alpha = Mth.clamp((int) (baseAlpha * activeBand), 0, 255);
+                if (alpha <= 0) {
+                    continue;
+                }
+
+                float x0 = Mth.lerp(u0, -halfW, halfW);
+                float x1 = Mth.lerp(u1, -halfW, halfW);
+                quadBidirectional(
+                    vc,
+                    mat4,
+                    normal,
+                    x0, y0,
+                    x1, y0,
+                    x1, y1,
+                    x0, y1,
+                    z,
+                    light,
+                    1.0f,
+                    r, g, b, 0,
+                    r, g, b, alpha,
+                    r, g, b, alpha,
+                    r, g, b, 0
+                );
+            }
+        }
+    }
+
+    private float samplePermanentReveal(AlphaMask mask, float u, float v, float visibleHalfWidth, float cellHalfWidth) {
+        if (mask == null) {
+            return 0.0f;
+        }
+
+        if (Math.abs(u - 0.5f) > visibleHalfWidth + cellHalfWidth) {
+            return 0.0f;
+        }
+
+        return mask.sample(u, v);
+    }
+
+    private float resolvePermanentActivationAge(CorridorPortalBlockEntity blockEntity, double worldTicks) {
+        long openedAt = blockEntity.getOpenedAtGameTime();
+        if (openedAt <= 0L) {
+            return PERMANENT_OPEN_STAGE_TICKS;
+        }
+
+        return (float) Math.max(0.0, worldTicks - openedAt);
+    }
+
+    private float resolvePermanentOpeningHalfWidth(float activationAge) {
+        if (activationAge < PERMANENT_SEAM_START_TICKS) {
+            return 0.0f;
+        }
+
+        if (activationAge < PERMANENT_SEAM_END_TICKS) {
+            return PERMANENT_SEAM_HALF_WIDTH_U;
+        }
+
+        float widthProgress = easeOutCubic(Mth.clamp(
+            (activationAge - PERMANENT_WIDTH_START_TICKS) / (PERMANENT_WIDTH_END_TICKS - PERMANENT_WIDTH_START_TICKS),
+            0.0f,
+            1.0f
+        ));
+        return Math.max(PERMANENT_SEAM_HALF_WIDTH_U, 0.5f * widthProgress);
+    }
+
+    private int resolvePermanentOpeningMaskFrame(float activationAge) {
+        if (activationAge <= PERMANENT_SEAM_END_TICKS) {
+            return 0;
+        }
+
+        float frameProgress = Mth.clamp(
+            (activationAge - PERMANENT_SEAM_END_TICKS) / (PERMANENT_OPEN_STAGE_TICKS - PERMANENT_SEAM_END_TICKS),
+            0.0f,
+            1.0f
+        );
+        return Mth.clamp(
+            Mth.floor(frameProgress * (PERMANENT_OPENING_FRAMES.length - 1)),
+            0,
+            PERMANENT_OPENING_FRAMES.length - 1
+        );
+    }
+
+    private float easeOutCubic(float t) {
+        float clamped = Mth.clamp(t, 0.0f, 1.0f);
+        float inverse = 1.0f - clamped;
+        return 1.0f - (inverse * inverse * inverse);
+    }
+
+    private AlphaMask getPermanentOpeningMask(int frameIndex) {
+        if (frameIndex < 0 || frameIndex >= PERMANENT_OPENING_MASK_CACHE.length) {
+            return null;
+        }
+
+        AlphaMask cached = PERMANENT_OPENING_MASK_CACHE[frameIndex];
+        if (cached != null) {
+            return cached;
+        }
+
+        AlphaMask loaded = loadAlphaMask(PERMANENT_OPENING_FRAMES[frameIndex]);
+        if (loaded != null) {
+            PERMANENT_OPENING_MASK_CACHE[frameIndex] = loaded;
+        }
+        return loaded;
+    }
+
+    private AlphaMask loadAlphaMask(ResourceLocation texture) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) {
+            return null;
+        }
+
+        var resource = mc.getResourceManager().getResource(texture);
+        if (resource.isEmpty()) {
+            return null;
+        }
+
+        try (var stream = resource.get().open(); NativeImage image = NativeImage.read(stream)) {
+            return AlphaMask.from(image);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private void drawDissolveLayer(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float z,
+        float time,
+        float widthProgress,
+        float openProgress,
+        int rgb,
+        float alpha,
+        float scrollU,
+        float scrollV,
+        float noiseSeed
+    ) {
+        int strips = 28;
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        for (int i = 0; i < strips; i++) {
+            float t0 = i / (float) strips;
+            float t1 = (i + 1) / (float) strips;
+            float x0 = Mth.lerp(t0, -halfW, halfW);
+            float x1 = Mth.lerp(t1, -halfW, halfW);
+            float center = (x0 + x1) * 0.5f;
+            float absNorm = Math.abs(center) / Math.max(0.0001f, halfW);
+            if (absNorm > widthProgress) {
+                continue;
+            }
+
+            float revealNoise = 0.5f + (0.5f * Mth.sin((center * 11.0f) + (time * 0.75f) + (noiseSeed * 9.0f)));
+            float revealThreshold = 0.12f + (0.72f * revealNoise);
+            float reveal = Mth.clamp((openProgress - revealThreshold + 0.2f) / 0.24f, 0.0f, 1.0f);
+            if (reveal <= 0.001f) {
+                continue;
+            }
+
+            int a = Mth.clamp((int) (255.0f * alpha * reveal), 0, 255);
+            float u0 = (t0 + (time * scrollU)) % 1.0f;
+            float u1 = (t1 + (time * scrollU)) % 1.0f;
+            float v0 = (0.0f + (time * scrollV)) % 1.0f;
+            float v1 = (1.0f + (time * scrollV)) % 1.0f;
+
+            texturedQuadBidirectional(vc, mat4, normal,
+                x0, -halfH,
+                x1, -halfH,
+                x1, halfH,
+                x0, halfH,
+                z,
+                light,
+                1.0f,
+                u0, v0,
+                u1, v0,
+                u1, v1,
+                u0, v1,
+                r, g, b, a);
+        }
     }
 
     private static double resolveAnimationTicks(CorridorPortalBlockEntity blockEntity, float partialTick) {
@@ -921,6 +1427,45 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         vertex(vc, mat4, normal, x0, y0, z, u0, v0, r0, g0, b0, a0, light, -normalZ);
     }
 
+    private static void texturedQuadBidirectional(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        float x0,
+        float y0,
+        float x1,
+        float y1,
+        float x2,
+        float y2,
+        float x3,
+        float y3,
+        float z,
+        int light,
+        float normalZ,
+        float u0,
+        float v0,
+        float u1,
+        float v1,
+        float u2,
+        float v2,
+        float u3,
+        float v3,
+        int r,
+        int g,
+        int b,
+        int a
+    ) {
+        vertex(vc, mat4, normal, x0, y0, z, u0, v0, r, g, b, a, light, normalZ);
+        vertex(vc, mat4, normal, x1, y1, z, u1, v1, r, g, b, a, light, normalZ);
+        vertex(vc, mat4, normal, x2, y2, z, u2, v2, r, g, b, a, light, normalZ);
+        vertex(vc, mat4, normal, x3, y3, z, u3, v3, r, g, b, a, light, normalZ);
+
+        vertex(vc, mat4, normal, x3, y3, z, u3, v3, r, g, b, a, light, -normalZ);
+        vertex(vc, mat4, normal, x2, y2, z, u2, v2, r, g, b, a, light, -normalZ);
+        vertex(vc, mat4, normal, x1, y1, z, u1, v1, r, g, b, a, light, -normalZ);
+        vertex(vc, mat4, normal, x0, y0, z, u0, v0, r, g, b, a, light, -normalZ);
+    }
+
     private static float ellipseWidthFactor(float normalizedY) {
         float clamped = Mth.clamp(1.0f - (normalizedY * normalizedY), 0.0f, 1.0f);
         return Mth.sqrt(clamped);
@@ -1247,5 +1792,36 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             .uv2(light)
             .normal(normal, normalX, normalY, normalZ)
             .endVertex();
+    }
+
+    private static final class AlphaMask {
+        private final int width;
+        private final int height;
+        private final float[] alpha;
+
+        private AlphaMask(int width, int height, float[] alpha) {
+            this.width = width;
+            this.height = height;
+            this.alpha = alpha;
+        }
+
+        private static AlphaMask from(NativeImage image) {
+            int width = image.getWidth();
+            int height = image.getHeight();
+            float[] alpha = new float[width * height];
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int pixel = image.getPixelRGBA(x, y);
+                    alpha[(y * width) + x] = ((pixel >>> 24) & 0xFF) / 255.0f;
+                }
+            }
+            return new AlphaMask(width, height, alpha);
+        }
+
+        private float sample(float u, float v) {
+            int x = Mth.clamp((int) (u * (width - 1)), 0, width - 1);
+            int y = Mth.clamp((int) (v * (height - 1)), 0, height - 1);
+            return alpha[(y * width) + x];
+        }
     }
 }

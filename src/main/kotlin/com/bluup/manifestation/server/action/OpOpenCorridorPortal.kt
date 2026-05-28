@@ -21,8 +21,11 @@ import com.bluup.manifestation.server.PortalOwnershipStore
 import com.bluup.manifestation.server.block.CorridorPortalBlock
 import com.bluup.manifestation.server.block.CorridorPortalBlockEntity
 import com.bluup.manifestation.server.block.ManifestationBlocks
+import com.bluup.manifestation.server.block.PermanentThresholdFrame
+import com.bluup.manifestation.server.block.PermanentThresholdFrames
 import com.bluup.manifestation.server.iota.PresenceIntentIota
 import com.bluup.manifestation.server.mishap.MishapPortalNoSpace
+import com.bluup.manifestation.server.mishap.MishapPermanentThresholdFrameInvalid
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -133,10 +136,6 @@ object OpOpenCorridorPortal : Action {
         val sourceAxis = horizontalAxisForYaw(sourceYaw)
         val portalTint = resolvePortalTint(env, pigmentTintOverrideRgb)
 
-        if (env.extractMedia(mediaBudget, true) > 0) {
-            throw MishapNotEnoughMedia(mediaBudget)
-        }
-
         val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(bDimensionId))
         val targetLevel = caster.server.getLevel(targetKey)
             ?: throw MishapBadLocation(Vec3.atCenterOf(bPos), "bad_dimension")
@@ -148,37 +147,74 @@ object OpOpenCorridorPortal : Action {
         val targetYaw = yawFromFacing(bIota.facing)
         val ownershipStore = PortalOwnershipStore.get(caster.server)
 
-        val sourcePlacement = preparePortalPlacement(sourceLevel, aPos, sourceAxis)
-        val targetPlacement = preparePortalPlacement(targetLevel, bPos, bAxis)
+        val sourceFrame = PermanentThresholdFrames.findAt(sourceLevel, aPos)
+        val targetFrame = PermanentThresholdFrames.findAt(targetLevel, bPos)
+        val permanentFrameFlow = sourceFrame != null || targetFrame != null
+
+        if (permanentFrameFlow && (sourceFrame == null || targetFrame == null)) {
+            throw MishapPermanentThresholdFrameInvalid()
+        }
+
+        val sourcePortalPos = sourceFrame?.anchorPos() ?: aPos
+        val targetPortalPos = targetFrame?.anchorPos() ?: bPos
+        val sourcePortalAxis = sourceFrame?.axis ?: sourceAxis
+        val targetPortalAxis = targetFrame?.axis ?: bAxis
+        val sourceRenderYaw = if (sourceFrame != null) snapYawToAxis(sourceYaw, sourcePortalAxis) else sourceYaw
+        val targetRenderYaw = if (targetFrame != null) snapYawToAxis(targetYaw, targetPortalAxis) else targetYaw
+        val openMediaCost = if (permanentFrameFlow) {
+            PERMANENT_THRESHOLD_OPEN_MEDIA_COST
+        } else {
+            mediaBudget
+        }
+
+        if (env.extractMedia(openMediaCost, true) > 0) {
+            throw MishapNotEnoughMedia(openMediaCost)
+        }
+
+        if (permanentFrameFlow) {
+            sourceFrame?.let { clearPermanentFrameControllers(sourceLevel, it) }
+            if (sourceLevel != targetLevel || sourcePortalPos != targetPortalPos) {
+                targetFrame?.let { clearPermanentFrameControllers(targetLevel, it) }
+            }
+        }
+
+        val sourcePlacement = preparePortalPlacement(sourceLevel, sourcePortalPos, sourcePortalAxis)
+        val targetPlacement = preparePortalPlacement(targetLevel, targetPortalPos, targetPortalAxis)
 
         applyPortalPlacement(sourceLevel, sourcePlacement)
         try {
             applyPortalPlacement(targetLevel, targetPlacement)
 
-            val aPortal = sourceLevel.getBlockEntity(aPos) as? CorridorPortalBlockEntity
+            val aPortal = sourceLevel.getBlockEntity(sourcePortalPos) as? CorridorPortalBlockEntity
                 ?: throw MishapPortalNoSpace()
-            val bPortal = targetLevel.getBlockEntity(bPos) as? CorridorPortalBlockEntity
+            val bPortal = targetLevel.getBlockEntity(targetPortalPos) as? CorridorPortalBlockEntity
                 ?: throw MishapPortalNoSpace()
 
             val previousPair = ownershipStore.get(caster.uuid)
 
             aPortal.linkTo(
                 sourceLevel,
-                bPos,
+                targetPortalPos,
                 targetLevel.dimension().location().toString(),
                 caster.uuid,
                 mediaBudget,
                 scale,
-                sourceYaw
+                sourceRenderYaw,
+                permanentFrameFlow,
+                sourceFrame,
+                targetFrame
             )
             bPortal.linkTo(
                 targetLevel,
-                aPos,
+                sourcePortalPos,
                 sourceLevel.dimension().location().toString(),
                 caster.uuid,
                 mediaBudget,
                 scale,
-                targetYaw
+                targetRenderYaw,
+                permanentFrameFlow,
+                targetFrame,
+                sourceFrame
             )
             aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
             bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
@@ -186,15 +222,15 @@ object OpOpenCorridorPortal : Action {
             ownershipStore.put(
                 caster.uuid,
                 PortalOwnershipStore.PortalPair(
-                    PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), aPos.immutable()),
-                    PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), bPos.immutable())
+                    PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), sourcePortalPos.immutable()),
+                    PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), targetPortalPos.immutable())
                 )
             )
 
             // Enforce one active portal pair per caster by clearing any previous pair.
             if (previousPair != null) {
-                val newSource = PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), aPos)
-                val newTarget = PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), bPos)
+                val newSource = PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), sourcePortalPos)
+                val newTarget = PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), targetPortalPos)
                 clearOwnedPortal(caster.server, previousPair.first, newSource, newTarget)
                 clearOwnedPortal(caster.server, previousPair.second, newSource, newTarget)
             }
@@ -207,7 +243,7 @@ object OpOpenCorridorPortal : Action {
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(
             image2,
-            listOf(OperatorSideEffect.ConsumeMedia(mediaBudget)),
+            listOf(OperatorSideEffect.ConsumeMedia(openMediaCost)),
             continuation,
             HexEvalSounds.NORMAL_EXECUTE
         )
@@ -274,6 +310,21 @@ object OpOpenCorridorPortal : Action {
         level.removeBlock(placement.pos, false)
     }
 
+    private fun clearPermanentFrameControllers(
+        level: net.minecraft.server.level.ServerLevel,
+        frame: PermanentThresholdFrame
+    ) {
+        for (horizontal in 0..3) {
+            for (vertical in 0..4) {
+                val pos = frame.framePos(horizontal, vertical)
+                val state = level.getBlockState(pos)
+                if (state.block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
+                    level.removeBlock(pos, false)
+                }
+            }
+        }
+    }
+
     private fun clearOwnedPortal(
         server: net.minecraft.server.MinecraftServer,
         oldEndpoint: PortalOwnershipStore.PortalEndpoint,
@@ -302,6 +353,23 @@ object OpOpenCorridorPortal : Action {
     private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
 
     private fun horizontalAxisForYaw(yaw: Float): Direction.Axis = Direction.fromYRot(yaw.toDouble()).axis
+
+    private fun snapYawToAxis(preferredYaw: Float, axis: Direction.Axis): Float {
+        val positiveYaw = when (axis) {
+            Direction.Axis.X -> -90.0f
+            Direction.Axis.Z -> 0.0f
+            else -> Mth.wrapDegrees(preferredYaw)
+        }
+        val negativeYaw = Mth.wrapDegrees(positiveYaw + 180.0f)
+        val normalizedPreferred = Mth.wrapDegrees(preferredYaw)
+        return if (angularDistance(normalizedPreferred, positiveYaw) <= angularDistance(normalizedPreferred, negativeYaw)) {
+            positiveYaw
+        } else {
+            negativeYaw
+        }
+    }
+
+    private fun angularDistance(a: Float, b: Float): Float = kotlin.math.abs(Mth.wrapDegrees(a - b))
 
     private fun extractPortalLabel(iota: Iota): String? {
         val className = iota.javaClass.name.lowercase()
@@ -396,6 +464,7 @@ object OpOpenCorridorPortal : Action {
     )
 
     private const val MAX_LABEL_LENGTH = 64
+    private const val PERMANENT_THRESHOLD_OPEN_MEDIA_COST = 35L * MediaConstants.CRYSTAL_UNIT
 
     private fun resolvePortalTint(env: CastingEnvironment, explicitTintOverrideRgb: Int?): PortalTintResolution {
         if (explicitTintOverrideRgb != null) {

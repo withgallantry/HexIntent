@@ -28,6 +28,16 @@ class PortalOwnershipStore : SavedData() {
         }
     }
 
+    fun removeIfContains(owner: UUID, endpoint: PortalEndpoint) {
+        val pair = ownedPortalPairs[owner] ?: return
+        if (pair.first != endpoint && pair.second != endpoint) {
+            return
+        }
+
+        ownedPortalPairs.remove(owner)
+        setDirty()
+    }
+
     override fun save(tag: CompoundTag): CompoundTag {
         val list = ListTag()
         for ((owner, pair) in ownedPortalPairs) {
