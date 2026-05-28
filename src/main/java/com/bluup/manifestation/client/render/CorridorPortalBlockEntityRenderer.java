@@ -175,7 +175,15 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 scale,
                 state.getValue(CorridorPortalBlock.AXIS),
                 blockEntity.getRenderYawDegrees(),
-                worldTicks
+                worldTicks,
+                time,
+                membraneTintColour,
+                internalAccentColour,
+                edgeVeilColour,
+                trailTailColour,
+                trailHeadColour,
+                rimOuterColour,
+                rimInnerColour
             );
             drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
             poseStack.popPose();
@@ -222,37 +230,47 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float scale,
         Direction.Axis axis,
         float renderYawDegrees,
-        double worldTicks
+        double worldTicks,
+        float time,
+        int membraneTintColour,
+        int internalAccentColour,
+        int edgeVeilColour,
+        int trailTailColour,
+        int trailHeadColour,
+        int rimOuterColour,
+        int rimInnerColour
     ) {
         poseStack.pushPose();
         poseStack.translate(resolvePermanentCenterOffset(axis, renderYawDegrees) * scale, 0.0f, 0.0f);
 
-        PoseStack.Pose pose = poseStack.last();
-        Matrix4f mat4 = pose.pose();
-        Matrix3f normal = pose.normal();
-
-        float halfW = PERMANENT_HALF_WIDTH * scale;
-        float halfH = PERMANENT_HALF_HEIGHT * scale;
-
-        if (halfW <= 0.0001f || halfH <= 0.0001f) {
+        float baseHalfW = HALF_WIDTH * scale;
+        float baseHalfH = HALF_HEIGHT * scale;
+        if (baseHalfW <= 0.0001f || baseHalfH <= 0.0001f) {
             poseStack.popPose();
             return;
         }
 
         float activationAge = resolvePermanentActivationAge(blockEntity, worldTicks);
-        VertexConsumer baseVc = buffer.getBuffer(RenderType.entitySolid(PERMANENT_PORTAL_BASE));
-        VertexConsumer mistVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_MIST));
-        VertexConsumer edgeVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_EDGE));
+        VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
+        VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
+        VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
         if (activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
-            float baseUOffset = Mth.frac((float) (worldTicks * PERMANENT_BASE_IDLE_U_RATE));
-            float baseVOffset = Mth.frac((float) (worldTicks * PERMANENT_BASE_IDLE_V_RATE));
-            float mistUOffset = Mth.frac((float) (worldTicks * PERMANENT_MIST_IDLE_U_RATE));
-            float mistVOffset = Mth.frac((float) (worldTicks * PERMANENT_MIST_IDLE_V_RATE));
-            float edgePulse = 0.85f + (0.15f * Mth.sin((float) (worldTicks * PERMANENT_EDGE_PULSE_RATE)));
-
-            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, baseUOffset, baseVOffset, 1.0f);
-            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, mistUOffset, mistVOffset, 1.0f);
-            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, 0.0f, 0.0f, edgePulse);
+            drawPermanentCorridorSquarePortal(
+                poseStack,
+                portalVc,
+                fxVc,
+                energyVc,
+                light,
+                scale,
+                time,
+                membraneTintColour,
+                internalAccentColour,
+                edgeVeilColour,
+                trailTailColour,
+                trailHeadColour,
+                rimOuterColour,
+                rimInnerColour
+            );
             poseStack.popPose();
             return;
         }
@@ -264,9 +282,22 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
         AlphaMask currentMask = getPermanentPatchRevealMask();
         if (currentMask == null) {
-            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, 0.0f, 0.0f, 1.0f);
-            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, 0.0f, 0.0f, 1.0f);
-            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, 0.0f, 0.0f, 1.0f);
+            drawPermanentCorridorSquarePortal(
+                poseStack,
+                portalVc,
+                fxVc,
+                energyVc,
+                light,
+                scale,
+                time,
+                membraneTintColour,
+                internalAccentColour,
+                edgeVeilColour,
+                trailTailColour,
+                trailHeadColour,
+                rimOuterColour,
+                rimInnerColour
+            );
             poseStack.popPose();
             return;
         }
@@ -279,11 +310,91 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float currentPatchProgress = resolvePermanentPatchProgress(activationAge);
         float previousPatchProgress = resolvePermanentPatchProgress(previousAge);
 
-        drawMaskedPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
-        drawMaskedPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
-        drawMaskedPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
+        drawPermanentOpeningCorridorPortal(
+            poseStack,
+            portalVc,
+            fxVc,
+            energyVc,
+            light,
+            scale,
+            currentMask,
+            previousMask,
+            currentHalfWidth,
+            previousHalfWidth,
+            currentPatchProgress,
+            previousPatchProgress,
+            worldTicks,
+            membraneTintColour,
+            internalAccentColour,
+            rimInnerColour
+        );
+
+        poseStack.popPose();
+    }
+
+    private void drawPermanentCorridorSquarePortal(
+        PoseStack poseStack,
+        VertexConsumer portalVc,
+        VertexConsumer fxVc,
+        VertexConsumer energyVc,
+        int light,
+        float scale,
+        float time,
+        int membraneTintColour,
+        int internalAccentColour,
+        int edgeVeilColour,
+        int trailTailColour,
+        int trailHeadColour,
+        int rimOuterColour,
+        int rimInnerColour
+    ) {
+        poseStack.pushPose();
+        poseStack.scale(PERMANENT_HALF_WIDTH / HALF_WIDTH, PERMANENT_HALF_HEIGHT / HALF_HEIGHT, 1.0f);
+
+        drawPortalSquare(poseStack, portalVc, Z_EPSILON, 1.0f, scale);
+        drawPortalSquare(poseStack, portalVc, -Z_EPSILON, 1.0f, scale);
+        drawMembraneTint(poseStack, fxVc, light, 1.0f, scale, time, 1, membraneTintColour);
+        drawInternalPortalAccent(poseStack, energyVc, light, 1.0f, scale, time, 1, internalAccentColour);
+        drawEdgeVeil(poseStack, fxVc, light, 1.0f, scale, time, 1, edgeVeilColour);
+        drawInflowTrails(poseStack, energyVc, light, 1.0f, scale, time, trailTailColour, trailHeadColour);
+        drawPurpleGlow(poseStack, energyVc, light, 1.0f, scale, time, 1, rimOuterColour, rimInnerColour);
+
+        poseStack.popPose();
+    }
+
+    private void drawPermanentOpeningCorridorPortal(
+        PoseStack poseStack,
+        VertexConsumer portalVc,
+        VertexConsumer fxVc,
+        VertexConsumer energyVc,
+        int light,
+        float scale,
+        AlphaMask currentMask,
+        AlphaMask previousMask,
+        float currentHalfWidth,
+        float previousHalfWidth,
+        float currentPatchProgress,
+        float previousPatchProgress,
+        double worldTicks,
+        int membraneTintColour,
+        int internalAccentColour,
+        int activeEdgeColour
+    ) {
+        poseStack.pushPose();
+        poseStack.scale(PERMANENT_HALF_WIDTH / HALF_WIDTH, PERMANENT_HALF_HEIGHT / HALF_HEIGHT, 1.0f);
+
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat4 = pose.pose();
+        Matrix3f normal = pose.normal();
+        float halfW = HALF_WIDTH * scale;
+        float halfH = HALF_HEIGHT * scale;
+
+        drawMaskedPermanentPortalSurface(portalVc, mat4, halfW, halfH, Z_EPSILON, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentPortalSurface(portalVc, mat4, halfW, halfH, -Z_EPSILON, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentColorLayer(fxVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0012f, membraneTintColour, 0.24f, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentColorLayer(energyVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0018f, internalAccentColour, 0.16f, currentMask, currentHalfWidth, currentPatchProgress);
         drawPermanentActiveBand(
-            buffer.getBuffer(RenderType.translucent()),
+            energyVc,
             mat4,
             normal,
             light,
@@ -296,7 +407,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             previousHalfWidth,
             currentPatchProgress,
             previousPatchProgress,
-            worldTicks
+            worldTicks,
+            activeEdgeColour,
+            0.42f
         );
 
         poseStack.popPose();
@@ -418,6 +531,111 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
     }
 
+    private void drawMaskedPermanentPortalSurface(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        float halfW,
+        float halfH,
+        float z,
+        AlphaMask mask,
+        float visibleHalfWidth,
+        float patchProgress
+    ) {
+        if (mask == null || visibleHalfWidth <= 0.0f) {
+            return;
+        }
+
+        float cellHalfWidth = 0.5f / PERMANENT_REVEAL_COLUMNS;
+        for (int row = 0; row < PERMANENT_REVEAL_ROWS; row++) {
+            float v0 = row / (float) PERMANENT_REVEAL_ROWS;
+            float v1 = (row + 1) / (float) PERMANENT_REVEAL_ROWS;
+            float y0 = Mth.lerp(v0, -halfH, halfH);
+            float y1 = Mth.lerp(v1, -halfH, halfH);
+            float sampleV = (v0 + v1) * 0.5f;
+
+            for (int column = 0; column < PERMANENT_REVEAL_COLUMNS; column++) {
+                float u0 = column / (float) PERMANENT_REVEAL_COLUMNS;
+                float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
+                float sampleU = (u0 + u1) * 0.5f;
+                float reveal = samplePermanentReveal(mask, sampleU, sampleV, visibleHalfWidth, cellHalfWidth, patchProgress);
+                if (reveal <= 0.02f) {
+                    continue;
+                }
+
+                float x0 = Mth.lerp(u0, -halfW, halfW);
+                float x1 = Mth.lerp(u1, -halfW, halfW);
+                portalQuad(vc, mat4, x0, y0, x1, y1, z);
+            }
+        }
+    }
+
+    private void drawMaskedPermanentColorLayer(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        Matrix3f normal,
+        int light,
+        float halfW,
+        float halfH,
+        float z,
+        int rgb,
+        float alpha,
+        AlphaMask mask,
+        float visibleHalfWidth,
+        float patchProgress
+    ) {
+        if (alpha <= 0.001f || mask == null || visibleHalfWidth <= 0.0f) {
+            return;
+        }
+
+        int baseAlpha = Mth.clamp((int) (255.0f * alpha), 0, 255);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        float cellHalfWidth = 0.5f / PERMANENT_REVEAL_COLUMNS;
+
+        for (int row = 0; row < PERMANENT_REVEAL_ROWS; row++) {
+            float v0 = row / (float) PERMANENT_REVEAL_ROWS;
+            float v1 = (row + 1) / (float) PERMANENT_REVEAL_ROWS;
+            float y0 = Mth.lerp(v0, -halfH, halfH);
+            float y1 = Mth.lerp(v1, -halfH, halfH);
+            float sampleV = (v0 + v1) * 0.5f;
+
+            for (int column = 0; column < PERMANENT_REVEAL_COLUMNS; column++) {
+                float u0 = column / (float) PERMANENT_REVEAL_COLUMNS;
+                float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
+                float sampleU = (u0 + u1) * 0.5f;
+                float reveal = samplePermanentReveal(mask, sampleU, sampleV, visibleHalfWidth, cellHalfWidth, patchProgress);
+                if (reveal <= 0.02f) {
+                    continue;
+                }
+
+                int cellAlpha = Mth.clamp((int) (baseAlpha * reveal), 0, 255);
+                if (cellAlpha <= 0) {
+                    continue;
+                }
+
+                float x0 = Mth.lerp(u0, -halfW, halfW);
+                float x1 = Mth.lerp(u1, -halfW, halfW);
+                quadBidirectional(
+                    vc,
+                    mat4,
+                    normal,
+                    x0, y0,
+                    x1, y0,
+                    x1, y1,
+                    x0, y1,
+                    z,
+                    light,
+                    1.0f,
+                    r, g, b, cellAlpha,
+                    r, g, b, cellAlpha,
+                    r, g, b, cellAlpha,
+                    r, g, b, cellAlpha
+                );
+            }
+        }
+    }
+
     private void drawPermanentActiveBand(
         VertexConsumer vc,
         Matrix4f mat4,
@@ -432,16 +650,18 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float previousHalfWidth,
         float currentPatchProgress,
         float previousPatchProgress,
-        double worldTicks
+        double worldTicks,
+        int activeEdgeColour,
+        float activeEdgeAlpha
     ) {
         if (currentMask == null || previousMask == null || currentHalfWidth <= 0.0f) {
             return;
         }
 
-        int r = (PERMANENT_ACTIVE_EDGE_COLOR >> 16) & 0xFF;
-        int g = (PERMANENT_ACTIVE_EDGE_COLOR >> 8) & 0xFF;
-        int b = PERMANENT_ACTIVE_EDGE_COLOR & 0xFF;
-        int baseAlpha = Mth.clamp((int) (255.0f * PERMANENT_ACTIVE_EDGE_ALPHA * (0.82f + (0.18f * Mth.sin((float) (worldTicks * 0.42))))), 0, 255);
+        int r = (activeEdgeColour >> 16) & 0xFF;
+        int g = (activeEdgeColour >> 8) & 0xFF;
+        int b = activeEdgeColour & 0xFF;
+        int baseAlpha = Mth.clamp((int) (255.0f * activeEdgeAlpha * (0.82f + (0.18f * Mth.sin((float) (worldTicks * 0.42))))), 0, 255);
         float cellHalfWidth = 0.5f / PERMANENT_REVEAL_COLUMNS;
 
         for (int row = 0; row < PERMANENT_REVEAL_ROWS; row++) {
@@ -1233,16 +1453,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
         float halfH = HALF_HEIGHT * envelope * scale;
         float halfW = HALF_WIDTH * envelope * scale;
-
-        portalVertex(vc, mat4, -halfW, -halfH, z);
-        portalVertex(vc, mat4, halfW, -halfH, z);
-        portalVertex(vc, mat4, halfW, halfH, z);
-        portalVertex(vc, mat4, -halfW, halfH, z);
-
-        portalVertex(vc, mat4, -halfW, halfH, z);
-        portalVertex(vc, mat4, halfW, halfH, z);
-        portalVertex(vc, mat4, halfW, -halfH, z);
-        portalVertex(vc, mat4, -halfW, -halfH, z);
+        portalQuad(vc, mat4, -halfW, -halfH, halfW, halfH, z);
     }
 
     private void drawCollapseSpark(PoseStack poseStack, VertexConsumer vc, int light, float collapseProgress, int sparkColor) {
@@ -1728,6 +1939,26 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     }
 
     private record PortalPoint(float x, float y) {
+    }
+
+    private static void portalQuad(
+        VertexConsumer vc,
+        Matrix4f mat4,
+        float x0,
+        float y0,
+        float x1,
+        float y1,
+        float z
+    ) {
+        portalVertex(vc, mat4, x0, y0, z);
+        portalVertex(vc, mat4, x1, y0, z);
+        portalVertex(vc, mat4, x1, y1, z);
+        portalVertex(vc, mat4, x0, y1, z);
+
+        portalVertex(vc, mat4, x0, y1, z);
+        portalVertex(vc, mat4, x1, y1, z);
+        portalVertex(vc, mat4, x1, y0, z);
+        portalVertex(vc, mat4, x0, y0, z);
     }
 
     private static void portalVertex(
