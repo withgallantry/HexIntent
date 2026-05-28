@@ -265,7 +265,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             float rimRevealProgress = resolvePermanentRimRevealProgress(blockEntity, activationAge);
             drawPermanentCorridorSquarePortal(
                 poseStack,
-                portalVc,
+            portalVc,
                 fxVc,
                 energyVc,
                 light,
@@ -400,8 +400,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
         drawMaskedPermanentPortalSurface(portalVc, mat4, halfW, halfH, Z_EPSILON, currentMask, currentHalfWidth, currentPatchProgress);
         drawMaskedPermanentPortalSurface(portalVc, mat4, halfW, halfH, -Z_EPSILON, currentMask, currentHalfWidth, currentPatchProgress);
-        drawMaskedPermanentColorLayer(fxVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0012f, membraneTintColour, 0.24f, currentMask, currentHalfWidth, currentPatchProgress);
-        drawMaskedPermanentColorLayer(energyVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0018f, internalAccentColour, 0.16f, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentColorLayer(fxVc, mat4, normal, light, halfW, halfH, 0.0f, membraneTintColour, 0.72f, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentColorLayer(energyVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0012f, internalAccentColour, 0.12f, currentMask, currentHalfWidth, currentPatchProgress);
         drawPermanentActiveBand(
             energyVc,
             mat4,
@@ -1229,40 +1229,54 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        int edgeColor = mixRgb(0x06020D, tintColor, 0.56f);
-        int coreColor = mixRgb(0x020106, tintColor, 0.78f);
-        int edgeR = (edgeColor >> 16) & 0xFF;
-        int edgeG = (edgeColor >> 8) & 0xFF;
-        int edgeB = edgeColor & 0xFF;
-        int coreR = (coreColor >> 16) & 0xFF;
-        int coreG = (coreColor >> 8) & 0xFF;
-        int coreB = coreColor & 0xFF;
-        int edgeAlpha = Mth.clamp((int) (58f * envelope), 0, 255);
-        int coreAlpha = Mth.clamp((int) (90f * envelope), 0, 255);
+        int membraneColor = mixRgb(0x020106, tintColor, 0.78f);
+        int membraneR = (membraneColor >> 16) & 0xFF;
+        int membraneG = (membraneColor >> 8) & 0xFF;
+        int membraneB = membraneColor & 0xFF;
+        int membraneAlpha = Mth.clamp((int) (168f * envelope), 0, 255);
 
-        float zFront = Z_EPSILON + 0.0012f;
-        float zBack = -Z_EPSILON - 0.0012f;
-        for (int side = 0; side < 2; side++) {
-            float z = side == 0 ? zFront : zBack;
-            float nz = side == 0 ? 1.0f : -1.0f;
-            for (int i = 0; i < OUTLINE_SEGMENTS; i++) {
-                float a0 = Mth.TWO_PI * i / OUTLINE_SEGMENTS;
-                float a1 = Mth.TWO_PI * (i + 1) / OUTLINE_SEGMENTS;
-                PortalPoint edge0 = portalPoint(shape, a0, halfW, halfH, envelope, scale, time);
-                PortalPoint edge1 = portalPoint(shape, a1, halfW, halfH, envelope, scale, time);
+        if (shape == 1) {
+            quadBidirectional(vc, mat4, normal,
+                -halfW, -halfH,
+                halfW, -halfH,
+                halfW, halfH,
+                -halfW, halfH,
+                0.0f, light, 1.0f,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha);
+            return;
+        }
 
-                // A soft fan from center to edge tints the membrane without replacing the end texture depth.
-                quadBidirectional(vc, mat4, normal,
-                    0.0f, 0.0f,
-                    edge0.x, edge0.y,
-                    edge1.x, edge1.y,
-                    0.0f, 0.0f,
-                    z, light, nz,
-                    coreR, coreG, coreB, coreAlpha,
-                    edgeR, edgeG, edgeB, edgeAlpha,
-                    edgeR, edgeG, edgeB, edgeAlpha,
-                    coreR, coreG, coreB, coreAlpha);
-            }
+        for (int i = 0; i < STRIPS; i++) {
+            float v0 = i / (float) STRIPS;
+            float v1 = (i + 1) / (float) STRIPS;
+
+            float y0 = Mth.lerp(v0, -halfH, halfH);
+            float y1 = Mth.lerp(v1, -halfH, halfH);
+
+            float n0 = y0 / halfH;
+            float n1 = y1 / halfH;
+
+            float wobble0 = tearWobbleX(n0, envelope, scale, time);
+            float wobble1 = tearWobbleX(n1, envelope, scale, time);
+
+            float left0 = tearLeftX(n0, halfW, envelope, scale, time) + wobble0;
+            float right0 = tearRightX(n0, halfW, envelope, scale, time) + wobble0;
+            float left1 = tearLeftX(n1, halfW, envelope, scale, time) + wobble1;
+            float right1 = tearRightX(n1, halfW, envelope, scale, time) + wobble1;
+
+            quadBidirectional(vc, mat4, normal,
+                left0, y0,
+                right0, y0,
+                right1, y1,
+                left1, y1,
+                0.0f, light, 1.0f,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha,
+                membraneR, membraneG, membraneB, membraneAlpha);
         }
     }
 
