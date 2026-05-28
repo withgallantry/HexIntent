@@ -40,19 +40,26 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final float PERMANENT_FRAME_HALF_WIDTH = 2.0f;
     private static final float PERMANENT_FRAME_HALF_HEIGHT = 2.5f;
     private static final float PERMANENT_FRAME_Z = 0.0125f;
-    private static final int PERMANENT_BASE_TINT_COLOR = 0x731FDB;
-    private static final float PERMANENT_BASE_ALPHA = 0.98f;
-    private static final int PERMANENT_MIST_TINT_COLOR = 0x5A2AA8;
-    private static final float PERMANENT_MIST_ALPHA = 0.26f;
-    private static final int PERMANENT_EDGE_TINT_COLOR = 0xF1E9FF;
-    private static final float PERMANENT_EDGE_ALPHA = 0.58f;
-    private static final int PERMANENT_ACTIVE_EDGE_COLOR = 0xFBF4FF;
-    private static final float PERMANENT_ACTIVE_EDGE_ALPHA = 0.72f;
+    private static final int PERMANENT_BASE_TINT_COLOR = 0x181A2D;
+    private static final float PERMANENT_BASE_ALPHA = 0.90f;
+    private static final int PERMANENT_MIST_TINT_COLOR = 0x232846;
+    private static final float PERMANENT_MIST_ALPHA = 0.18f;
+    private static final int PERMANENT_EDGE_TINT_COLOR = 0x6F7CB3;
+    private static final float PERMANENT_EDGE_ALPHA = 0.34f;
+    private static final int PERMANENT_ACTIVE_EDGE_COLOR = 0x5A6798;
+    private static final float PERMANENT_ACTIVE_EDGE_ALPHA = 0.32f;
+    private static final float PERMANENT_BASE_IDLE_U_RATE = 0.002f;
+    private static final float PERMANENT_BASE_IDLE_V_RATE = -0.001f;
+    private static final float PERMANENT_MIST_IDLE_U_RATE = -0.004f;
+    private static final float PERMANENT_MIST_IDLE_V_RATE = 0.003f;
+    private static final float PERMANENT_EDGE_PULSE_RATE = 0.08f;
     private static final float PERMANENT_OPEN_STAGE_TICKS = 28.0f;
     private static final float PERMANENT_SEAM_START_TICKS = 4.0f;
     private static final float PERMANENT_SEAM_END_TICKS = 8.0f;
     private static final float PERMANENT_WIDTH_START_TICKS = 8.0f;
     private static final float PERMANENT_WIDTH_END_TICKS = 20.0f;
+    private static final float PERMANENT_PATCH_START_TICKS = 8.0f;
+    private static final float PERMANENT_PATCH_SOFTNESS = 0.20f;
     private static final float PERMANENT_SEAM_HALF_WIDTH_U = 0.035f;
     private static final int PERMANENT_REVEAL_COLUMNS = 24;
     private static final int PERMANENT_REVEAL_ROWS = 36;
@@ -62,18 +69,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final ResourceLocation PERMANENT_PORTAL_BASE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_base_dark.png");
     private static final ResourceLocation PERMANENT_PORTAL_MIST = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_mist_layer.png");
     private static final ResourceLocation PERMANENT_PORTAL_EDGE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_rect_edge_glow.png");
+    private static final ResourceLocation PERMANENT_PATCH_REVEAL_MASK = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_patch_reveal_mask.png");
     private static final ResourceLocation PERMANENT_PORTAL_RIPPLE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_ripple_lines.png");
-    private static final ResourceLocation[] PERMANENT_OPENING_FRAMES = new ResourceLocation[] {
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_00.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_01.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_02.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_03.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_04.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_05.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_06.png"),
-        new ResourceLocation("manifestation", "textures/block/permanent_threshold/opening_mask_frame_07.png")
-    };
-    private static final AlphaMask[] PERMANENT_OPENING_MASK_CACHE = new AlphaMask[PERMANENT_OPENING_FRAMES.length];
+    private static AlphaMask permanentPatchRevealMask;
 
     public CorridorPortalBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -246,9 +244,15 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer mistVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_MIST));
         VertexConsumer edgeVc = buffer.getBuffer(RenderType.entityTranslucent(PERMANENT_PORTAL_EDGE));
         if (activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
-            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA);
-            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA);
-            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA);
+            float baseUOffset = Mth.frac((float) (worldTicks * PERMANENT_BASE_IDLE_U_RATE));
+            float baseVOffset = Mth.frac((float) (worldTicks * PERMANENT_BASE_IDLE_V_RATE));
+            float mistUOffset = Mth.frac((float) (worldTicks * PERMANENT_MIST_IDLE_U_RATE));
+            float mistVOffset = Mth.frac((float) (worldTicks * PERMANENT_MIST_IDLE_V_RATE));
+            float edgePulse = 0.85f + (0.15f * Mth.sin((float) (worldTicks * PERMANENT_EDGE_PULSE_RATE)));
+
+            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, baseUOffset, baseVOffset, 1.0f);
+            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, mistUOffset, mistVOffset, 1.0f);
+            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, 0.0f, 0.0f, edgePulse);
             poseStack.popPose();
             return;
         }
@@ -258,27 +262,26 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        AlphaMask currentMask = getPermanentOpeningMask(resolvePermanentOpeningMaskFrame(activationAge));
+        AlphaMask currentMask = getPermanentPatchRevealMask();
         if (currentMask == null) {
-            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA);
-            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA);
-            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA);
+            drawPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, 0.0f, 0.0f, 1.0f);
+            drawPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, 0.0f, 0.0f, 1.0f);
+            drawPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, 0.0f, 0.0f, 1.0f);
             poseStack.popPose();
             return;
         }
 
         float previousAge = Math.max(activationAge - 1.0f, 0.0f);
-        AlphaMask previousMask = getPermanentOpeningMask(resolvePermanentOpeningMaskFrame(previousAge));
-        if (previousMask == null) {
-            previousMask = currentMask;
-        }
+        AlphaMask previousMask = currentMask;
 
         float currentHalfWidth = resolvePermanentOpeningHalfWidth(activationAge);
         float previousHalfWidth = resolvePermanentOpeningHalfWidth(previousAge);
+        float currentPatchProgress = resolvePermanentPatchProgress(activationAge);
+        float previousPatchProgress = resolvePermanentPatchProgress(previousAge);
 
-        drawMaskedPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, currentMask, currentHalfWidth, false);
-        drawMaskedPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, currentMask, currentHalfWidth, true);
-        drawMaskedPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, currentMask, currentHalfWidth, true);
+        drawMaskedPermanentTexturedLayer(baseVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.010f, PERMANENT_BASE_TINT_COLOR, PERMANENT_BASE_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentTexturedLayer(mistVc, mat4, normal, light, halfW, halfH, Z_EPSILON - 0.006f, PERMANENT_MIST_TINT_COLOR, PERMANENT_MIST_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
+        drawMaskedPermanentTexturedLayer(edgeVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.001f, PERMANENT_EDGE_TINT_COLOR, PERMANENT_EDGE_ALPHA, currentMask, currentHalfWidth, currentPatchProgress);
         drawPermanentActiveBand(
             buffer.getBuffer(RenderType.translucent()),
             mat4,
@@ -291,6 +294,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             previousMask,
             currentHalfWidth,
             previousHalfWidth,
+            currentPatchProgress,
+            previousPatchProgress,
             worldTicks
         );
 
@@ -312,13 +317,17 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float halfH,
         float z,
         int rgb,
-        float alpha
+        float alpha,
+        float uOffset,
+        float vOffset,
+        float alphaScale
     ) {
-        if (alpha <= 0.001f) {
+        float finalAlpha = alpha * alphaScale;
+        if (finalAlpha <= 0.001f) {
             return;
         }
 
-        int a = Mth.clamp((int) (255.0f * alpha), 0, 255);
+        int a = Mth.clamp((int) (255.0f * finalAlpha), 0, 255);
         int r = (rgb >> 16) & 0xFF;
         int g = (rgb >> 8) & 0xFF;
         int b = rgb & 0xFF;
@@ -333,10 +342,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             z,
             light,
             1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+            uOffset, vOffset,
+            1.0f + uOffset, vOffset,
+            1.0f + uOffset, 1.0f + vOffset,
+            uOffset, 1.0f + vOffset,
             r, g, b, a
         );
     }
@@ -353,7 +362,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float alpha,
         AlphaMask mask,
         float visibleHalfWidth,
-        boolean alphaMask
+        float patchProgress
     ) {
         if (alpha <= 0.001f || mask == null || visibleHalfWidth <= 0.0f) {
             return;
@@ -376,14 +385,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 float u0 = column / (float) PERMANENT_REVEAL_COLUMNS;
                 float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
                 float sampleU = (u0 + u1) * 0.5f;
-                float reveal = samplePermanentReveal(mask, sampleU, sampleV, visibleHalfWidth, cellHalfWidth);
+                float reveal = samplePermanentReveal(mask, sampleU, sampleV, visibleHalfWidth, cellHalfWidth, patchProgress);
                 if (reveal <= 0.02f) {
                     continue;
                 }
 
-                int cellAlpha = alphaMask
-                    ? Mth.clamp((int) (baseAlpha * reveal), 0, 255)
-                    : baseAlpha;
+                int cellAlpha = Mth.clamp((int) (baseAlpha * reveal), 0, 255);
                 if (cellAlpha <= 0) {
                     continue;
                 }
@@ -423,6 +430,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         AlphaMask previousMask,
         float currentHalfWidth,
         float previousHalfWidth,
+        float currentPatchProgress,
+        float previousPatchProgress,
         double worldTicks
     ) {
         if (currentMask == null || previousMask == null || currentHalfWidth <= 0.0f) {
@@ -447,9 +456,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 float u1 = (column + 1) / (float) PERMANENT_REVEAL_COLUMNS;
                 float sampleU = (u0 + u1) * 0.5f;
 
-                float currentReveal = samplePermanentReveal(currentMask, sampleU, sampleV, currentHalfWidth, cellHalfWidth);
-                float previousReveal = samplePermanentReveal(previousMask, sampleU, sampleV, previousHalfWidth, cellHalfWidth);
-                float activeBand = Mth.clamp((currentReveal - previousReveal) * 3.5f, 0.0f, 1.0f);
+                float currentReveal = samplePermanentReveal(currentMask, sampleU, sampleV, currentHalfWidth, cellHalfWidth, currentPatchProgress);
+                float previousReveal = samplePermanentReveal(previousMask, sampleU, sampleV, previousHalfWidth, cellHalfWidth, previousPatchProgress);
+                float activeBand = Mth.clamp((currentReveal - previousReveal) * 2.8f, 0.0f, 1.0f);
                 if (activeBand <= 0.02f) {
                     continue;
                 }
@@ -481,16 +490,22 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
     }
 
-    private float samplePermanentReveal(AlphaMask mask, float u, float v, float visibleHalfWidth, float cellHalfWidth) {
+    private float samplePermanentReveal(AlphaMask mask, float u, float v, float visibleHalfWidth, float cellHalfWidth, float patchProgress) {
         if (mask == null) {
             return 0.0f;
         }
 
-        if (Math.abs(u - 0.5f) > visibleHalfWidth + cellHalfWidth) {
+        float seamDistance = Math.abs(u - 0.5f);
+        if (seamDistance > visibleHalfWidth + cellHalfWidth) {
             return 0.0f;
         }
 
-        return mask.sample(u, v);
+        if (seamDistance <= Math.min(PERMANENT_SEAM_HALF_WIDTH_U, visibleHalfWidth + cellHalfWidth)) {
+            return 1.0f;
+        }
+
+        float maskValue = mask.sample(u, v);
+        return Mth.clamp((patchProgress - maskValue + PERMANENT_PATCH_SOFTNESS) / PERMANENT_PATCH_SOFTNESS, 0.0f, 1.0f);
     }
 
     private float resolvePermanentActivationAge(CorridorPortalBlockEntity blockEntity, double worldTicks) {
@@ -519,20 +534,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         return Math.max(PERMANENT_SEAM_HALF_WIDTH_U, 0.5f * widthProgress);
     }
 
-    private int resolvePermanentOpeningMaskFrame(float activationAge) {
-        if (activationAge <= PERMANENT_SEAM_END_TICKS) {
-            return 0;
-        }
-
-        float frameProgress = Mth.clamp(
-            (activationAge - PERMANENT_SEAM_END_TICKS) / (PERMANENT_OPEN_STAGE_TICKS - PERMANENT_SEAM_END_TICKS),
+    private float resolvePermanentPatchProgress(float activationAge) {
+        return Mth.clamp(
+            (activationAge - PERMANENT_PATCH_START_TICKS) / (PERMANENT_OPEN_STAGE_TICKS - PERMANENT_PATCH_START_TICKS),
             0.0f,
             1.0f
-        );
-        return Mth.clamp(
-            Mth.floor(frameProgress * (PERMANENT_OPENING_FRAMES.length - 1)),
-            0,
-            PERMANENT_OPENING_FRAMES.length - 1
         );
     }
 
@@ -542,21 +548,13 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         return 1.0f - (inverse * inverse * inverse);
     }
 
-    private AlphaMask getPermanentOpeningMask(int frameIndex) {
-        if (frameIndex < 0 || frameIndex >= PERMANENT_OPENING_MASK_CACHE.length) {
-            return null;
+    private AlphaMask getPermanentPatchRevealMask() {
+        if (permanentPatchRevealMask != null) {
+            return permanentPatchRevealMask;
         }
 
-        AlphaMask cached = PERMANENT_OPENING_MASK_CACHE[frameIndex];
-        if (cached != null) {
-            return cached;
-        }
-
-        AlphaMask loaded = loadAlphaMask(PERMANENT_OPENING_FRAMES[frameIndex]);
-        if (loaded != null) {
-            PERMANENT_OPENING_MASK_CACHE[frameIndex] = loaded;
-        }
-        return loaded;
+        permanentPatchRevealMask = loadAlphaMask(PERMANENT_PATCH_REVEAL_MASK);
+        return permanentPatchRevealMask;
     }
 
     private AlphaMask loadAlphaMask(ResourceLocation texture) {
@@ -1797,31 +1795,44 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final class AlphaMask {
         private final int width;
         private final int height;
-        private final float[] alpha;
+        private final float[] values;
 
-        private AlphaMask(int width, int height, float[] alpha) {
+        private AlphaMask(int width, int height, float[] values) {
             this.width = width;
             this.height = height;
-            this.alpha = alpha;
+            this.values = values;
         }
 
         private static AlphaMask from(NativeImage image) {
             int width = image.getWidth();
             int height = image.getHeight();
             float[] alpha = new float[width * height];
+            float[] luminance = new float[width * height];
+            int minAlpha = 255;
+            int maxAlpha = 0;
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     int pixel = image.getPixelRGBA(x, y);
-                    alpha[(y * width) + x] = ((pixel >>> 24) & 0xFF) / 255.0f;
+                    int index = (y * width) + x;
+                    int pixelAlpha = (pixel >>> 24) & 0xFF;
+                    int channel0 = pixel & 0xFF;
+                    int channel1 = (pixel >>> 8) & 0xFF;
+                    int channel2 = (pixel >>> 16) & 0xFF;
+
+                    alpha[index] = pixelAlpha / 255.0f;
+                    luminance[index] = (channel0 + channel1 + channel2) / (3.0f * 255.0f);
+                    minAlpha = Math.min(minAlpha, pixelAlpha);
+                    maxAlpha = Math.max(maxAlpha, pixelAlpha);
                 }
             }
-            return new AlphaMask(width, height, alpha);
+
+            return new AlphaMask(width, height, (maxAlpha - minAlpha) <= 1 ? luminance : alpha);
         }
 
         private float sample(float u, float v) {
             int x = Mth.clamp((int) (u * (width - 1)), 0, width - 1);
             int y = Mth.clamp((int) (v * (height - 1)), 0, height - 1);
-            return alpha[(y * width) + x];
+            return values[(y * width) + x];
         }
     }
 }
