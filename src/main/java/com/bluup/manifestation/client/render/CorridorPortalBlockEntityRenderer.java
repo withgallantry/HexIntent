@@ -58,9 +58,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final float PERMANENT_SEAM_END_TICKS = 8.0f;
     private static final float PERMANENT_WIDTH_START_TICKS = 8.0f;
     private static final float PERMANENT_WIDTH_END_TICKS = 20.0f;
-    private static final float PERMANENT_PATCH_START_TICKS = 8.0f;
+    private static final float PERMANENT_PATCH_START_TICKS = 4.0f;
     private static final float PERMANENT_PATCH_SOFTNESS = 0.20f;
     private static final float PERMANENT_SEAM_HALF_WIDTH_U = 0.035f;
+    private static final float PERMANENT_SEAM_MIN_HALF_WIDTH_U = 0.006f;
+    private static final float PERMANENT_SEAM_CENTER_BIAS = 0.18f;
     private static final int PERMANENT_REVEAL_COLUMNS = 24;
     private static final int PERMANENT_REVEAL_ROWS = 36;
     private static final ResourceLocation THRESHOLD_GLYPH_SPRITE = new ResourceLocation("manifestation", "block/spell_circle");
@@ -720,12 +722,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return 0.0f;
         }
 
-        if (seamDistance <= Math.min(PERMANENT_SEAM_HALF_WIDTH_U, visibleHalfWidth + cellHalfWidth)) {
-            return 1.0f;
-        }
-
         float maskValue = mask.sample(u, v);
-        return Mth.clamp((patchProgress - maskValue + PERMANENT_PATCH_SOFTNESS) / PERMANENT_PATCH_SOFTNESS, 0.0f, 1.0f);
+        float seamSpan = Math.max(visibleHalfWidth + cellHalfWidth, 0.0001f);
+        float centerBias = 1.0f - Mth.clamp(seamDistance / seamSpan, 0.0f, 1.0f);
+        float biasedMaskValue = Mth.clamp(maskValue - (PERMANENT_SEAM_CENTER_BIAS * centerBias), 0.0f, 1.0f);
+        return Mth.clamp((patchProgress - biasedMaskValue + PERMANENT_PATCH_SOFTNESS) / PERMANENT_PATCH_SOFTNESS, 0.0f, 1.0f);
     }
 
     private float resolvePermanentActivationAge(CorridorPortalBlockEntity blockEntity, double worldTicks) {
@@ -743,7 +744,12 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
 
         if (activationAge < PERMANENT_SEAM_END_TICKS) {
-            return PERMANENT_SEAM_HALF_WIDTH_U;
+            float seamProgress = easeOutCubic(Mth.clamp(
+                (activationAge - PERMANENT_SEAM_START_TICKS) / (PERMANENT_SEAM_END_TICKS - PERMANENT_SEAM_START_TICKS),
+                0.0f,
+                1.0f
+            ));
+            return Mth.lerp(seamProgress, PERMANENT_SEAM_MIN_HALF_WIDTH_U, PERMANENT_SEAM_HALF_WIDTH_U);
         }
 
         float widthProgress = easeOutCubic(Mth.clamp(
