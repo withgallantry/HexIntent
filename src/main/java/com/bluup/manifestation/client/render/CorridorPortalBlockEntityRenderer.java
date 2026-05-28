@@ -199,7 +199,6 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawMembraneTint(poseStack, fxVc, packedLight, envelope, scale, time, 0, membraneTintColour);
         drawInternalPortalAccent(poseStack, energyVc, packedLight, envelope, scale, time, 0, internalAccentColour);
         drawEdgeVeil(poseStack, fxVc, packedLight, envelope, scale, time, 0, edgeVeilColour);
-        drawInflowTrails(poseStack, energyVc, packedLight, envelope, scale, time, trailTailColour, trailHeadColour);
         drawPurpleGlow(poseStack, energyVc, packedLight, envelope, scale, time, 0, rimOuterColour, rimInnerColour);
         drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
 
@@ -358,7 +357,6 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawMembraneTint(poseStack, fxVc, light, 1.0f, scale, time, 1, membraneTintColour);
         drawInternalPortalAccent(poseStack, energyVc, light, 1.0f, scale, time, 1, internalAccentColour);
         drawEdgeVeil(poseStack, fxVc, light, 1.0f, scale, time, 1, edgeVeilColour);
-        drawInflowTrails(poseStack, energyVc, light, 1.0f, scale, time, trailTailColour, trailHeadColour);
         drawPurpleGlow(poseStack, energyVc, light, 1.0f, scale, time, 1, rimOuterColour, rimInnerColour);
 
         poseStack.popPose();
