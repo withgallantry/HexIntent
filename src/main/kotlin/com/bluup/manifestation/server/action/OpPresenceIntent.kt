@@ -1,17 +1,11 @@
 package com.bluup.manifestation.server.action
 
-import at.petrak.hexcasting.api.casting.castables.Action
+import at.petrak.hexcasting.api.casting.castables.ConstMediaAction
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
-import at.petrak.hexcasting.api.casting.eval.OperationResult
-import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
-import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
-import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
-import at.petrak.hexcasting.api.casting.iota.Vec3Iota
+import at.petrak.hexcasting.api.casting.getVec3
+import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
-import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
-import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.api.misc.MediaConstants
-import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.iota.PresenceIntentIota
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerLevel
@@ -23,41 +17,18 @@ import net.minecraft.server.level.ServerLevel
  *   facing vector
  *   position vector
  */
-object OpPresenceIntent : Action {
+object OpPresenceIntent : ConstMediaAction {
+    override val argc = 2
     private const val PRESENCE_COST_AMETHYST = 5L
+    override val mediaCost: Long = PRESENCE_COST_AMETHYST * MediaConstants.CRYSTAL_UNIT
 
-    override fun operate(
-        env: CastingEnvironment,
-        image: CastingImage,
-        continuation: SpellContinuation
-    ): OperationResult {
-        val stack = image.stack.toMutableList()
-        if (stack.size < 2) {
-            throw MishapNotEnoughArgs(2, stack.size)
+    override fun execute(args: List<Iota>, env: CastingEnvironment): List<Iota> {
+        val facing = args.getVec3(1, argc)
+        if (facing.lengthSqr() <= 1.0e-10) {
+            throw MishapInvalidIota.ofType(args[1], 0, "non-zero vector")
         }
 
-        val facingIota = stack.removeAt(stack.lastIndex)
-        val positionIota = stack.removeAt(stack.lastIndex)
-
-        val facing = if (facingIota is Vec3Iota) {
-            val vec = facingIota.vec3
-            if (vec.lengthSqr() <= 1.0e-10) {
-                throw MishapInvalidIota.ofType(facingIota, 0, "non-zero vector")
-            }
-            vec
-        } else {
-            stack.add(positionIota)
-            stack.add(facingIota)
-            throw MishapInvalidIota.ofType(facingIota, 0, "vector")
-        }
-
-        val position = if (positionIota is Vec3Iota) {
-            positionIota.vec3
-        } else {
-            stack.add(positionIota)
-            stack.add(facingIota)
-            throw MishapInvalidIota.ofType(positionIota, 1, "vector")
-        }
+        val position = args.getVec3(0, argc)
 
         // Presence intent target must be within caster ambit.
         env.assertVecInRange(position)
@@ -65,19 +36,6 @@ object OpPresenceIntent : Action {
         val level = env.castingEntity?.level() as? ServerLevel
             ?: throw MishapRequiresCasterWill()
 
-        val mediaCost = PRESENCE_COST_AMETHYST * MediaConstants.CRYSTAL_UNIT
-        if (env.extractMedia(mediaCost, true) > 0) {
-            throw MishapNotEnoughMedia(mediaCost)
-        }
-
-        stack.add(PresenceIntentIota(position, facing, level.dimension().location().toString()))
-
-        val image2 = image.withUsedOp().copy(stack = stack)
-        return OperationResult(
-            image2,
-            listOf(OperatorSideEffect.ConsumeMedia(mediaCost)),
-            continuation,
-            HexEvalSounds.NORMAL_EXECUTE
-        )
+        return listOf(PresenceIntentIota(position, facing, level.dimension().location().toString()))
     }
 }

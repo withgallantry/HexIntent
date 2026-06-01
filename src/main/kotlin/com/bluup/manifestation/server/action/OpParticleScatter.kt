@@ -1,17 +1,13 @@
 package com.bluup.manifestation.server.action
 
-import at.petrak.hexcasting.api.casting.castables.Action
+import at.petrak.hexcasting.api.casting.castables.ConstMediaAction
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
-import at.petrak.hexcasting.api.casting.eval.OperationResult
-import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
-import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
-import at.petrak.hexcasting.api.casting.iota.DoubleIota
+import at.petrak.hexcasting.api.casting.getIntBetween
+import at.petrak.hexcasting.api.casting.getList
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
-import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
-import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.server.level.ServerPlayer
@@ -27,41 +23,25 @@ import org.joml.Vector3f
  *   * vec                -> white particle at vec
  *   * [vec, color vec]   -> colored particle at vec
  */
-object OpParticleScatter : Action {
+object OpParticleScatter : ConstMediaAction {
+    override val argc = 2
     private const val MAX_POINTS_PER_CAST = 256
     private const val MAX_TOTAL_PARTICLES = 1024
 
-    override fun operate(
-        env: CastingEnvironment,
-        image: CastingImage,
-        continuation: SpellContinuation
-    ): OperationResult {
-        val stack = image.stack.toMutableList()
-        if (stack.size < 2) {
-            throw MishapNotEnoughArgs(2, stack.size)
-        }
+    override fun execute(args: List<Iota>, env: CastingEnvironment): List<Iota> {
+        val perPointCount = args.getIntBetween(1, 1, 4, argc)
 
-        val countIota = stack.removeAt(stack.lastIndex)
-        val pointsIota = stack.removeAt(stack.lastIndex)
-
-        val perPointCount = (countIota as? DoubleIota)?.let { Math.round(it.double).toInt() }
-            ?: throw MishapInvalidIota.ofType(countIota, 0, "number")
-        if (perPointCount < 1 || perPointCount > 4) {
-            throw MishapInvalidIota.ofType(countIota, 0, "number between 1 and 4")
-        }
-
-        val points = (pointsIota as? ListIota)?.list?.toList()
-            ?: throw MishapInvalidIota.ofType(pointsIota, 1, "list")
+        val points = args.getList(0, argc).toList()
         if (points.isEmpty()) {
-            throw MishapInvalidIota.ofType(pointsIota, 1, "non-empty list")
+            throw MishapInvalidIota.ofType(args[0], 1, "non-empty list")
         }
         if (points.size > MAX_POINTS_PER_CAST) {
-            throw MishapInvalidIota.ofType(pointsIota, 1, "list with at most $MAX_POINTS_PER_CAST entries")
+            throw MishapInvalidIota.ofType(args[0], 1, "list with at most $MAX_POINTS_PER_CAST entries")
         }
         val total = points.size * perPointCount
         if (total > MAX_TOTAL_PARTICLES) {
             throw MishapInvalidIota.ofType(
-                pointsIota,
+                args[0],
                 1,
                 "list/count combination totaling at most $MAX_TOTAL_PARTICLES particles"
             )
@@ -89,8 +69,7 @@ object OpParticleScatter : Action {
             )
         }
 
-        val image2 = image.withUsedOp().copy(stack = stack)
-        return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
+        return listOf()
     }
 
     private fun parseEntry(entry: Iota): Pair<Vec3, Vec3> {
