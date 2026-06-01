@@ -13,6 +13,10 @@ base {
 
 repositories {
     maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+    maven {
         name = "Hex Casting"
         url = "https://maven.blamejared.com"
     }
@@ -37,6 +41,10 @@ dependencies {
     // Hex Casting. modCompileOnly so we link against its types at build time
     // but don't bundle it; players provide their own Hex install.
     modCompileOnly "at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}"
+
+    // Hexical compat dependency reference.
+    modCompileOnly "maven.modrinth:hexical:${project.hexical_version}"
+    modLocalRuntime "maven.modrinth:hexical:${project.hexical_version}"
 }
 
 processResources {

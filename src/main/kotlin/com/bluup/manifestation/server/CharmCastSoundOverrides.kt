@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.item.ItemStack
+import java.lang.reflect.Method
 
 /**
  * Per-item charm cast sound override flags persisted on the item stack.
@@ -14,18 +15,34 @@ import net.minecraft.world.item.ItemStack
 object CharmCastSoundOverrides {
     private const val HEXICAL_CHARM_UTIL_CLASS = "miyucomics.hexical.features.charms.CharmUtilities"
 
+    private val hexicalIsStackCharmedMethod: Method? by lazy {
+        if (!InteropFlags.HEXICAL_INTEROP) {
+            return@lazy null
+        }
+
+        try {
+            val utilClass = Class.forName(HEXICAL_CHARM_UTIL_CLASS)
+            utilClass.getMethod("isStackCharmed", ItemStack::class.java)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     const val TAG_MUTE_CAST_SOUND = "manifestation_charm_cast_sound_muted"
     const val TAG_CAST_SOUND_ID = "manifestation_charm_cast_sound_id"
 
     fun isHexicalCharmedStack(stack: ItemStack): Boolean {
-        return try {
-            val utilClass = Class.forName(HEXICAL_CHARM_UTIL_CLASS)
-            val method = utilClass.getMethod("isStackCharmed", ItemStack::class.java)
-            (method.invoke(null, stack) as? Boolean) == true
-        } catch (_: Throwable) {
-            // If Hexical is not present, only trust explicit charm-tagged stacks.
-            stack.tag?.contains("charmed") == true
+        val method = hexicalIsStackCharmedMethod
+        if (method != null) {
+            return try {
+                (method.invoke(null, stack) as? Boolean) == true
+            } catch (_: Throwable) {
+                false
+            }
         }
+
+        // If Hexical is not present or API changed, only trust explicit charm-tagged stacks.
+        return stack.tag?.contains("charmed") == true
     }
 
     fun setMuted(stack: ItemStack, muted: Boolean) {
