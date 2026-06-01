@@ -3,7 +3,6 @@ package com.bluup.manifestation.server
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
-import at.petrak.hexcasting.api.casting.eval.env.PackagedItemCastEnv
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
@@ -12,7 +11,6 @@ import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.menu.MenuPayload
-import com.bluup.manifestation.server.splinter.CircleSplinterCastEnv
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
@@ -20,27 +18,28 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.phys.Vec3
 import java.lang.reflect.Constructor
-import java.util.UUID
 
 /**
- * Server-side handler for "the player clicked a button."
+ * Server-side handler for button actions.
  *
- * Replays a menu button payload from a captured cast snapshot.
+ * Replays from a stored image, gets rid of the horrible code where I serialized the stack and tried to guess environment from the hand.
  *
- * The snapshot is captured when opening the menu and restored when the button
- * is clicked, then user inputs are appended to the restored stack.
+ * User inputs are appended to the end of the stack before actioning the button.
  */
 object MenuActionDispatcher {
 
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
-    private const val HEXICAL_CHARM_ENV_CLASS = "miyucomics.hexical.features.charms.CharmCastEnv"
     private const val HEXICAL_CURIO_ITEM_CLASS = "miyucomics.hexical.features.curios.CurioItem"
-    private const val HEXCASSETTE_ENV_CLASS = "miyucomics.hexcassettes.CassetteCastEnv"
-    private const val HEXCASSETTE_ITEM_CLASS = "miyucomics.hexcassettes.CassetteItem"
-    private const val HEXCASSETTE_MENU_KEY_JSON = "{\"text\":\"Manifestation Menu\"}"
+
+    private sealed interface DispatchPlan {
+        data object Staff : DispatchPlan
+        data class VMBased(
+            val env: CastingEnvironment,
+            val postCast: ((CastingVM) -> Unit)? = null
+        ) : DispatchPlan
+    }
 
     // Data class for menu input
     data class InputDatum(
@@ -71,41 +70,6 @@ object MenuActionDispatcher {
 
     private var warnedMissingStringIota = false
 
-    private fun isHexcassetteStack(stack: ItemStack): Boolean {
-        if (stack.isEmpty) {
-            return false
-        }
-        return stack.item.javaClass.name == HEXCASSETTE_ITEM_CLASS
-    }
-
-    private fun createHexcassetteEnv(
-        player: ServerPlayer,
-        hand: InteractionHand,
-        stackInHand: ItemStack
-    ): CastingEnvironment? {
-        if (!isHexcassetteStack(stackInHand)) {
-            return null
-        }
-
-        return try {
-            val envClass = Class.forName(HEXCASSETTE_ENV_CLASS)
-            val ctor = envClass.constructors.firstOrNull { ctor ->
-                val params = ctor.parameterTypes
-                params.size == 4 &&
-                    params[0].isAssignableFrom(player.javaClass) &&
-                    params[1].isAssignableFrom(hand.javaClass) &&
-                    params[2] == String::class.java &&
-                    (params[3] == Int::class.javaPrimitiveType || params[3] == Int::class.java)
-            } ?: return null
-
-            ctor.newInstance(player, hand, HEXCASSETTE_MENU_KEY_JSON, 0) as? CastingEnvironment
-        } catch (t: Throwable) {
-            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to create Hex Cassette env", t)
-            null
-        }
-    }
-
-
     private val possibleStringIotaClasses = listOf(
         "ram.talia.moreiotas.casting.iota.StringIota",
         "at.petrak.moreiotas.casting.iota.StringIota",
@@ -130,33 +94,6 @@ object MenuActionDispatcher {
 
     private val stringTypeIds: List<ResourceLocation> by lazy {
         HexIotaTypes.REGISTRY.keySet().filter { it.path.contains("string", ignoreCase = true) }
-    }
-
-    private fun dispatchHexicalCharmWithRavenmind(
-        player: ServerPlayer,
-        hand: InteractionHand,
-        capturedImage: CastingImage,
-        inputIotas: List<Iota>,
-        iotas: List<Iota>,
-        world: ServerLevel
-    ): Boolean {
-        val stackInHand = player.getItemInHand(hand)
-        if (!isHexicalCharmedStack(stackInHand)) {
-            return false
-        }
-
-        val env = createHexicalCharmEnv(player, hand, stackInHand) ?: return false
-        val image = buildStartingImage(capturedImage, inputIotas)
-        val vm = CastingVM(image, env)
-        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
-        Manifestation.LOGGER.info(
-            "MenuActionDispatcher: hexical charm dispatch complete, stack empty = {}, resolution = {}",
-            clientInfo.isStackClear,
-            clientInfo.resolutionType
-        )
-
-        tryInvokeHexicalCurioPostCast(player, stackInHand, hand, world, vm.image.stack)
-        return true
     }
 
     /**
@@ -208,13 +145,24 @@ object MenuActionDispatcher {
         val world = player.serverLevel()
         val inputIotas = toInputIotas(inputs, world)
 
-        when (source) {
-            MenuPayload.DispatchSource.STAFF -> {
-                dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
-            }
-            MenuPayload.DispatchSource.PACKAGED_ITEM -> {
-                dispatchPackagedItem(player, hand, sessionImage, inputIotas, iotas, world)
-            }
+        when (val plan = resolveDispatchPlan(player, hand, source, circleContext, world)) {
+            null -> return
+            DispatchPlan.Staff -> dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
+            is DispatchPlan.VMBased -> dispatchWithEnv(plan, sessionImage, inputIotas, iotas, world)
+        }
+
+    }
+
+    private fun resolveDispatchPlan(
+        player: ServerPlayer,
+        hand: InteractionHand,
+        source: MenuPayload.DispatchSource,
+        circleContext: MenuSessionRegistry.CircleContext?,
+        world: ServerLevel
+    ): DispatchPlan? {
+        return when (source) {
+            MenuPayload.DispatchSource.STAFF -> DispatchPlan.Staff
+            MenuPayload.DispatchSource.PACKAGED_ITEM -> DispatchPlan.VMBased(MenuCastEnv(player, hand, source))
             MenuPayload.DispatchSource.CIRCLE -> {
                 val context = circleContext
                 if (context == null) {
@@ -223,23 +171,46 @@ object MenuActionDispatcher {
                         player.name.string,
                         hand
                     )
-                    return
+                    null
+                } else {
+                    DispatchPlan.VMBased(MenuCastEnv(player, hand, source))
                 }
-
-                dispatchCircle(player, hand, context, sessionImage, inputIotas, iotas, world)
             }
             MenuPayload.DispatchSource.HEXICAL_CHARM -> {
-                val ok = dispatchHexicalCharmWithRavenmind(player, hand, sessionImage, inputIotas, iotas, world)
-                if (!ok) {
+                val stackInHand = player.getItemInHand(hand)
+                if (!isHexicalCharmedStack(stackInHand)) {
                     Manifestation.LOGGER.warn(
                         "MenuActionDispatcher: rejected HEXICAL_CHARM dispatch for {} (hand {}) because charm context was unavailable",
                         player.name.string,
                         hand
                     )
+                    null
+                } else {
+                    DispatchPlan.VMBased(MenuCastEnv(player, hand, source)) { vm ->
+                        tryInvokeHexicalCurioPostCast(player, stackInHand, hand, world, vm.image.stack)
+                    }
                 }
             }
         }
+    }
 
+    private fun dispatchWithEnv(
+        plan: DispatchPlan.VMBased,
+        capturedImage: CastingImage,
+        inputIotas: List<Iota>,
+        iotas: List<Iota>,
+        world: ServerLevel
+    ) {
+        val image = buildStartingImage(capturedImage, inputIotas)
+        val vm = CastingVM(image, plan.env)
+        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
+        Manifestation.LOGGER.info(
+            "MenuActionDispatcher: {} dispatch complete, stack empty = {}, resolution = {}",
+            plan.env.javaClass.simpleName,
+            clientInfo.isStackClear,
+            clientInfo.resolutionType
+        )
+        plan.postCast?.invoke(vm)
     }
 
     private fun dispatchStaff(
@@ -288,72 +259,8 @@ object MenuActionDispatcher {
         }
     }
 
-    private fun dispatchCircle(
-        player: ServerPlayer,
-        hand: InteractionHand,
-        circleContext: MenuSessionRegistry.CircleContext,
-        capturedImage: CastingImage,
-        inputIotas: List<Iota>,
-        iotas: List<Iota>,
-        world: ServerLevel
-    ) {
-        val impetusPos = circleContext.impetusPos
-        val env = CircleSplinterCastEnv(
-            player,
-            hand,
-            Vec3.atCenterOf(impetusPos),
-            UUID.randomUUID(),
-            impetusPos
-        )
-        val image = buildStartingImage(capturedImage, inputIotas)
-        val vm = CastingVM(image, env)
-        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
-        Manifestation.LOGGER.info(
-            "MenuActionDispatcher: circle dispatch complete, stack empty = {}, resolution = {}",
-            clientInfo.isStackClear,
-            clientInfo.resolutionType
-        )
-    }
-
-    private fun dispatchPackagedItem(
-        player: ServerPlayer,
-        hand: InteractionHand,
-        capturedImage: CastingImage,
-        inputIotas: List<Iota>,
-        iotas: List<Iota>,
-        world: ServerLevel
-    ) {
-        val stackInHand = player.getItemInHand(hand)
-        val env = createHexcassetteEnv(player, hand, stackInHand) ?: PackagedItemCastEnv(player, hand)
-        val image = buildStartingImage(capturedImage, inputIotas)
-        val vm = CastingVM(image, env)
-        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
-        Manifestation.LOGGER.info(
-            "MenuActionDispatcher: packaged item dispatch complete, stack empty = {}, resolution = {}",
-            clientInfo.isStackClear,
-            clientInfo.resolutionType
-        )
-    }
-
     private fun isHexicalCharmedStack(stack: ItemStack): Boolean {
         return CharmCastSoundOverrides.isHexicalCharmedStack(stack)
-    }
-
-    private fun createHexicalCharmEnv(player: ServerPlayer, hand: InteractionHand, stack: ItemStack): CastingEnvironment? {
-        return try {
-            val envClass = Class.forName(HEXICAL_CHARM_ENV_CLASS)
-            val ctor = envClass.constructors.firstOrNull { ctor ->
-                ctor.parameterTypes.size == 3 &&
-                    ctor.parameterTypes[0].isAssignableFrom(player.javaClass) &&
-                    ctor.parameterTypes[1].isInstance(hand) &&
-                    ctor.parameterTypes[2].isAssignableFrom(ItemStack::class.java)
-            } ?: return null
-
-            ctor.newInstance(player, hand, stack) as? CastingEnvironment
-        } catch (t: Throwable) {
-            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to create Hexical CharmCastEnv", t)
-            null
-        }
     }
 
     private fun tryInvokeHexicalCurioPostCast(
