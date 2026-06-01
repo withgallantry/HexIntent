@@ -9,6 +9,7 @@ import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.server.PortalOwnershipStore
+import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.DustParticleOptions
@@ -75,6 +76,10 @@ class CorridorPortalBlockEntity(
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
     private val pendingPlayerTeleports: MutableMap<UUID, PendingPlayerTeleport> = ConcurrentHashMap()
+    private var replacementCollapseMode: Boolean = false
+    private var pendingDeferredOpen: OpOpenCorridorPortal.DeferredPortalOpenRequest? = null
+    private var pendingDeferredOpenAtGameTime: Long = -1L
+    private var awaitingReplacementDriver: Boolean = false
 
     fun linkTo(
         level: ServerLevel,
@@ -101,6 +106,10 @@ class CorridorPortalBlockEntity(
         permanentFrameMode = permanentFrame
         localPermanentFrame = if (permanentFrame) localFrame else null
         linkedPermanentFrame = if (permanentFrame) linkedFrame else null
+        replacementCollapseMode = false
+        pendingDeferredOpen = null
+        pendingDeferredOpenAtGameTime = -1L
+        awaitingReplacementDriver = false
         updateThresholdBlockState(level, false)
         resetPortalColors()
         portalLabel = null
@@ -131,6 +140,10 @@ class CorridorPortalBlockEntity(
         permanentFrameMode = false
         localPermanentFrame = null
         linkedPermanentFrame = null
+        replacementCollapseMode = false
+        pendingDeferredOpen = null
+        pendingDeferredOpenAtGameTime = -1L
+        awaitingReplacementDriver = false
         updateThresholdBlockState(level, true)
         resetPortalColors()
         portalLabel = null
@@ -157,6 +170,41 @@ class CorridorPortalBlockEntity(
         level.sendBlockUpdated(worldPosition, blockState, blockState, 3)
     }
 
+    fun beginReplacementCollapse(level: ServerLevel, request: OpOpenCorridorPortal.DeferredPortalOpenRequest? = null) {
+        val collapseStartTick = if (collapseStartedAtGameTime >= 0L) collapseStartedAtGameTime else level.gameTime
+        replacementCollapseMode = true
+        awaitingReplacementDriver = false
+        if (request != null) {
+            pendingDeferredOpen = request
+            pendingDeferredOpenAtGameTime = collapseStartTick + CLOSE_ANIM_TICKS + REPLACEMENT_OPEN_DELAY_TICKS
+        } else {
+            pendingDeferredOpen = null
+            pendingDeferredOpenAtGameTime = -1L
+        }
+
+        beginCollapse(level, collapseStartTick)
+        markDirtyAndSync(level)
+
+        val target = targetPos ?: return
+        val targetDim = targetDimensionId ?: return
+        val targetKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(targetDim))
+        val targetLevel = level.server.getLevel(targetKey) ?: return
+        val targetPortal = targetLevel.getBlockEntity(target) as? CorridorPortalBlockEntity ?: return
+
+        targetPortal.replacementCollapseMode = true
+        if (request != null) {
+            targetPortal.awaitingReplacementDriver = true
+            targetPortal.pendingDeferredOpen = null
+            targetPortal.pendingDeferredOpenAtGameTime = -1L
+        } else {
+            targetPortal.awaitingReplacementDriver = false
+            targetPortal.pendingDeferredOpen = null
+            targetPortal.pendingDeferredOpenAtGameTime = -1L
+        }
+        targetPortal.beginCollapse(targetLevel, collapseStartTick)
+        targetPortal.markDirtyAndSync(targetLevel)
+    }
+
     fun renderEnvelope(partialTick: Float): Float {
         val world = level ?: return 1.0f
         val now = world.gameTime.toDouble() + partialTick.toDouble()
@@ -168,7 +216,10 @@ class CorridorPortalBlockEntity(
             smoothstep(progress(now, openedAtGameTime, openAnimTicks))
         }
 
-        val close = if (collapseStartedAtGameTime < 0L) {
+        val replacementClosing = permanentFrameMode && replacementCollapseMode && collapseStartedAtGameTime >= 0L
+        val close = if (replacementClosing) {
+            1.0f
+        } else if (collapseStartedAtGameTime < 0L) {
             1.0f
         } else {
             1.0f - smoothstep(progress(now, collapseStartedAtGameTime, CLOSE_ANIM_TICKS))
@@ -201,6 +252,8 @@ class CorridorPortalBlockEntity(
     fun isThresholdMode(): Boolean = thresholdMode
 
     fun isPermanentFrameMode(): Boolean = permanentFrameMode
+
+    fun isReplacementCollapseMode(): Boolean = replacementCollapseMode
 
     fun getPortalBackdropColor(): Int = portalBackdropColor
 
@@ -348,7 +401,24 @@ class CorridorPortalBlockEntity(
     }
 
     private fun serverTickPermanent(level: ServerLevel) {
+        if (pendingDeferredOpen != null) {
+            if (level.gameTime >= pendingDeferredOpenAtGameTime) {
+                executePendingDeferredOpen(level)
+            }
+            return
+        }
+
         if (collapseStartedAtGameTime >= 0L) {
+            if (awaitingReplacementDriver) {
+                if (level.gameTime >= collapseStartedAtGameTime + CLOSE_ANIM_TICKS + REPLACEMENT_OPEN_GRACE_TICKS) {
+                    awaitingReplacementDriver = false
+                    replacementCollapseMode = false
+                    markDirtyAndSync(level)
+                    removePairNow(level)
+                }
+                return
+            }
+
             if (level.gameTime >= collapseStartedAtGameTime + CLOSE_ANIM_TICKS) {
                 removePairNow(level)
             }
@@ -362,6 +432,10 @@ class CorridorPortalBlockEntity(
 
     fun tryTeleport(level: ServerLevel, entity: Entity) {
         if (thresholdMode) {
+            return
+        }
+
+        if (collapseStartedAtGameTime >= 0L) {
             return
         }
 
@@ -659,12 +733,46 @@ class CorridorPortalBlockEntity(
             null
         }
         portalLabel = if (tag.contains(TAG_PORTAL_LABEL)) tag.getString(TAG_PORTAL_LABEL) else null
+        replacementCollapseMode = tag.getBoolean(TAG_REPLACEMENT_COLLAPSE_MODE)
+        pendingDeferredOpen = if (tag.contains(TAG_PENDING_DEFERRED_OPEN, Tag.TAG_COMPOUND.toInt())) {
+            deserializeDeferredPortalOpen(tag.getCompound(TAG_PENDING_DEFERRED_OPEN))
+        } else {
+            null
+        }
+        pendingDeferredOpenAtGameTime = if (tag.contains(TAG_PENDING_DEFERRED_OPEN_AT_TIME)) {
+            tag.getLong(TAG_PENDING_DEFERRED_OPEN_AT_TIME)
+        } else {
+            -1L
+        }
+        awaitingReplacementDriver = tag.getBoolean(TAG_AWAITING_REPLACEMENT_DRIVER)
         thresholdPatterns.clear()
         if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
             val list = tag.getList(TAG_THRESHOLD_PATTERNS, Tag.TAG_COMPOUND.toInt())
             for (i in 0 until list.size) {
                 thresholdPatterns.add(list.getCompound(i).copy())
             }
+        }
+    }
+
+    private fun executePendingDeferredOpen(level: ServerLevel) {
+        val request = pendingDeferredOpen ?: return
+        pendingDeferredOpen = null
+        pendingDeferredOpenAtGameTime = -1L
+        awaitingReplacementDriver = false
+        replacementCollapseMode = false
+        markDirtyAndSync(level)
+
+        try {
+            removePairNow(level)
+            OpOpenCorridorPortal.completeDeferredOpen(level.server, request)
+        } catch (t: Throwable) {
+            Manifestation.LOGGER.error(
+                "Manifestation: failed to execute deferred portal open from {} to {} in {}",
+                worldPosition,
+                request.targetPos,
+                request.targetDimensionId,
+                t
+            )
         }
     }
 
@@ -708,6 +816,19 @@ class CorridorPortalBlockEntity(
         if (!label.isNullOrEmpty()) {
             tag.putString(TAG_PORTAL_LABEL, label)
         }
+        if (replacementCollapseMode) {
+            tag.putBoolean(TAG_REPLACEMENT_COLLAPSE_MODE, true)
+        }
+        val deferredOpen = pendingDeferredOpen
+        if (deferredOpen != null) {
+            tag.put(TAG_PENDING_DEFERRED_OPEN, serializeDeferredPortalOpen(deferredOpen))
+            if (pendingDeferredOpenAtGameTime >= 0L) {
+                tag.putLong(TAG_PENDING_DEFERRED_OPEN_AT_TIME, pendingDeferredOpenAtGameTime)
+            }
+        }
+        if (awaitingReplacementDriver) {
+            tag.putBoolean(TAG_AWAITING_REPLACEMENT_DRIVER, true)
+        }
         if (thresholdPatterns.isNotEmpty()) {
             val serialized = ListTag()
             for (pattern in thresholdPatterns) {
@@ -717,9 +838,116 @@ class CorridorPortalBlockEntity(
         }
     }
 
+    private fun serializeDeferredPortalOpen(request: OpOpenCorridorPortal.DeferredPortalOpenRequest): CompoundTag = CompoundTag().apply {
+        putString(TAG_DEFERRED_SOURCE_DIMENSION, request.sourceDimensionId)
+        putLong(TAG_DEFERRED_SOURCE_POS, request.sourcePos.asLong())
+        putString(TAG_DEFERRED_SOURCE_AXIS, request.sourceAxis.name)
+        putFloat(TAG_DEFERRED_SOURCE_YAW, request.sourceRenderYaw)
+        putString(TAG_DEFERRED_TARGET_DIMENSION, request.targetDimensionId)
+        putLong(TAG_DEFERRED_TARGET_POS, request.targetPos.asLong())
+        putString(TAG_DEFERRED_TARGET_AXIS, request.targetAxis.name)
+        putFloat(TAG_DEFERRED_TARGET_YAW, request.targetRenderYaw)
+        putUUID(TAG_DEFERRED_OWNER_UUID, request.ownerUuid)
+        putLong(TAG_DEFERRED_MEDIA_BUDGET, request.mediaBudget)
+        putFloat(TAG_DEFERRED_SCALE, request.scale)
+        putBoolean(TAG_DEFERRED_PERMANENT_FLOW, request.permanentFrameFlow)
+        request.sourceFrame?.let { put(TAG_DEFERRED_SOURCE_FRAME, it.serialize()) }
+        request.targetFrame?.let { put(TAG_DEFERRED_TARGET_FRAME, it.serialize()) }
+        putInt(TAG_DEFERRED_TINT_COLOR, request.portalTintResolvedRgb)
+        request.portalTintColorizer?.let { put(TAG_DEFERRED_TINT_COLORIZER, it.serializeToNBT()) }
+        request.portalLabel?.let { putString(TAG_DEFERRED_LABEL, it) }
+        request.previousOwnedPair?.let { put(TAG_DEFERRED_PREVIOUS_PAIR, serializePortalPair(it)) }
+    }
+
+    private fun deserializeDeferredPortalOpen(tag: CompoundTag): OpOpenCorridorPortal.DeferredPortalOpenRequest? {
+        if (!tag.contains(TAG_DEFERRED_SOURCE_DIMENSION)
+            || !tag.contains(TAG_DEFERRED_SOURCE_POS)
+            || !tag.contains(TAG_DEFERRED_SOURCE_AXIS)
+            || !tag.contains(TAG_DEFERRED_TARGET_DIMENSION)
+            || !tag.contains(TAG_DEFERRED_TARGET_POS)
+            || !tag.contains(TAG_DEFERRED_TARGET_AXIS)
+            || !tag.hasUUID(TAG_DEFERRED_OWNER_UUID)
+        ) {
+            return null
+        }
+
+        val sourceAxis = runCatching { Direction.Axis.valueOf(tag.getString(TAG_DEFERRED_SOURCE_AXIS)) }.getOrNull() ?: return null
+        val targetAxis = runCatching { Direction.Axis.valueOf(tag.getString(TAG_DEFERRED_TARGET_AXIS)) }.getOrNull() ?: return null
+
+        return OpOpenCorridorPortal.DeferredPortalOpenRequest(
+            sourceDimensionId = tag.getString(TAG_DEFERRED_SOURCE_DIMENSION),
+            sourcePos = BlockPos.of(tag.getLong(TAG_DEFERRED_SOURCE_POS)),
+            sourceAxis = sourceAxis,
+            sourceRenderYaw = if (tag.contains(TAG_DEFERRED_SOURCE_YAW)) tag.getFloat(TAG_DEFERRED_SOURCE_YAW) else 0.0f,
+            targetDimensionId = tag.getString(TAG_DEFERRED_TARGET_DIMENSION),
+            targetPos = BlockPos.of(tag.getLong(TAG_DEFERRED_TARGET_POS)),
+            targetAxis = targetAxis,
+            targetRenderYaw = if (tag.contains(TAG_DEFERRED_TARGET_YAW)) tag.getFloat(TAG_DEFERRED_TARGET_YAW) else 0.0f,
+            ownerUuid = tag.getUUID(TAG_DEFERRED_OWNER_UUID),
+            mediaBudget = tag.getLong(TAG_DEFERRED_MEDIA_BUDGET),
+            scale = if (tag.contains(TAG_DEFERRED_SCALE)) tag.getFloat(TAG_DEFERRED_SCALE) else 1.0f,
+            permanentFrameFlow = tag.getBoolean(TAG_DEFERRED_PERMANENT_FLOW),
+            sourceFrame = if (tag.contains(TAG_DEFERRED_SOURCE_FRAME, Tag.TAG_COMPOUND.toInt())) {
+                PermanentThresholdFrame.deserialize(tag.getCompound(TAG_DEFERRED_SOURCE_FRAME))
+            } else {
+                null
+            },
+            targetFrame = if (tag.contains(TAG_DEFERRED_TARGET_FRAME, Tag.TAG_COMPOUND.toInt())) {
+                PermanentThresholdFrame.deserialize(tag.getCompound(TAG_DEFERRED_TARGET_FRAME))
+            } else {
+                null
+            },
+            portalTintResolvedRgb = if (tag.contains(TAG_DEFERRED_TINT_COLOR)) tag.getInt(TAG_DEFERRED_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR,
+            portalTintColorizer = if (tag.contains(TAG_DEFERRED_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
+                FrozenPigment.fromNBT(tag.getCompound(TAG_DEFERRED_TINT_COLORIZER))
+            } else {
+                null
+            },
+            portalLabel = if (tag.contains(TAG_DEFERRED_LABEL)) tag.getString(TAG_DEFERRED_LABEL) else null,
+            previousOwnedPair = if (tag.contains(TAG_DEFERRED_PREVIOUS_PAIR, Tag.TAG_COMPOUND.toInt())) {
+                deserializePortalPair(tag.getCompound(TAG_DEFERRED_PREVIOUS_PAIR))
+            } else {
+                null
+            }
+        )
+    }
+
+    private fun serializePortalPair(pair: PortalOwnershipStore.PortalPair): CompoundTag = CompoundTag().apply {
+        putString(TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION, pair.first.dimensionId)
+        putLong(TAG_DEFERRED_PREVIOUS_FIRST_POS, pair.first.pos.asLong())
+        putString(TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION, pair.second.dimensionId)
+        putLong(TAG_DEFERRED_PREVIOUS_SECOND_POS, pair.second.pos.asLong())
+    }
+
+    private fun deserializePortalPair(tag: CompoundTag): PortalOwnershipStore.PortalPair? {
+        if (!tag.contains(TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION)
+            || !tag.contains(TAG_DEFERRED_PREVIOUS_FIRST_POS)
+            || !tag.contains(TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION)
+            || !tag.contains(TAG_DEFERRED_PREVIOUS_SECOND_POS)
+        ) {
+            return null
+        }
+
+        return PortalOwnershipStore.PortalPair(
+            PortalOwnershipStore.PortalEndpoint(
+                tag.getString(TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION),
+                BlockPos.of(tag.getLong(TAG_DEFERRED_PREVIOUS_FIRST_POS))
+            ),
+            PortalOwnershipStore.PortalEndpoint(
+                tag.getString(TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION),
+                BlockPos.of(tag.getLong(TAG_DEFERRED_PREVIOUS_SECOND_POS))
+            )
+        )
+    }
+
     override fun getUpdateTag(): CompoundTag = saveWithoutMetadata()
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
+
+    private fun markDirtyAndSync(level: ServerLevel) {
+        setChanged()
+        level.sendBlockUpdated(worldPosition, blockState, blockState, 3)
+    }
 
     companion object {
         private const val TAG_TARGET_DIMENSION = "TargetDimension"
@@ -743,6 +971,32 @@ class CorridorPortalBlockEntity(
         private const val TAG_PORTAL_TINT_COLOR = "PortalTintColor"
         private const val TAG_PORTAL_TINT_COLORIZER = "PortalTintColorizer"
         private const val TAG_PORTAL_LABEL = "PortalLabel"
+        private const val TAG_REPLACEMENT_COLLAPSE_MODE = "ReplacementCollapseMode"
+        private const val TAG_PENDING_DEFERRED_OPEN = "PendingDeferredOpen"
+        private const val TAG_PENDING_DEFERRED_OPEN_AT_TIME = "PendingDeferredOpenAtGameTime"
+        private const val TAG_AWAITING_REPLACEMENT_DRIVER = "AwaitingReplacementDriver"
+        private const val TAG_DEFERRED_SOURCE_DIMENSION = "SourceDimension"
+        private const val TAG_DEFERRED_SOURCE_POS = "SourcePos"
+        private const val TAG_DEFERRED_SOURCE_AXIS = "SourceAxis"
+        private const val TAG_DEFERRED_SOURCE_YAW = "SourceYaw"
+        private const val TAG_DEFERRED_TARGET_DIMENSION = "TargetDimension"
+        private const val TAG_DEFERRED_TARGET_POS = "TargetPos"
+        private const val TAG_DEFERRED_TARGET_AXIS = "TargetAxis"
+        private const val TAG_DEFERRED_TARGET_YAW = "TargetYaw"
+        private const val TAG_DEFERRED_OWNER_UUID = "OwnerUuid"
+        private const val TAG_DEFERRED_MEDIA_BUDGET = "MediaBudget"
+        private const val TAG_DEFERRED_SCALE = "Scale"
+        private const val TAG_DEFERRED_PERMANENT_FLOW = "PermanentFrameFlow"
+        private const val TAG_DEFERRED_SOURCE_FRAME = "SourceFrame"
+        private const val TAG_DEFERRED_TARGET_FRAME = "TargetFrame"
+        private const val TAG_DEFERRED_TINT_COLOR = "TintColor"
+        private const val TAG_DEFERRED_TINT_COLORIZER = "TintColorizer"
+        private const val TAG_DEFERRED_LABEL = "PortalLabel"
+        private const val TAG_DEFERRED_PREVIOUS_PAIR = "PreviousOwnedPair"
+        private const val TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION = "FirstDimension"
+        private const val TAG_DEFERRED_PREVIOUS_FIRST_POS = "FirstPos"
+        private const val TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION = "SecondDimension"
+        private const val TAG_DEFERRED_PREVIOUS_SECOND_POS = "SecondPos"
 
         private const val DEFAULT_PORTAL_BACKDROP_COLOR = 0x050A10
         private const val DEFAULT_PORTAL_MID_COLOR = 0x1E8F88
@@ -758,6 +1012,8 @@ class CorridorPortalBlockEntity(
         // 2 dust/sec = 20,000 media/sec at one drain step per second.
         private const val MEDIA_DRAIN_PER_STEP = 20_000L
         private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 20_000L
+        private const val REPLACEMENT_OPEN_DELAY_TICKS = 1L
+        private const val REPLACEMENT_OPEN_GRACE_TICKS = 5L
         private const val OPEN_ANIM_TICKS = 18L
         private const val PERMANENT_OPEN_ANIM_TICKS = 30L
         private const val CLOSE_ANIM_TICKS = 18L

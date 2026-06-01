@@ -37,6 +37,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.item.DyeColor
 import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
+import java.util.UUID
 
 /**
  * Create a linked pair of corridor portals from two vectors.
@@ -171,73 +172,47 @@ object OpOpenCorridorPortal : Action {
             throw MishapNotEnoughMedia(openMediaCost)
         }
 
-        if (permanentFrameFlow) {
-            sourceFrame?.let { clearPermanentFrameControllers(sourceLevel, it) }
-            if (sourceLevel != targetLevel || sourcePortalPos != targetPortalPos) {
-                targetFrame?.let { clearPermanentFrameControllers(targetLevel, it) }
-            }
+        val previousPair = ownershipStore.get(caster.uuid)
+        val openRequest = DeferredPortalOpenRequest(
+            sourceDimensionId = sourceLevel.dimension().location().toString(),
+            sourcePos = sourcePortalPos.immutable(),
+            sourceAxis = sourcePortalAxis,
+            sourceRenderYaw = sourceRenderYaw,
+            targetDimensionId = targetLevel.dimension().location().toString(),
+            targetPos = targetPortalPos.immutable(),
+            targetAxis = targetPortalAxis,
+            targetRenderYaw = targetRenderYaw,
+            ownerUuid = caster.uuid,
+            mediaBudget = mediaBudget,
+            scale = scale,
+            permanentFrameFlow = permanentFrameFlow,
+            sourceFrame = sourceFrame,
+            targetFrame = targetFrame,
+            portalTintResolvedRgb = portalTint.resolvedTintRgb,
+            portalTintColorizer = portalTint.colorizer,
+            portalLabel = portalLabel,
+            previousOwnedPair = previousPair
+        )
+
+        val replacementPortals = linkedMapOf<String, ActivePermanentReplacementPortal>()
+        collectPermanentReplacementPortal(replacementPortals, sourceLevel, sourcePortalPos)
+        if (sourceLevel != targetLevel || sourcePortalPos != targetPortalPos) {
+            collectPermanentReplacementPortal(replacementPortals, targetLevel, targetPortalPos)
+        }
+        previousPair?.let {
+            collectPermanentReplacementPortal(caster.server, replacementPortals, it.first)
+            collectPermanentReplacementPortal(caster.server, replacementPortals, it.second)
         }
 
-        val sourcePlacement = preparePortalPlacement(sourceLevel, sourcePortalPos, sourcePortalAxis)
-        val targetPlacement = preparePortalPlacement(targetLevel, targetPortalPos, targetPortalAxis)
-
-        applyPortalPlacement(sourceLevel, sourcePlacement)
-        try {
-            applyPortalPlacement(targetLevel, targetPlacement)
-
-            val aPortal = sourceLevel.getBlockEntity(sourcePortalPos) as? CorridorPortalBlockEntity
-                ?: throw MishapPortalNoSpace()
-            val bPortal = targetLevel.getBlockEntity(targetPortalPos) as? CorridorPortalBlockEntity
-                ?: throw MishapPortalNoSpace()
-
-            val previousPair = ownershipStore.get(caster.uuid)
-
-            aPortal.linkTo(
-                sourceLevel,
-                targetPortalPos,
-                targetLevel.dimension().location().toString(),
-                caster.uuid,
-                mediaBudget,
-                scale,
-                sourceRenderYaw,
-                permanentFrameFlow,
-                sourceFrame,
-                targetFrame
-            )
-            bPortal.linkTo(
-                targetLevel,
-                sourcePortalPos,
-                sourceLevel.dimension().location().toString(),
-                caster.uuid,
-                mediaBudget,
-                scale,
-                targetRenderYaw,
-                permanentFrameFlow,
-                targetFrame,
-                sourceFrame
-            )
-            aPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
-            bPortal.applyPortalAccentTint(portalTint.dyeColor, portalTint.resolvedTintRgb, portalTint.colorizer)
-            aPortal.setPortalLabel(portalLabel)
-            ownershipStore.put(
-                caster.uuid,
-                PortalOwnershipStore.PortalPair(
-                    PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), sourcePortalPos.immutable()),
-                    PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), targetPortalPos.immutable())
-                )
-            )
-
-            // Enforce one active portal pair per caster by clearing any previous pair.
-            if (previousPair != null) {
-                val newSource = PortalOwnershipStore.PortalEndpoint(sourceLevel.dimension().location().toString(), sourcePortalPos)
-                val newTarget = PortalOwnershipStore.PortalEndpoint(targetLevel.dimension().location().toString(), targetPortalPos)
-                clearOwnedPortal(caster.server, previousPair.first, newSource, newTarget)
-                clearOwnedPortal(caster.server, previousPair.second, newSource, newTarget)
+        val collapsingPortals = replacementPortals.values.toList()
+        if (collapsingPortals.isNotEmpty()) {
+            val driver = collapsingPortals.first()
+            driver.portal.beginReplacementCollapse(driver.level, openRequest)
+            for (portal in collapsingPortals.drop(1)) {
+                portal.portal.beginReplacementCollapse(portal.level)
             }
-        } catch (t: Throwable) {
-            rollbackPortalPlacement(sourceLevel, sourcePlacement)
-            rollbackPortalPlacement(targetLevel, targetPlacement)
-            throw t
+        } else {
+            completeDeferredOpen(caster.server, openRequest)
         }
 
         val image2 = image.withUsedOp().copy(stack = stack)
@@ -255,6 +230,144 @@ object OpOpenCorridorPortal : Action {
         val hasExistingPortal: Boolean,
         val previousAxis: net.minecraft.core.Direction.Axis?
     )
+
+    data class DeferredPortalOpenRequest(
+        val sourceDimensionId: String,
+        val sourcePos: BlockPos,
+        val sourceAxis: net.minecraft.core.Direction.Axis,
+        val sourceRenderYaw: Float,
+        val targetDimensionId: String,
+        val targetPos: BlockPos,
+        val targetAxis: net.minecraft.core.Direction.Axis,
+        val targetRenderYaw: Float,
+        val ownerUuid: UUID,
+        val mediaBudget: Long,
+        val scale: Float,
+        val permanentFrameFlow: Boolean,
+        val sourceFrame: PermanentThresholdFrame?,
+        val targetFrame: PermanentThresholdFrame?,
+        val portalTintResolvedRgb: Int,
+        val portalTintColorizer: FrozenPigment?,
+        val portalLabel: String?,
+        val previousOwnedPair: PortalOwnershipStore.PortalPair?
+    )
+
+    private data class ActivePermanentReplacementPortal(
+        val level: net.minecraft.server.level.ServerLevel,
+        val portal: CorridorPortalBlockEntity
+    )
+
+    internal fun completeDeferredOpen(server: net.minecraft.server.MinecraftServer, request: DeferredPortalOpenRequest) {
+        val sourceLevel = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation(request.sourceDimensionId)))
+            ?: throw MishapPortalNoSpace()
+        val targetLevel = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation(request.targetDimensionId)))
+            ?: throw MishapPortalNoSpace()
+
+        if (request.permanentFrameFlow) {
+            request.sourceFrame?.let { clearPermanentFrameControllers(sourceLevel, it) }
+            if (sourceLevel != targetLevel || request.sourcePos != request.targetPos) {
+                request.targetFrame?.let { clearPermanentFrameControllers(targetLevel, it) }
+            }
+        }
+
+        val sourcePlacement = preparePortalPlacement(sourceLevel, request.sourcePos, request.sourceAxis)
+        val targetPlacement = preparePortalPlacement(targetLevel, request.targetPos, request.targetAxis)
+
+        applyPortalPlacement(sourceLevel, sourcePlacement)
+        try {
+            applyPortalPlacement(targetLevel, targetPlacement)
+
+            val aPortal = sourceLevel.getBlockEntity(request.sourcePos) as? CorridorPortalBlockEntity
+                ?: throw MishapPortalNoSpace()
+            val bPortal = targetLevel.getBlockEntity(request.targetPos) as? CorridorPortalBlockEntity
+                ?: throw MishapPortalNoSpace()
+
+            aPortal.linkTo(
+                sourceLevel,
+                request.targetPos,
+                request.targetDimensionId,
+                request.ownerUuid,
+                request.mediaBudget,
+                request.scale,
+                request.sourceRenderYaw,
+                request.permanentFrameFlow,
+                request.sourceFrame,
+                request.targetFrame
+            )
+            bPortal.linkTo(
+                targetLevel,
+                request.sourcePos,
+                request.sourceDimensionId,
+                request.ownerUuid,
+                request.mediaBudget,
+                request.scale,
+                request.targetRenderYaw,
+                request.permanentFrameFlow,
+                request.targetFrame,
+                request.sourceFrame
+            )
+            aPortal.applyPortalAccentTint(null, request.portalTintResolvedRgb, request.portalTintColorizer)
+            bPortal.applyPortalAccentTint(null, request.portalTintResolvedRgb, request.portalTintColorizer)
+            aPortal.setPortalLabel(request.portalLabel)
+
+            val ownershipStore = PortalOwnershipStore.get(server)
+            val newSource = PortalOwnershipStore.PortalEndpoint(request.sourceDimensionId, request.sourcePos.immutable())
+            val newTarget = PortalOwnershipStore.PortalEndpoint(request.targetDimensionId, request.targetPos.immutable())
+            ownershipStore.put(request.ownerUuid, PortalOwnershipStore.PortalPair(newSource, newTarget))
+
+            val previousPair = request.previousOwnedPair
+            if (previousPair != null) {
+                clearOwnedPortal(server, previousPair.first, newSource, newTarget)
+                clearOwnedPortal(server, previousPair.second, newSource, newTarget)
+            }
+        } catch (t: Throwable) {
+            rollbackPortalPlacement(sourceLevel, sourcePlacement)
+            rollbackPortalPlacement(targetLevel, targetPlacement)
+            throw t
+        }
+    }
+
+    private fun collectPermanentReplacementPortal(
+        replacements: MutableMap<String, ActivePermanentReplacementPortal>,
+        level: net.minecraft.server.level.ServerLevel,
+        pos: BlockPos
+    ) {
+        val portal = level.getBlockEntity(pos) as? CorridorPortalBlockEntity ?: return
+        if (!portal.isPermanentFrameMode()) {
+            return
+        }
+
+        val targetPos = portal.getRenderTargetPos() ?: return
+        val targetDimensionId = portal.getRenderTargetDimensionId() ?: return
+        val ownDimensionId = level.dimension().location().toString()
+        val pairKey = pairKey(ownDimensionId, pos, targetDimensionId, targetPos)
+        replacements.putIfAbsent(pairKey, ActivePermanentReplacementPortal(level, portal))
+    }
+
+    private fun collectPermanentReplacementPortal(
+        server: net.minecraft.server.MinecraftServer,
+        replacements: MutableMap<String, ActivePermanentReplacementPortal>,
+        endpoint: PortalOwnershipStore.PortalEndpoint
+    ) {
+        val levelKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation(endpoint.dimensionId))
+        val level = server.getLevel(levelKey) ?: return
+        collectPermanentReplacementPortal(replacements, level, endpoint.pos)
+    }
+
+    private fun pairKey(
+        firstDimensionId: String,
+        firstPos: BlockPos,
+        secondDimensionId: String,
+        secondPos: BlockPos
+    ): String {
+        val a = firstDimensionId + ":" + firstPos.asLong()
+        val b = secondDimensionId + ":" + secondPos.asLong()
+        return if (a <= b) {
+            a + "|" + b
+        } else {
+            b + "|" + a
+        }
+    }
 
     private fun preparePortalPlacement(
         level: net.minecraft.server.level.ServerLevel,

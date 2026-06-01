@@ -185,6 +185,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 blockEntity.getRenderYawDegrees(),
                 worldTicks,
                 time,
+                collapseProgress,
                 membraneTintColour,
                 internalAccentColour,
                 edgeVeilColour,
@@ -193,7 +194,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
                 rimOuterColour,
                 rimInnerColour
             );
-            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
+            if (!blockEntity.isReplacementCollapseMode()) {
+                drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
+            }
             poseStack.popPose();
             renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
             return;
@@ -239,6 +242,7 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float renderYawDegrees,
         double worldTicks,
         float time,
+        float collapseProgress,
         int membraneTintColour,
         int internalAccentColour,
         int edgeVeilColour,
@@ -257,7 +261,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        float activationAge = resolvePermanentActivationAge(blockEntity, worldTicks);
+        float activationAge = blockEntity.isReplacementCollapseMode()
+            ? resolvePermanentReverseActivationAge(collapseProgress)
+            : resolvePermanentActivationAge(blockEntity, worldTicks);
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
@@ -965,6 +971,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
 
         return (float) Math.max(0.0, worldTicks - openedAt);
+    }
+
+    private float resolvePermanentReverseActivationAge(float collapseProgress) {
+        float closingProgress = Mth.clamp(collapseProgress, 0.0f, 1.0f);
+        return PERMANENT_OPEN_STAGE_TICKS * (1.0f - closingProgress);
     }
 
     private float resolvePermanentRimRevealProgress(CorridorPortalBlockEntity blockEntity, float activationAge) {
