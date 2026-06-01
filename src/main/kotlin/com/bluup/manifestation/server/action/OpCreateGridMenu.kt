@@ -6,7 +6,6 @@ import at.petrak.hexcasting.api.casting.eval.OperationResult
 import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
-import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.menu.MenuPayload
 import com.bluup.manifestation.server.ManifestationServer
@@ -54,10 +53,7 @@ object OpCreateGridMenu : Action {
             MenuDispatchSourceResolver.fromEnvironment(env)
         )
         if (MenuOpenLoopGuard.shouldMishap(caster, payload)) throw MishapMenuOpenLoop()
-        val sessionStack = stack.toList()
-        val sessionRavenmind = if (image.userData.contains(HexAPI.RAVENMIND_USERDATA)) {
-            image.userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
-        } else null
+        val image2 = image.withUsedOp().copy(stack = stack)
         val circleContext = if (env is CircleCastEnv) {
             val imp = env.impetus
             if (imp != null) {
@@ -68,8 +64,7 @@ object OpCreateGridMenu : Action {
         } else {
             null
         }
-        ManifestationServer.sendMenuTo(caster, payload, circleContext, sessionStack, sessionRavenmind)
-        val image2 = image.withUsedOp().copy(stack = stack)
+        ManifestationServer.sendMenuTo(caster, payload, circleContext, image2)
         return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
     }
 }

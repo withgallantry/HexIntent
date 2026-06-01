@@ -22,8 +22,8 @@ object MenuSessionRegistry {
     data class DispatchContext(
         val hand: InteractionHand,
         val source: MenuPayload.DispatchSource,
-        val stack: List<CompoundTag>,
-        val ravenmind: CompoundTag?
+        val circleContext: CircleContext?,
+        val image: CompoundTag
     )
 
     data class ResolveResult(
@@ -37,8 +37,7 @@ object MenuSessionRegistry {
         val source: MenuPayload.DispatchSource,
         val expiresAtMs: Long,
         val circleContext: CircleContext?,
-        val stack: List<CompoundTag>,
-        val ravenmind: CompoundTag?
+        val image: CompoundTag
     )
 
     private val byPlayer: MutableMap<UUID, Session> = mutableMapOf()
@@ -53,8 +52,7 @@ object MenuSessionRegistry {
         player: ServerPlayer,
         payload: MenuPayload,
         circleContext: CircleContext?,
-        stack: List<CompoundTag>,
-        ravenmind: CompoundTag?
+        image: CompoundTag
     ): MenuPayload {
         val now = System.currentTimeMillis()
         pruneExpired(now)
@@ -66,8 +64,7 @@ object MenuSessionRegistry {
             source = payload.dispatchSource(),
             expiresAtMs = now + SESSION_TTL_MS,
             circleContext = circleContext,
-            stack = stack.map { it.copy() },
-            ravenmind = ravenmind
+            image = image.copy()
         )
         byPlayer[player.uuid] = session
         return payload.withSessionToken(token)
@@ -111,8 +108,8 @@ object MenuSessionRegistry {
             DispatchContext(
                 session.hand,
                 session.source,
-                session.stack.map { it.copy() },
-                session.ravenmind?.copy()
+                session.circleContext,
+                session.image.copy()
             ),
             null
         )

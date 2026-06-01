@@ -1,6 +1,5 @@
 package com.bluup.manifestation.server
 
-import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
@@ -13,6 +12,7 @@ import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.menu.MenuPayload
+import com.bluup.manifestation.server.splinter.CircleSplinterCastEnv
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
@@ -20,23 +20,17 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.Vec3
 import java.lang.reflect.Constructor
+import java.util.UUID
 
 /**
  * Server-side handler for "the player clicked a button."
  *
- * Given a list of iotas (the button's stored action payload), feeds them one
- * by one through the player's live CastingVM — the same VM staff casting uses.
- * This preserves everything the player cares about: ravenmind, the existing
- * stack, paren depth, escape state, ops consumed this tick.
+ * Replays a menu button payload from a captured cast snapshot.
  *
- * ## Why we reuse the player's live image, not a fresh one
- *
- * A fresh CastingImage would have empty stack, no ravenmind, no user data.
- * That's useless for menu actions — the player would expect to interact with
- * their current cast state. So we read the live image via
- * [IXplatAbstractions.getStaffcastVM], mutate it in place, and persist the
- * result. Everything the player built up with earlier casts remains.
+ * The snapshot is captured when opening the menu and restored when the button
+ * is clicked, then user inputs are appended to the restored stack.
  */
 object MenuActionDispatcher {
 
@@ -76,62 +70,6 @@ object MenuActionDispatcher {
     }
 
     private var warnedMissingStringIota = false
-
-    // For non-staff sources, restore the ravenmind if provided
-    private fun dispatchPackagedItemWithRavenmind(
-        player: ServerPlayer,
-        hand: InteractionHand,
-        sessionStack: List<Iota>,
-        inputIotas: List<Iota>,
-        iotas: List<Iota>,
-        world: ServerLevel,
-        sessionRavenmind: CompoundTag?
-    ): Boolean {
-        val castHand = resolvePackagedCastHand(player, hand)
-        val stackInHand = player.getItemInHand(castHand)
-        val env = createHexcassetteEnv(player, castHand, stackInHand)
-            ?: PackagedItemCastEnv(player, castHand)
-        val image = buildStartingImage(sessionStack, inputIotas, sessionRavenmind)
-        val vm = CastingVM(image, env)
-        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
-        Manifestation.LOGGER.info(
-            "MenuActionDispatcher: packaged item dispatch complete, stack empty = {}, resolution = {}, hand = {}",
-            clientInfo.isStackClear,
-            clientInfo.resolutionType,
-            castHand
-        )
-
-        return true
-    }
-
-    private fun resolvePackagedCastHand(player: ServerPlayer, preferred: InteractionHand): InteractionHand {
-        val preferredStack = player.getItemInHand(preferred)
-        if (hasPackagedDispatchContext(preferredStack)) {
-            return preferred
-        }
-
-        val fallback = if (preferred == InteractionHand.MAIN_HAND) InteractionHand.OFF_HAND else InteractionHand.MAIN_HAND
-        val fallbackStack = player.getItemInHand(fallback)
-        if (hasPackagedDispatchContext(fallbackStack)) {
-            Manifestation.LOGGER.info(
-                "MenuActionDispatcher: packaged dispatch switched hand from {} to {} because hex holder was found only on fallback hand",
-                preferred,
-                fallback
-            )
-            return fallback
-        }
-
-        // Last-resort behavior: run with the recorded hand rather than dropping the click.
-        Manifestation.LOGGER.warn(
-            "MenuActionDispatcher: packaged dispatch found no hex holder in either hand; attempting execution with recorded hand {}",
-            preferred
-        )
-        return preferred
-    }
-
-    private fun hasPackagedDispatchContext(stack: ItemStack): Boolean {
-        return IXplatAbstractions.INSTANCE.findHexHolder(stack) != null || isHexcassetteStack(stack)
-    }
 
     private fun isHexcassetteStack(stack: ItemStack): Boolean {
         if (stack.isEmpty) {
@@ -197,11 +135,10 @@ object MenuActionDispatcher {
     private fun dispatchHexicalCharmWithRavenmind(
         player: ServerPlayer,
         hand: InteractionHand,
-        sessionStack: List<Iota>,
+        capturedImage: CastingImage,
         inputIotas: List<Iota>,
         iotas: List<Iota>,
-        world: ServerLevel,
-        sessionRavenmind: CompoundTag?
+        world: ServerLevel
     ): Boolean {
         val stackInHand = player.getItemInHand(hand)
         if (!isHexicalCharmedStack(stackInHand)) {
@@ -209,7 +146,7 @@ object MenuActionDispatcher {
         }
 
         val env = createHexicalCharmEnv(player, hand, stackInHand) ?: return false
-    val image = buildStartingImage(sessionStack, inputIotas, sessionRavenmind)
+        val image = buildStartingImage(capturedImage, inputIotas)
         val vm = CastingVM(image, env)
         val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
         Manifestation.LOGGER.info(
@@ -237,8 +174,8 @@ object MenuActionDispatcher {
         source: MenuPayload.DispatchSource,
         inputs: List<InputDatum>,
         iotas: List<Iota>,
-        sessionStack: List<Iota> = listOf(),
-        sessionRavenmind: CompoundTag? = null
+        sessionImage: CastingImage = CastingImage(),
+        circleContext: MenuSessionRegistry.CircleContext? = null
     ) {
         if (inputs.size > MAX_INPUTS) {
             Manifestation.LOGGER.warn(
@@ -273,30 +210,26 @@ object MenuActionDispatcher {
 
         when (source) {
             MenuPayload.DispatchSource.STAFF -> {
-                dispatchStaff(player, hand, sessionStack, inputIotas, iotas, world, sessionRavenmind)
+                dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
             }
             MenuPayload.DispatchSource.PACKAGED_ITEM -> {
-                val ok = dispatchPackagedItemWithRavenmind(player, hand, sessionStack, inputIotas, iotas, world, sessionRavenmind)
-                if (!ok) {
-                    Manifestation.LOGGER.warn(
-                        "MenuActionDispatcher: rejected PACKAGED_ITEM dispatch for {} (hand {}) because no compatible held item cast context was available",
-                        player.name.string,
-                        hand
-                    )
-                }
+                dispatchPackagedItem(player, hand, sessionImage, inputIotas, iotas, world)
             }
             MenuPayload.DispatchSource.CIRCLE -> {
-                val ok = dispatchPackagedItemWithRavenmind(player, hand, sessionStack, inputIotas, iotas, world, sessionRavenmind)
-                if (!ok) {
+                val context = circleContext
+                if (context == null) {
                     Manifestation.LOGGER.warn(
-                        "MenuActionDispatcher: rejected CIRCLE dispatch for {} (hand {}) because no compatible held item cast context was available",
+                        "MenuActionDispatcher: rejected CIRCLE dispatch for {} (hand {}) because circle context was missing",
                         player.name.string,
                         hand
                     )
+                    return
                 }
+
+                dispatchCircle(player, hand, context, sessionImage, inputIotas, iotas, world)
             }
             MenuPayload.DispatchSource.HEXICAL_CHARM -> {
-                val ok = dispatchHexicalCharmWithRavenmind(player, hand, sessionStack, inputIotas, iotas, world, sessionRavenmind)
+                val ok = dispatchHexicalCharmWithRavenmind(player, hand, sessionImage, inputIotas, iotas, world)
                 if (!ok) {
                     Manifestation.LOGGER.warn(
                         "MenuActionDispatcher: rejected HEXICAL_CHARM dispatch for {} (hand {}) because charm context was unavailable",
@@ -312,11 +245,10 @@ object MenuActionDispatcher {
     private fun dispatchStaff(
         player: ServerPlayer,
         hand: InteractionHand,
-        sessionStack: List<Iota>,
+        capturedImage: CastingImage,
         inputIotas: List<Iota>,
         iotas: List<Iota>,
-        world: ServerLevel,
-        sessionRavenmind: CompoundTag?
+        world: ServerLevel
     ) {
         // Pull the player's live casting session. getStaffcastVM constructs a
         // CastingVM wrapping their persisted CastingImage — so any mutations we
@@ -325,10 +257,10 @@ object MenuActionDispatcher {
 
         // Keep staff menu dispatch consistent with other sources: do not inherit
         // stale runtime staff stack from click-time; restore from captured session state.
-        vm.image = buildStartingImage(sessionStack, inputIotas, sessionRavenmind)
+        vm.image = buildStartingImage(capturedImage, inputIotas)
         Manifestation.LOGGER.info(
             "MenuActionDispatcher: prepared staff dispatch image with {} preserved stack iotas and {} input iotas",
-            sessionStack.size,
+            capturedImage.stack.size,
             inputIotas.size
         )
 
@@ -356,48 +288,44 @@ object MenuActionDispatcher {
         }
     }
 
-    private fun dispatchHexicalCharm(
+    private fun dispatchCircle(
         player: ServerPlayer,
         hand: InteractionHand,
+        circleContext: MenuSessionRegistry.CircleContext,
+        capturedImage: CastingImage,
         inputIotas: List<Iota>,
         iotas: List<Iota>,
         world: ServerLevel
-    ): Boolean {
-        val stackInHand = player.getItemInHand(hand)
-        if (!isHexicalCharmedStack(stackInHand)) {
-            return false
-        }
-
-        val env = createHexicalCharmEnv(player, hand, stackInHand) ?: return false
-        val image = CastingImage().copy(stack = inputIotas.toMutableList())
+    ) {
+        val impetusPos = circleContext.impetusPos
+        val env = CircleSplinterCastEnv(
+            player,
+            hand,
+            Vec3.atCenterOf(impetusPos),
+            UUID.randomUUID(),
+            impetusPos
+        )
+        val image = buildStartingImage(capturedImage, inputIotas)
         val vm = CastingVM(image, env)
         val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
         Manifestation.LOGGER.info(
-            "MenuActionDispatcher: hexical charm dispatch complete, stack empty = {}, resolution = {}",
+            "MenuActionDispatcher: circle dispatch complete, stack empty = {}, resolution = {}",
             clientInfo.isStackClear,
             clientInfo.resolutionType
         )
-
-        // Curio charms in Hexical run post-cast hooks after execution.
-        tryInvokeHexicalCurioPostCast(player, stackInHand, hand, world, vm.image.stack)
-        return true
     }
 
     private fun dispatchPackagedItem(
         player: ServerPlayer,
         hand: InteractionHand,
+        capturedImage: CastingImage,
         inputIotas: List<Iota>,
         iotas: List<Iota>,
         world: ServerLevel
-    ): Boolean {
+    ) {
         val stackInHand = player.getItemInHand(hand)
-        val hasHexHolder = IXplatAbstractions.INSTANCE.findHexHolder(stackInHand) != null
-        if (!hasHexHolder) {
-            return false
-        }
-
-        val env = PackagedItemCastEnv(player, hand)
-        val image = CastingImage().copy(stack = inputIotas.toMutableList())
+        val env = createHexcassetteEnv(player, hand, stackInHand) ?: PackagedItemCastEnv(player, hand)
+        val image = buildStartingImage(capturedImage, inputIotas)
         val vm = CastingVM(image, env)
         val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
         Manifestation.LOGGER.info(
@@ -405,8 +333,6 @@ object MenuActionDispatcher {
             clientInfo.isStackClear,
             clientInfo.resolutionType
         )
-
-        return true
     }
 
     private fun isHexicalCharmedStack(stack: ItemStack): Boolean {
@@ -457,21 +383,13 @@ object MenuActionDispatcher {
     }
 
     private fun buildStartingImage(
-        sessionStack: List<Iota>,
-        inputIotas: List<Iota>,
-        sessionRavenmind: CompoundTag?
+        capturedImage: CastingImage,
+        inputIotas: List<Iota>
     ): CastingImage {
         val combinedStack = mutableListOf<Iota>()
-        combinedStack.addAll(sessionStack)
+        combinedStack.addAll(capturedImage.stack)
         combinedStack.addAll(inputIotas)
-        val base = CastingImage().copy(stack = combinedStack)
-        if (sessionRavenmind == null) {
-            return base
-        }
-
-        val userData = base.userData.copy()
-        userData.put(HexAPI.RAVENMIND_USERDATA, sessionRavenmind.copy())
-        return base.copy(userData = userData)
+        return capturedImage.copy(stack = combinedStack)
     }
 
     private fun toInputIotas(rawInputs: List<InputDatum>, world: ServerLevel): List<Iota> {

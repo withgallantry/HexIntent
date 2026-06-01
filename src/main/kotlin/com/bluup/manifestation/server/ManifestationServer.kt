@@ -5,6 +5,7 @@ import at.petrak.hexcasting.api.HexAPI
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
+import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.math.HexDir
 import at.petrak.hexcasting.api.casting.math.HexPattern
 import at.petrak.hexcasting.api.pigment.FrozenPigment
@@ -338,25 +339,15 @@ object ManifestationServer : ModInitializer {
                         null
                     }
                 }
-                val preservedStack: List<Iota> = dispatch.stack.mapNotNull { stackTag ->
-                    try {
-                        IotaType.deserialize(stackTag.copy(), world)
-                    } catch (t: Throwable) {
-                        Manifestation.LOGGER.warn(
-                            "Manifestation dispatch: skipping preserved stack iota that failed to deserialize",
-                            t
-                        )
-                        null
-                    }
-                }
+                val preservedImage = CastingImage.loadFromNbt(dispatch.image.copy(), world)
                 MenuActionDispatcher.dispatch(
                     player,
                     dispatch.hand,
                     dispatch.source,
                     inputs,
                     iotas,
-                    preservedStack,
-                    dispatch.ravenmind
+                    preservedImage,
+                    dispatch.circleContext
                 )
             }
         }
@@ -898,41 +889,25 @@ object ManifestationServer : ModInitializer {
         player: ServerPlayer,
         payload: MenuPayload,
         circleContext: MenuSessionRegistry.CircleContext?,
-        explicitSessionStack: List<Iota>?,
-        explicitSessionRavenmind: CompoundTag?
+        explicitSessionImage: CastingImage?
     ) {
         val buf = PacketByteBufs.create()
         val hand = payload.hand()
         val dispatchSource = payload.dispatchSource()
-        val sessionStack: List<CompoundTag> = if (explicitSessionStack != null) {
-            explicitSessionStack.map { IotaType.serialize(it) }
+        val sessionImage: CastingImage = if (explicitSessionImage != null) {
+            explicitSessionImage
         } else if (dispatchSource == MenuPayload.DispatchSource.STAFF) {
             val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
-            vm.image.stack.map { IotaType.serialize(it) }
+            vm.image
         } else {
-            listOf()
-        }
-        val sessionRavenmind: CompoundTag? = if (explicitSessionRavenmind != null) {
-            explicitSessionRavenmind.copy()
-        } else if (dispatchSource == MenuPayload.DispatchSource.STAFF) {
-            // Legacy fallback for staff callers that did not provide an explicit image ravenmind.
-            val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
-            val userData = vm.image.userData
-            if (userData.contains(HexAPI.RAVENMIND_USERDATA)) {
-                userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
-            } else {
-                null
-            }
-        } else {
-            null
+            CastingImage()
         }
 
         val payloadWithSession = MenuSessionRegistry.attachSession(
             player,
             payload,
             circleContext,
-            sessionStack,
-            sessionRavenmind
+            sessionImage.serializeToNbt()
         )
         payloadWithSession.write(buf)
         ServerPlayNetworking.send(player, ManifestationNetworking.SHOW_MENU_S2C, buf)
