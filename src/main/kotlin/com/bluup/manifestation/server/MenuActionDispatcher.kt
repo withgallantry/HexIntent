@@ -2,7 +2,6 @@ package com.bluup.manifestation.server
 
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
-import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
@@ -10,38 +9,27 @@ import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
-import com.bluup.manifestation.common.menu.MenuPayload
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
-import net.minecraft.world.item.ItemStack
 import java.lang.reflect.Constructor
 
 /**
- * Server-side handler for button actions.
+ * Server-side handler for menu button actions.
  *
- * Replays from a stored image, gets rid of the horrible code where I serialized the stack and tried to guess environment from the hand.
+ * Copies stack and runs in its own environment now! No more messing around with copying the casting environment!
  *
- * User inputs are appended to the end of the stack before actioning the button.
+ * User inputs are appended to the end of the copied stack before actioning the button.
  */
 object MenuActionDispatcher {
 
     private const val MAX_INPUTS = 80
     private const val MAX_ACTION_IOTAS = 1024
-    private const val HEXICAL_CURIO_ITEM_CLASS = "miyucomics.hexical.features.curios.CurioItem"
 
-    private sealed interface DispatchPlan {
-        data object Staff : DispatchPlan
-        data class VMBased(
-            val env: CastingEnvironment,
-            val postCast: ((CastingVM) -> Unit)? = null
-        ) : DispatchPlan
-    }
-
-    // Data class for menu input
+    // Structured representation for each user-entered menu input.
     data class InputDatum(
         val order: Int,
         val kind: Kind,
@@ -97,22 +85,21 @@ object MenuActionDispatcher {
     }
 
     /**
-     * Dispatch a button's payload through the player's live casting session.
+        * Dispatch a button's payload through the player's validated menu session.
      *
      * @param player the player who clicked the button
-     * @param hand   which hand is holding the casting item
-     * @param source where this menu originated (staff vs charm context)
+     * @param hand which hand is holding the casting item
+     * @param fromStaffSession true when this menu came from staff casting
      * @param inputs typed input values in menu order
      */
     @JvmStatic
     fun dispatch(
         player: ServerPlayer,
         hand: InteractionHand,
-        source: MenuPayload.DispatchSource,
+        fromStaffSession: Boolean,
         inputs: List<InputDatum>,
         iotas: List<Iota>,
-        sessionImage: CastingImage = CastingImage(),
-        circleContext: MenuSessionRegistry.CircleContext? = null
+        sessionImage: CastingImage = CastingImage()
     ) {
         if (inputs.size > MAX_INPUTS) {
             Manifestation.LOGGER.warn(
@@ -138,79 +125,41 @@ object MenuActionDispatcher {
         }
 
         Manifestation.LOGGER.info(
-            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {}, source {})",
-            iotas.size, player.name.string, hand, source
+            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {}, staffSession {})",
+            iotas.size,
+            player.name.string,
+            hand,
+            fromStaffSession
         )
 
         val world = player.serverLevel()
         val inputIotas = toInputIotas(inputs, world)
-
-        when (val plan = resolveDispatchPlan(player, hand, source, circleContext, world)) {
-            null -> return
-            DispatchPlan.Staff -> dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
-            is DispatchPlan.VMBased -> dispatchWithEnv(plan, sessionImage, inputIotas, iotas, world)
+        if (fromStaffSession) {
+            dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
+            return
         }
 
+        dispatchWithMenuEnv(player, hand, sessionImage, inputIotas, iotas, world)
     }
 
-    private fun resolveDispatchPlan(
+    private fun dispatchWithMenuEnv(
         player: ServerPlayer,
         hand: InteractionHand,
-        source: MenuPayload.DispatchSource,
-        circleContext: MenuSessionRegistry.CircleContext?,
-        world: ServerLevel
-    ): DispatchPlan? {
-        return when (source) {
-            MenuPayload.DispatchSource.STAFF -> DispatchPlan.Staff
-            MenuPayload.DispatchSource.PACKAGED_ITEM -> DispatchPlan.VMBased(MenuCastEnv(player, hand, source))
-            MenuPayload.DispatchSource.CIRCLE -> {
-                val context = circleContext
-                if (context == null) {
-                    Manifestation.LOGGER.warn(
-                        "MenuActionDispatcher: rejected CIRCLE dispatch for {} (hand {}) because circle context was missing",
-                        player.name.string,
-                        hand
-                    )
-                    null
-                } else {
-                    DispatchPlan.VMBased(MenuCastEnv(player, hand, source))
-                }
-            }
-            MenuPayload.DispatchSource.HEXICAL_CHARM -> {
-                val stackInHand = player.getItemInHand(hand)
-                if (!isHexicalCharmedStack(stackInHand)) {
-                    Manifestation.LOGGER.warn(
-                        "MenuActionDispatcher: rejected HEXICAL_CHARM dispatch for {} (hand {}) because charm context was unavailable",
-                        player.name.string,
-                        hand
-                    )
-                    null
-                } else {
-                    DispatchPlan.VMBased(MenuCastEnv(player, hand, source)) { vm ->
-                        tryInvokeHexicalCurioPostCast(player, stackInHand, hand, world, vm.image.stack)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun dispatchWithEnv(
-        plan: DispatchPlan.VMBased,
         capturedImage: CastingImage,
         inputIotas: List<Iota>,
         iotas: List<Iota>,
         world: ServerLevel
     ) {
+        val env = MenuCastEnv(player, hand)
         val image = buildStartingImage(capturedImage, inputIotas)
-        val vm = CastingVM(image, plan.env)
+        val vm = CastingVM(image, env)
         val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
         Manifestation.LOGGER.info(
             "MenuActionDispatcher: {} dispatch complete, stack empty = {}, resolution = {}",
-            plan.env.javaClass.simpleName,
+            env.javaClass.simpleName,
             clientInfo.isStackClear,
             clientInfo.resolutionType
         )
-        plan.postCast?.invoke(vm)
     }
 
     private fun dispatchStaff(
@@ -221,72 +170,32 @@ object MenuActionDispatcher {
         iotas: List<Iota>,
         world: ServerLevel
     ) {
-        // Pull the player's live casting session. getStaffcastVM constructs a
-        // CastingVM wrapping their persisted CastingImage — so any mutations we
-        // make to vm.image will be observable once we persist back.
         val vm: CastingVM = IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
-
-        // Keep staff menu dispatch consistent with other sources: do not inherit
-        // stale runtime staff stack from click-time; restore from captured session state.
         vm.image = buildStartingImage(capturedImage, inputIotas)
         Manifestation.LOGGER.info(
             "MenuActionDispatcher: prepared staff dispatch image with {} preserved stack iotas and {} input iotas",
             capturedImage.stack.size,
             inputIotas.size
         )
-
-        // Run the queued iotas through the VM in one shot. This is the
-        // same entrypoint BlockSlate uses for circle spellcasting — proven path.
         val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
         Manifestation.LOGGER.info(
             "MenuActionDispatcher: dispatch complete, stack empty = {}, resolution = {}",
             clientInfo.isStackClear, clientInfo.resolutionType
         )
+        persistStaffSession(player, clientInfo.isStackClear, vm.image)
+    }
 
-        // Persist the mutated image back to the player's session. Mirror what
-        // StaffCastEnv.handleNewPatternOnServer does: if stack is now clear,
-        // wipe the session; otherwise save the new image with op count reset
-        // so subsequent casts don't inherit our op consumption.
-        if (clientInfo.isStackClear) {
+    /**
+     * Mirrors StaffCastEnv post-cast persistence semantics.
+     */
+    private fun persistStaffSession(player: ServerPlayer, stackClear: Boolean, image: CastingImage) {
+        if (stackClear) {
             IXplatAbstractions.INSTANCE.setStaffcastImage(player, null)
             IXplatAbstractions.INSTANCE.setPatterns(player, listOf())
-        } else {
-            IXplatAbstractions.INSTANCE.setStaffcastImage(
-                player, vm.image.withOverriddenUsedOps(0)
-            )
-            // We don't touch setPatterns — the existing drawn-pattern list in
-            // the staff UI is the player's, not ours. Leaving it alone.
-        }
-    }
-
-    private fun isHexicalCharmedStack(stack: ItemStack): Boolean {
-        return CharmCastSoundOverrides.isHexicalCharmedStack(stack)
-    }
-
-    private fun tryInvokeHexicalCurioPostCast(
-        player: ServerPlayer,
-        stack: ItemStack,
-        hand: InteractionHand,
-        world: ServerLevel,
-        resultingStack: List<Iota>
-    ) {
-        if (CharmCastSoundOverrides.handlePostCastSound(player, world, stack)) {
             return
         }
 
-        val item = stack.item
-        if (item.javaClass.name != HEXICAL_CURIO_ITEM_CLASS) {
-            return
-        }
-
-        try {
-            val method = item.javaClass.methods.firstOrNull { m ->
-                m.name == "postCharmCast" && m.parameterTypes.size == 5
-            } ?: return
-            method.invoke(item, player, stack, hand, world, resultingStack)
-        } catch (t: Throwable) {
-            Manifestation.LOGGER.debug("MenuActionDispatcher: failed to invoke Hexical Curio postCharmCast", t)
-        }
+        IXplatAbstractions.INSTANCE.setStaffcastImage(player, image.withOverriddenUsedOps(0))
     }
 
     private fun buildStartingImage(
@@ -301,15 +210,17 @@ object MenuActionDispatcher {
 
     private fun toInputIotas(rawInputs: List<InputDatum>, world: ServerLevel): List<Iota> {
         if (rawInputs.isEmpty()) {
-            return listOf()
+            return emptyList()
         }
 
         val out = mutableListOf<Iota>()
+        var attemptedNonEmptyString = false
         for (input in rawInputs.sortedBy { it.order }) {
             try {
                 when (input.kind) {
                     InputDatum.Kind.STRING -> {
                         if (input.stringValue.isNotEmpty()) {
+                            attemptedNonEmptyString = true
                             val built = createStringIota(input.stringValue, world)
                             if (built != null) {
                                 out.add(built)
@@ -337,13 +248,13 @@ object MenuActionDispatcher {
                 }
             } catch (t: Throwable) {
                 Manifestation.LOGGER.warn(
-                    "MenuActionDispatcher: failed to create StringIota for input text, skipping value",
+                    "MenuActionDispatcher: failed to convert menu input into iota, skipping value",
                     t
                 )
             }
         }
 
-        if (out.isEmpty() && !warnedMissingStringIota) {
+        if (attemptedNonEmptyString && out.isEmpty() && !warnedMissingStringIota) {
             warnedMissingStringIota = true
             Manifestation.LOGGER.warn(
                 "MenuActionDispatcher: input fields provided, but no compatible string iota type could be built. " +

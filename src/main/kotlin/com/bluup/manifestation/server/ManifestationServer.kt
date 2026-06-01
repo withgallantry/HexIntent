@@ -343,11 +343,10 @@ object ManifestationServer : ModInitializer {
                 MenuActionDispatcher.dispatch(
                     player,
                     dispatch.hand,
-                    dispatch.source,
+                    dispatch.source == MenuPayload.DispatchSource.STAFF,
                     inputs,
                     iotas,
-                    preservedImage,
-                    dispatch.circleContext
+                    preservedImage
                 )
             }
         }
