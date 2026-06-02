@@ -17,6 +17,5 @@
   "splinterWatchdogMaxBreaches": 5,
   "splinterMaxActivePerOwner": -1,
   "splinterCasterEnabled": true,
-  "constellationFeatureEnabled": false,
   "particleBlobLoaderEnabled": false
 }

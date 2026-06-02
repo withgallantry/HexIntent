@@ -29,7 +29,6 @@ import com.bluup.manifestation.server.action.OpManifestSplinter
 import com.bluup.manifestation.server.action.OpRenewSplinter
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpOpenCastingScreen
-import com.bluup.manifestation.server.action.OpManifestEcho
 import com.bluup.manifestation.server.action.OpParticleBlobScatter
 import com.bluup.manifestation.server.action.OpPresenceIntent
 import com.bluup.manifestation.server.action.OpClearStack
@@ -53,7 +52,6 @@ import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.block.ParticleImporterBlockEntity
 import com.bluup.manifestation.server.item.ManifestationItems
 import com.bluup.manifestation.server.iota.EquationParticleIota
-import com.bluup.manifestation.server.echo.EchoRuntime
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import com.google.gson.JsonArray
@@ -103,7 +101,6 @@ object ManifestationServer : ModInitializer {
         registerActions()
         registerC2SReceivers()
         registerLifecycleCleanup()
-        EchoRuntime.register()
         SplinterRuntime.register()
 
         Manifestation.LOGGER.info(
@@ -119,32 +116,6 @@ object ManifestationServer : ModInitializer {
             MenuDispatchAbuseGuard.clearForPlayer(playerId)
             MenuOpenLoopGuard.clearForPlayer(playerId)
             StaffCastSoundController.clearForPlayer(playerId)
-
-            // Send constellation snapshot on join
-            val player = handler.player
-            if (ManifestationConfig.constellationFeatureEnabled()) {
-                val server = player.server
-                if (server != null) {
-                    // Add a test constellation if none exist
-                    val store = ConstellationStateStore.get(server)
-                    if (store.all().isEmpty()) {
-                        val testOwner = player.uuid
-                        val color = 0xFFAA33 // orange
-                        val stars = listOf(
-                            ConstellationStateStore.Star(0.0, 0.7, 0.0),
-                            ConstellationStateStore.Star(-0.5, 0.0, 0.0),
-                            ConstellationStateStore.Star(0.5, 0.0, 0.0)
-                        )
-                        val edges = listOf(
-                            ConstellationStateStore.Edge(0, 1),
-                            ConstellationStateStore.Edge(1, 2),
-                            ConstellationStateStore.Edge(2, 0)
-                        )
-                        store.put(ConstellationStateStore.Constellation(testOwner, color, stars, edges, true))
-                    }
-                    ConstellationSync.sendSnapshotTo(player)
-                }
-            }
         })
 
         ServerPlayConnectionEvents.DISCONNECT.register(ServerPlayConnectionEvents.Disconnect { handler, _ ->
@@ -191,7 +162,6 @@ object ManifestationServer : ModInitializer {
         registerAction("open_corridor_portal", "edqqdeew", HexDir.NORTH_WEST, OpOpenCorridorPortal)
 
         registerAction("presence_intent", "edewqaqdeeeweee", HexDir.NORTH_WEST, OpPresenceIntent)
-        registerAction("manifest_echo", "qqqqqaweeee", HexDir.WEST, OpManifestEcho)
         registerAction("destroy_manifestation", "edeeedwwaq", HexDir.NORTH_WEST, OpDestroyManifestation)
 
         registerAction("manifest_splinter", "dedade", HexDir.SOUTH_WEST, OpManifestSplinter)

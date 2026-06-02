@@ -148,27 +148,6 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         // Internal membrane still receives the strongest tint influence.
         int internalAccentColour = mixRgb(0x180410, resolvedAccentTint, 0.86f);
 
-        if (blockEntity.isThresholdMode()) {
-            TextureAtlasSprite glyphSprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(THRESHOLD_GLYPH_SPRITE);
-            VertexConsumer glyphVc = buffer.getBuffer(RenderType.entityTranslucent(InventoryMenu.BLOCK_ATLAS));
-            drawThresholdGlyph(
-                poseStack,
-                glyphVc,
-                glyphSprite,
-                packedLight,
-                envelope,
-                scale,
-                time,
-                worldTicks,
-                glyphOuterColour,
-                glyphInnerColour
-            );
-            drawCollapseSpark(poseStack, energyVc, packedLight, collapseProgress, collapseColour);
-            poseStack.popPose();
-            renderPortalLabel(blockEntity, poseStack, buffer, packedLight, scale);
-            return;
-        }
-
         if (blockEntity.isPermanentFrameMode()) {
             if (!shouldRenderPermanentPortal(blockEntity, state)) {
                 poseStack.popPose();

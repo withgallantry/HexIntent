@@ -73,9 +73,6 @@ public final class ManifestationClient implements ClientModInitializer {
         SplinterVisuals.register();
 
         // Register optional visuals only when their feature flags are enabled.
-        if (ManifestationConfig.INSTANCE.constellationFeatureEnabled()) {
-            ConstellationVisuals.register();
-        }
         if (ManifestationConfig.INSTANCE.particleBlobLoaderEnabled()) {
             ParticleBlobVisuals.register();
         }

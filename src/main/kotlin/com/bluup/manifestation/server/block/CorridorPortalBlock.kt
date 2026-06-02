@@ -69,11 +69,6 @@ class CorridorPortalBlock(properties: Properties) : BaseEntityBlock(properties) 
         val server = level as? ServerLevel ?: return
         val portal = server.getBlockEntity(pos) as? CorridorPortalBlockEntity ?: return
 
-        if (portal.isThresholdMode()) {
-            portal.tryTriggerThreshold(server, entity)
-            return
-        }
-
         val scale = portal.getRenderScale().coerceIn(0.1f, 3.0f).toDouble()
         val center = Vec3.atCenterOf(pos)
         val entityCenter = entity.boundingBox.center

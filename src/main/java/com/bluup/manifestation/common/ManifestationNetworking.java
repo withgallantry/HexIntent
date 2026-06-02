@@ -32,8 +32,6 @@ public final class ManifestationNetworking {
     public static final ResourceLocation OPEN_EQUATION_SYNTH_S2C = Manifestation.id("open_equation_synth");
     public static final ResourceLocation WRITE_EQUATION_PARTICLE_C2S = Manifestation.id("write_equation_particle");
 
-    public static final ResourceLocation CONSTELLATION_SNAPSHOT_S2C = Manifestation.id("constellation_snapshot");
-
     private ManifestationNetworking() {
     }
 }

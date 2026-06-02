@@ -856,13 +856,7 @@ public final class MenuScreen extends Screen {
         double py = this.minecraft.player.getY() + 1.2;
         double pz = this.minecraft.player.getZ();
 
-        for (int i = 0; i < 18; i++) {
-            double vx = (this.minecraft.level.random.nextDouble() - 0.5) * 0.12;
-            double vy = 0.02 + this.minecraft.level.random.nextDouble() * 0.08;
-            double vz = (this.minecraft.level.random.nextDouble() - 0.5) * 0.12;
-            this.minecraft.level.addParticle(ParticleTypes.ENCHANT, px, py, pz, vx, vy, vz);
-        }
-
+        // TODO: Not sure I like this now, maybe hex casting particles instead?
         for (int i = 0; i < 6; i++) {
             double vx = (this.minecraft.level.random.nextDouble() - 0.5) * 0.06;
             double vy = 0.01 + this.minecraft.level.random.nextDouble() * 0.04;
@@ -1258,6 +1252,8 @@ public final class MenuScreen extends Screen {
             int x = placement.bounds.x;
             int y = placement.bounds.y;
             int w = placement.bounds.w;
+
+            // TODO: This is a bit gross, it grew out of control. Should probably be a method on MenuEntry that takes the theme and returns these colors, but for now this works.
 
             int base = entry.isSection()
                 ? themed(0x442A1A49, 0x44162F45)

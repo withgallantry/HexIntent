@@ -5,7 +5,8 @@
   "plugin": "com.bluup.manifestation.mixin.ManifestationMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "BlockEntityRedstoneImpetusMixin",
+    "HexicalCompassCurioMixin",
+    "HexicalCurioCastSoundMixin",
     "HexicalServerCharmedUseReceiverMixin",
     "OpBrainsweepMixin"
   ],

@@ -22,8 +22,7 @@ import net.minecraft.world.phys.BlockHitResult
 /**
  * If the caster is aiming at a likely interactable block, stop execution quietly.
  *
- * Useful near the top of charm programs so right-clicking doors/chests/etc
- * does not continue the spell body.
+ * Useful near the top of charm hexes so right-clicking doors/chests/etc
  */
 object OpExitIfInteracting : Action {
     override fun operate(
@@ -59,6 +58,7 @@ object OpExitIfInteracting : Action {
         }
 
         // Menu providers (chests, barrels, many blocks) are the strongest signal.
+        // Can I find another way to make this more reboust for interactable things, how do items do it?
         if (state.getMenuProvider(level, pos) != null) {
             return true
         }

@@ -2,10 +2,6 @@ package com.bluup.manifestation.server.block
 
 // This got so much bigger than I'd planned, just because I wanted it to look nice and kept adding
 
-import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
-import at.petrak.hexcasting.api.casting.iota.EntityIota
-import at.petrak.hexcasting.api.casting.iota.Iota
-import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.server.PortalOwnershipStore
@@ -29,7 +25,6 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
@@ -61,7 +56,6 @@ class CorridorPortalBlockEntity(
     private var collapseStartedAtGameTime: Long = -1L
     private var renderScale: Float = 1.0f
     private var renderYawDegrees: Float = 0.0f
-    private var thresholdMode: Boolean = false
     private var permanentFrameMode: Boolean = false
     private var localPermanentFrame: PermanentThresholdFrame? = null
     private var linkedPermanentFrame: PermanentThresholdFrame? = null
@@ -72,7 +66,6 @@ class CorridorPortalBlockEntity(
     private var portalResolvedTintColor: Int = DEFAULT_PORTAL_TINT_COLOR
     private var portalTintColorizer: FrozenPigment? = null
     private var portalLabel: String? = null
-    private val thresholdPatterns: MutableList<CompoundTag> = mutableListOf()
 
     private val cooldownUntilByEntity: MutableMap<UUID, Long> = ConcurrentHashMap()
     private val pendingPlayerTeleports: MutableMap<UUID, PendingPlayerTeleport> = ConcurrentHashMap()
@@ -102,7 +95,6 @@ class CorridorPortalBlockEntity(
         collapseStartedAtGameTime = -1L
         renderScale = if (permanentFrame) 1.0f else scale.coerceIn(0.1f, 3.0f)
         renderYawDegrees = Mth.wrapDegrees(yawDegrees)
-        thresholdMode = false
         permanentFrameMode = permanentFrame
         localPermanentFrame = if (permanentFrame) localFrame else null
         linkedPermanentFrame = if (permanentFrame) linkedFrame else null
@@ -110,51 +102,8 @@ class CorridorPortalBlockEntity(
         pendingDeferredOpen = null
         pendingDeferredOpenAtGameTime = -1L
         awaitingReplacementDriver = false
-        updateThresholdBlockState(level, false)
         resetPortalColors()
         portalLabel = null
-        thresholdPatterns.clear()
-
-        setChanged()
-        level.sendBlockUpdated(worldPosition, blockState, blockState, 3)
-    }
-
-    fun configureThresholdTrigger(
-        level: ServerLevel,
-        patterns: List<Iota>,
-        owner: UUID?,
-        mediaBudget: Long,
-        scale: Float,
-        yawDegrees: Float
-    ) {
-        targetDimensionId = null
-        targetPos = null
-        ownerUuid = owner
-        sustainMediaRemaining = mediaBudget.coerceAtLeast(0L)
-        lastSustainDrainGameTime = level.gameTime
-        openedAtGameTime = level.gameTime
-        collapseStartedAtGameTime = -1L
-        renderScale = scale.coerceIn(0.1f, 3.0f)
-        renderYawDegrees = Mth.wrapDegrees(yawDegrees)
-        thresholdMode = true
-        permanentFrameMode = false
-        localPermanentFrame = null
-        linkedPermanentFrame = null
-        replacementCollapseMode = false
-        pendingDeferredOpen = null
-        pendingDeferredOpenAtGameTime = -1L
-        awaitingReplacementDriver = false
-        updateThresholdBlockState(level, true)
-        resetPortalColors()
-        portalLabel = null
-        thresholdPatterns.clear()
-
-        for (pattern in patterns) {
-            val serialized = IotaType.serialize(pattern)
-            if (serialized is CompoundTag) {
-                thresholdPatterns.add(serialized.copy())
-            }
-        }
 
         setChanged()
         level.sendBlockUpdated(worldPosition, blockState, blockState, 3)
@@ -249,8 +198,6 @@ class CorridorPortalBlockEntity(
 
     fun getRenderYawDegrees(): Float = renderYawDegrees
 
-    fun isThresholdMode(): Boolean = thresholdMode
-
     fun isPermanentFrameMode(): Boolean = permanentFrameMode
 
     fun isReplacementCollapseMode(): Boolean = replacementCollapseMode
@@ -317,11 +264,6 @@ class CorridorPortalBlockEntity(
     fun serverTick(level: ServerLevel) {
         processPendingPlayerTeleports(level)
 
-        if (thresholdMode) {
-            serverTickThreshold(level)
-            return
-        }
-
         if (permanentFrameMode) {
             serverTickPermanent(level)
             return
@@ -358,45 +300,12 @@ class CorridorPortalBlockEntity(
         }
 
         val steps = (elapsed / TICKS_PER_DRAIN_STEP).coerceAtLeast(1L)
-        sustainMediaRemaining -= (steps * THRESHOLD_MEDIA_DRAIN_PER_STEP)
-        lastSustainDrainGameTime += steps * TICKS_PER_DRAIN_STEP
-        setChanged()
-
-        if (sustainMediaRemaining <= 0L) {
-            startPairCollapse(level)
-        }
-    }
-
-    private fun serverTickThreshold(level: ServerLevel) {
-        if (collapseStartedAtGameTime >= 0L) {
-            if (level.gameTime >= collapseStartedAtGameTime + CLOSE_ANIM_TICKS) {
-                removeSingleThresholdNow(level)
-            }
-            return
-        }
-
-        if (sustainMediaRemaining <= 0L) {
-            beginCollapse(level)
-            return
-        }
-
-        if (lastSustainDrainGameTime <= 0L) {
-            lastSustainDrainGameTime = level.gameTime
-            return
-        }
-
-        val elapsed = level.gameTime - lastSustainDrainGameTime
-        if (elapsed < TICKS_PER_DRAIN_STEP) {
-            return
-        }
-
-        val steps = (elapsed / TICKS_PER_DRAIN_STEP).coerceAtLeast(1L)
         sustainMediaRemaining -= (steps * MEDIA_DRAIN_PER_STEP)
         lastSustainDrainGameTime += steps * TICKS_PER_DRAIN_STEP
         setChanged()
 
         if (sustainMediaRemaining <= 0L) {
-            beginCollapse(level)
+            startPairCollapse(level)
         }
     }
 
@@ -431,10 +340,6 @@ class CorridorPortalBlockEntity(
     }
 
     fun tryTeleport(level: ServerLevel, entity: Entity) {
-        if (thresholdMode) {
-            return
-        }
-
         if (collapseStartedAtGameTime >= 0L) {
             return
         }
@@ -584,110 +489,6 @@ class CorridorPortalBlockEntity(
         }
     }
 
-    fun tryTriggerThreshold(level: ServerLevel, entity: Entity) {
-        if (!thresholdMode) {
-            return
-        }
-
-        if (entity.isPassenger || entity.isVehicle) {
-            return
-        }
-
-        if (collapseStartedAtGameTime >= 0L) {
-            return
-        }
-
-        val now = level.gameTime
-        val uuid = entity.uuid
-        val cooldownUntil = cooldownUntilByEntity[uuid] ?: 0L
-        if (now < cooldownUntil) {
-            return
-        }
-
-        cooldownUntilByEntity[uuid] = now + THRESHOLD_TRIGGER_COOLDOWN_TICKS
-        if (runThresholdPatterns(level, entity)) {
-            // Threshold mode is single-fire: once crossed, it begins dissolving.
-            beginCollapse(level)
-        }
-    }
-
-    private fun runThresholdPatterns(level: ServerLevel, entity: Entity): Boolean {
-        if (thresholdPatterns.isEmpty()) {
-            return false
-        }
-
-        val iotas = mutableListOf<Iota>()
-        for (tag in thresholdPatterns) {
-            try {
-                val iota = IotaType.deserialize(tag.copy(), level)
-                if (iota != null) {
-                    iotas.add(iota)
-                }
-            } catch (_: Throwable) {
-                // Skip corrupted entries and continue with the remaining trigger list.
-            }
-        }
-
-        if (iotas.isEmpty()) {
-            return false
-        }
-
-        val env = ThresholdTriggerCastEnv(level, worldPosition, this, entity as? LivingEntity)
-        // Threshold payloads always execute with the triggering entity pre-seeded on stack according to what I read.
-        return tryExecuteThresholdPatterns(level, iotas, env, listOf(EntityIota(entity)))
-    }
-
-    private fun tryExecuteThresholdPatterns(
-        level: ServerLevel,
-        iotas: List<Iota>,
-        env: ThresholdTriggerCastEnv,
-        initialStack: List<Iota>
-    ): Boolean {
-        try {
-            val vm = CastingVM.empty(env)
-            vm.image = vm.image.copy(stack = initialStack)
-            val clientInfo = vm.queueExecuteAndWrapIotas(iotas, level)
-            val success = clientInfo.resolutionType.success
-            if (!success) {
-                Manifestation.LOGGER.info(
-                    "Manifestation: threshold trigger produced non-success resolution {} at {} (stack seed = {})",
-                    clientInfo.resolutionType,
-                    worldPosition,
-                    if (initialStack.isEmpty()) "empty" else "entity"
-                )
-            }
-            return success
-        } catch (t: Throwable) {
-            Manifestation.LOGGER.warn("Manifestation: threshold trigger execution failed at {} (stack seed = {})", worldPosition, if (initialStack.isEmpty()) "empty" else "entity", t)
-            return false
-        }
-    }
-
-    fun extractThresholdMedia(cost: Long, simulate: Boolean): Long {
-        if (cost <= 0L) {
-            return 0L
-        }
-
-        val available = sustainMediaRemaining.coerceAtLeast(0L)
-        val spent = minOf(cost, available)
-        val remaining = cost - spent
-        if (remaining > 0L && simulate) {
-            Manifestation.LOGGER.info(
-                "Manifestation: threshold media shortfall at {} (required={}, available={}, missing={})",
-                worldPosition,
-                cost,
-                available,
-                remaining
-            )
-        }
-        if (!simulate && spent > 0L) {
-            sustainMediaRemaining = available - spent
-            setChanged()
-        }
-
-        return remaining
-    }
-
     private fun playTeleportSound(sourceLevel: ServerLevel, sourcePos: BlockPos, targetLevel: ServerLevel, targetPos: BlockPos) {
         val pitch = 0.93f + (sourceLevel.random.nextFloat() * 0.1f)
         sourceLevel.playSound(null, sourcePos, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.BLOCKS, 0.45f, pitch)
@@ -710,7 +511,6 @@ class CorridorPortalBlockEntity(
         }
         renderScale = if (tag.contains(TAG_RENDER_SCALE)) tag.getFloat(TAG_RENDER_SCALE) else 1.0f
         renderYawDegrees = if (tag.contains(TAG_RENDER_YAW_DEGREES)) tag.getFloat(TAG_RENDER_YAW_DEGREES) else 0.0f
-        thresholdMode = tag.getBoolean(TAG_THRESHOLD_MODE)
         permanentFrameMode = tag.getBoolean(TAG_PERMANENT_FRAME_MODE)
         localPermanentFrame = if (tag.contains(TAG_LOCAL_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
             PermanentThresholdFrame.deserialize(tag.getCompound(TAG_LOCAL_PERMANENT_FRAME))
@@ -745,13 +545,6 @@ class CorridorPortalBlockEntity(
             -1L
         }
         awaitingReplacementDriver = tag.getBoolean(TAG_AWAITING_REPLACEMENT_DRIVER)
-        thresholdPatterns.clear()
-        if (tag.contains(TAG_THRESHOLD_PATTERNS, Tag.TAG_LIST.toInt())) {
-            val list = tag.getList(TAG_THRESHOLD_PATTERNS, Tag.TAG_COMPOUND.toInt())
-            for (i in 0 until list.size) {
-                thresholdPatterns.add(list.getCompound(i).copy())
-            }
-        }
     }
 
     private fun executePendingDeferredOpen(level: ServerLevel) {
@@ -799,7 +592,6 @@ class CorridorPortalBlockEntity(
         }
         tag.putFloat(TAG_RENDER_SCALE, renderScale)
         tag.putFloat(TAG_RENDER_YAW_DEGREES, renderYawDegrees)
-        tag.putBoolean(TAG_THRESHOLD_MODE, thresholdMode)
         tag.putBoolean(TAG_PERMANENT_FRAME_MODE, permanentFrameMode)
         localPermanentFrame?.let { tag.put(TAG_LOCAL_PERMANENT_FRAME, it.serialize()) }
         linkedPermanentFrame?.let { tag.put(TAG_LINKED_PERMANENT_FRAME, it.serialize()) }
@@ -828,13 +620,6 @@ class CorridorPortalBlockEntity(
         }
         if (awaitingReplacementDriver) {
             tag.putBoolean(TAG_AWAITING_REPLACEMENT_DRIVER, true)
-        }
-        if (thresholdPatterns.isNotEmpty()) {
-            val serialized = ListTag()
-            for (pattern in thresholdPatterns) {
-                serialized.add(pattern.copy())
-            }
-            tag.put(TAG_THRESHOLD_PATTERNS, serialized)
         }
     }
 
@@ -959,11 +744,9 @@ class CorridorPortalBlockEntity(
         private const val TAG_COLLAPSE_STARTED_AT_TIME = "CollapseStartedAtGameTime"
         private const val TAG_RENDER_SCALE = "RenderScale"
         private const val TAG_RENDER_YAW_DEGREES = "RenderYawDegrees"
-        private const val TAG_THRESHOLD_MODE = "ThresholdMode"
         private const val TAG_PERMANENT_FRAME_MODE = "PermanentFrameMode"
         private const val TAG_LOCAL_PERMANENT_FRAME = "LocalPermanentFrame"
         private const val TAG_LINKED_PERMANENT_FRAME = "LinkedPermanentFrame"
-        private const val TAG_THRESHOLD_PATTERNS = "ThresholdPatterns"
         private const val TAG_PORTAL_BACKDROP_COLOR = "PortalBackdropColor"
         private const val TAG_PORTAL_MID_COLOR = "PortalMidColor"
         private const val TAG_PORTAL_HIGHLIGHT_COLOR = "PortalHighlightColor"
@@ -1005,13 +788,11 @@ class CorridorPortalBlockEntity(
         private const val DEFAULT_PORTAL_TINT_COLOR = 0xB02CFF
 
         private const val TELEPORT_COOLDOWN_TICKS = 20L
-        private const val THRESHOLD_TRIGGER_COOLDOWN_TICKS = 10L
         private const val EXIT_OFFSET = 0.80
         private const val TICKS_PER_DRAIN_STEP = 20L
         // Budgets are stored in raw media, but configured as dust-equivalent input.
         // 2 dust/sec = 20,000 media/sec at one drain step per second.
         private const val MEDIA_DRAIN_PER_STEP = 20_000L
-        private const val THRESHOLD_MEDIA_DRAIN_PER_STEP = 20_000L
         private const val REPLACEMENT_OPEN_DELAY_TICKS = 1L
         private const val REPLACEMENT_OPEN_GRACE_TICKS = 5L
         private const val OPEN_ANIM_TICKS = 18L
@@ -1078,10 +859,6 @@ class CorridorPortalBlockEntity(
     }
 
     private fun isSustainDriver(level: ServerLevel): Boolean {
-        if (thresholdMode) {
-            return true
-        }
-
         val targetDim = targetDimensionId ?: return false
         val target = targetPos ?: return false
 
@@ -1152,11 +929,6 @@ class CorridorPortalBlockEntity(
     }
 
     private fun startPairCollapse(level: ServerLevel) {
-        if (thresholdMode) {
-            beginCollapse(level)
-            return
-        }
-
         val startTick = level.gameTime
         beginCollapse(level, startTick)
 
@@ -1173,11 +945,6 @@ class CorridorPortalBlockEntity(
     }
 
     private fun removePairNow(level: ServerLevel) {
-        if (thresholdMode) {
-            removeSingleThresholdNow(level)
-            return
-        }
-
         val target = targetPos
         val targetDim = targetDimensionId
 
@@ -1207,10 +974,6 @@ class CorridorPortalBlockEntity(
     }
 
     fun breakLinkedCounterpartNow(level: ServerLevel) {
-        if (thresholdMode) {
-            return
-        }
-
         clearOwnershipReference(level)
 
         val target = targetPos ?: return
@@ -1230,9 +993,6 @@ class CorridorPortalBlockEntity(
     }
 
     private fun isReciprocalLinkTo(dimensionId: String, pos: BlockPos): Boolean {
-        if (thresholdMode) {
-            return false
-        }
         return targetDimensionId == dimensionId && targetPos == pos
     }
 
@@ -1245,10 +1005,6 @@ class CorridorPortalBlockEntity(
     }
 
     private fun spawnLinkedFlowParticles(level: ServerLevel) {
-        if (thresholdMode) {
-            return
-        }
-
         if (collapseStartedAtGameTime >= 0L) {
             return
         }
@@ -1312,24 +1068,6 @@ class CorridorPortalBlockEntity(
 
             // Drift stream follows the portal's active tint instead of vanilla reverse-portal purple.
             level.sendParticles(particle, spawn.x, spawn.y, spawn.z, 0, velocity.x * 0.55, velocity.y * 0.55, velocity.z * 0.55, 1.0)
-        }
-    }
-
-    private fun removeSingleThresholdNow(level: ServerLevel) {
-        if (level.getBlockState(worldPosition).block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
-            playCollapseEffects(level, worldPosition)
-            level.removeBlock(worldPosition, false)
-        }
-    }
-
-    private fun updateThresholdBlockState(level: ServerLevel, threshold: Boolean) {
-        val state = level.getBlockState(worldPosition)
-        if (state.block != ManifestationBlocks.CORRIDOR_PORTAL_BLOCK || !state.hasProperty(CorridorPortalBlock.THRESHOLD)) {
-            return
-        }
-
-        if (state.getValue(CorridorPortalBlock.THRESHOLD) != threshold) {
-            level.setBlock(worldPosition, state.setValue(CorridorPortalBlock.THRESHOLD, threshold), 3)
         }
     }
 

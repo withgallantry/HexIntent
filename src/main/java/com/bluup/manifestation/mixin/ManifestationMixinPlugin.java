@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Set;
 
 public final class ManifestationMixinPlugin implements IMixinConfigPlugin {
+    private static final String HEXICAL_COMPASS_CURIO_MIXIN =
+        "com.bluup.manifestation.mixin.HexicalCompassCurioMixin";
+    private static final String HEXICAL_CURIO_CAST_SOUND_MIXIN =
+        "com.bluup.manifestation.mixin.HexicalCurioCastSoundMixin";
     private static final String HEXICAL_SERVER_RECEIVER_MIXIN =
         "com.bluup.manifestation.mixin.HexicalServerCharmedUseReceiverMixin";
 
@@ -23,15 +27,13 @@ public final class ManifestationMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (!HEXICAL_SERVER_RECEIVER_MIXIN.equals(mixinClassName)) {
+        if (!HEXICAL_COMPASS_CURIO_MIXIN.equals(mixinClassName)
+            && !HEXICAL_CURIO_CAST_SOUND_MIXIN.equals(mixinClassName)
+            && !HEXICAL_SERVER_RECEIVER_MIXIN.equals(mixinClassName)) {
             return true;
         }
 
-        if (!FabricLoader.getInstance().isModLoaded("hexical")) {
-            return false;
-        }
-
-        return true;
+        return FabricLoader.getInstance().isModLoaded("hexical");
     }
 
     @Override

@@ -31,8 +31,6 @@ object ManifestationConfig {
     private const val DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK = 24
     private const val DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 512
     private const val DEFAULT_SPLINTER_CASTER_ENABLED = true
-
-    private const val DEFAULT_CONSTELLATION_FEATURE_ENABLED = false
     private const val DEFAULT_PARTICLE_BLOB_LOADER_ENABLED = false
 
     private const val MIN_MENU_LOOP_WINDOW_MS = 200L
@@ -134,9 +132,6 @@ object ManifestationConfig {
     private var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
 
     @Volatile
-    private var constellationFeatureEnabled: Boolean = DEFAULT_CONSTELLATION_FEATURE_ENABLED
-
-    @Volatile
     private var particleBlobLoaderEnabled: Boolean = DEFAULT_PARTICLE_BLOB_LOADER_ENABLED
 
     fun load() {
@@ -163,8 +158,6 @@ object ManifestationConfig {
         splinterMaxExecutionsPerTick = effective.splinterMaxExecutionsPerTick
         splinterMaxRecordScansPerTick = effective.splinterMaxRecordScansPerTick
         splinterCasterEnabled = effective.splinterCasterEnabled
-
-        constellationFeatureEnabled = effective.constellationFeatureEnabled
         particleBlobLoaderEnabled = effective.particleBlobLoaderEnabled
 
         if (loaded == null || loaded != effective) {
@@ -179,7 +172,7 @@ object ManifestationConfig {
                 "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}, " +
                 "splinterWatchdogMaxAvgExecMs={}, splinterWatchdogMaxBreaches={}, " +
                 "splinterMaxActivePerOwner={}, splinterMaxExecutionsPerTick={}, splinterMaxRecordScansPerTick={}, " +
-                "splinterCasterEnabled={}, constellationFeatureEnabled={}, particleBlobLoaderEnabled={}",
+                "splinterCasterEnabled={}, particleBlobLoaderEnabled={}",
             menuLoopWindowMs,
             menuLoopTriggerCount,
             intentRelayMaxRangeBlocks,
@@ -200,7 +193,6 @@ object ManifestationConfig {
             splinterMaxExecutionsPerTick,
             splinterMaxRecordScansPerTick,
             splinterCasterEnabled,
-            constellationFeatureEnabled,
             particleBlobLoaderEnabled
         )
     }
@@ -244,8 +236,6 @@ object ManifestationConfig {
     fun splinterMaxRecordScansPerTick(): Int = splinterMaxRecordScansPerTick
 
     fun splinterCasterEnabled(): Boolean = splinterCasterEnabled
-
-    fun constellationFeatureEnabled(): Boolean = constellationFeatureEnabled
 
     fun particleBlobLoaderEnabled(): Boolean = particleBlobLoaderEnabled
 
@@ -354,7 +344,6 @@ object ManifestationConfig {
                 MAX_SPLINTER_MAX_RECORD_SCANS_PER_TICK
             ),
             splinterCasterEnabled = raw.splinterCasterEnabled,
-            constellationFeatureEnabled = raw.constellationFeatureEnabled,
             particleBlobLoaderEnabled = raw.particleBlobLoaderEnabled
         ).let { sanitized ->
             if (sanitized.menuDispatchMaxCooldownMs < sanitized.menuDispatchBaseCooldownMs) {
@@ -386,7 +375,6 @@ object ManifestationConfig {
         var splinterMaxExecutionsPerTick: Int = DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK,
         var splinterMaxRecordScansPerTick: Int = DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK,
         var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED,
-        var constellationFeatureEnabled: Boolean = DEFAULT_CONSTELLATION_FEATURE_ENABLED,
         var particleBlobLoaderEnabled: Boolean = DEFAULT_PARTICLE_BLOB_LOADER_ENABLED
     )
 }
