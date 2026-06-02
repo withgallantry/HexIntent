@@ -24,11 +24,8 @@ public final class ManifestationNetworking {
     public static final ResourceLocation INTENT_SHIFTER_RUNES_S2C = Manifestation.id("intent_shifter_runes");
     public static final ResourceLocation SPLINTER_SNAPSHOT_S2C = Manifestation.id("splinter_snapshot");
     public static final ResourceLocation HEX_TRAIL_S2C = Manifestation.id("hex_trail");
-    public static final ResourceLocation PARTICLE_BLOB_CAST_S2C = Manifestation.id("particle_blob_cast");
     public static final ResourceLocation EQUATION_CLOUD_S2C = Manifestation.id("equation_cloud");
     public static final ResourceLocation SPELL_CIRCLE_S2C = Manifestation.id("spell_circle");
-    public static final ResourceLocation OPEN_PARTICLE_IMPORTER_S2C = Manifestation.id("open_particle_importer");
-    public static final ResourceLocation IMPORT_PARTICLE_BLOB_C2S = Manifestation.id("import_particle_blob");
     public static final ResourceLocation OPEN_EQUATION_SYNTH_S2C = Manifestation.id("open_equation_synth");
     public static final ResourceLocation WRITE_EQUATION_PARTICLE_C2S = Manifestation.id("write_equation_particle");
 

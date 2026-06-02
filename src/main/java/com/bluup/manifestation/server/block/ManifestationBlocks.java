@@ -1,7 +1,6 @@
 package com.bluup.manifestation.server.block;
 
 import com.bluup.manifestation.Manifestation;
-import com.bluup.manifestation.server.ManifestationConfig;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
@@ -66,12 +65,6 @@ public final class ManifestationBlocks {
             .requiresCorrectToolForDrops()
     );
 
-    public static final ParticleImporterBlock PARTICLE_IMPORTER_BLOCK = new ParticleImporterBlock(
-        FabricBlockSettings.copyOf(Blocks.DEEPSLATE_TILES)
-            .strength(2.0f, 6.0f)
-            .requiresCorrectToolForDrops()
-    );
-
     public static final EquationSynthBlock EQUATION_SYNTH_BLOCK = new EquationSynthBlock(
         FabricBlockSettings.copyOf(Blocks.POLISHED_DEEPSLATE)
             .strength(2.0f, 6.0f)
@@ -94,11 +87,6 @@ public final class ManifestationBlocks {
         new Item.Properties()
     );
 
-    public static final Item PARTICLE_IMPORTER_ITEM = new BlockItem(
-        PARTICLE_IMPORTER_BLOCK,
-        new Item.Properties()
-    );
-
     public static final Item EQUATION_SYNTH_ITEM = new BlockItem(
         EQUATION_SYNTH_BLOCK,
         new Item.Properties()
@@ -109,7 +97,6 @@ public final class ManifestationBlocks {
     public static BlockEntityType<SplinterCasterBlockEntity> SPLINTER_CASTER_BLOCK_ENTITY;
     public static BlockEntityType<HexReliquaryBlockEntity> HEX_RELIQUARY_BLOCK_ENTITY;
     public static BlockEntityType<MindVaultBlockEntity> MIND_VAULT_BLOCK_ENTITY;
-    public static BlockEntityType<ParticleImporterBlockEntity> PARTICLE_IMPORTER_BLOCK_ENTITY;
     public static BlockEntityType<EquationSynthBlockEntity> EQUATION_SYNTH_BLOCK_ENTITY;
 
     public static void register() {
@@ -119,12 +106,10 @@ public final class ManifestationBlocks {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("splinter_caster"), SPLINTER_CASTER_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("hex_box"), HEX_RELIQUARY_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("mind_vault"), MIND_VAULT_BLOCK);
-        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("particle_importer"), PARTICLE_IMPORTER_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("equation_synth"), EQUATION_SYNTH_BLOCK);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("splinter_caster"), SPLINTER_CASTER_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("hex_box"), HEX_RELIQUARY_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("mind_vault"), MIND_VAULT_ITEM);
-        Registry.register(BuiltInRegistries.ITEM, Manifestation.id("particle_importer"), PARTICLE_IMPORTER_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("equation_synth"), EQUATION_SYNTH_ITEM);
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries ->
@@ -132,9 +117,6 @@ public final class ManifestationBlocks {
                 entries.accept(SPLINTER_CASTER_ITEM);
                 entries.accept(HEX_RELIQUARY_ITEM);
                 entries.accept(MIND_VAULT_ITEM);
-                if (ManifestationConfig.INSTANCE.particleBlobLoaderEnabled()) {
-                    entries.accept(PARTICLE_IMPORTER_ITEM);
-                }
                 entries.accept(EQUATION_SYNTH_ITEM);
             }
         );
@@ -167,12 +149,6 @@ public final class ManifestationBlocks {
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
             Manifestation.id("mind_vault"),
             FabricBlockEntityTypeBuilder.create(MindVaultBlockEntity::new, MIND_VAULT_BLOCK).build()
-        );
-
-        PARTICLE_IMPORTER_BLOCK_ENTITY = Registry.register(
-            BuiltInRegistries.BLOCK_ENTITY_TYPE,
-            Manifestation.id("particle_importer"),
-            FabricBlockEntityTypeBuilder.create(ParticleImporterBlockEntity::new, PARTICLE_IMPORTER_BLOCK).build()
         );
 
         EQUATION_SYNTH_BLOCK_ENTITY = Registry.register(
