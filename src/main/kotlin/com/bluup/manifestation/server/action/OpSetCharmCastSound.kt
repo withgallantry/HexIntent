@@ -3,6 +3,7 @@ package com.bluup.manifestation.server.action
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.eval.OperationResult
+import at.petrak.hexcasting.api.casting.eval.sideeffects.EvalSound
 import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
@@ -53,7 +54,7 @@ object OpSetCharmCastSound : Action {
         val target = explicitTarget ?: resolveHeldTarget(caster, env.castingHand)
             ?: throw MishapInvalidIota.ofType(arg, 0, "string/text/null with a charmed item in casting or off hand")
 
-        val (sideEffects, evalSound) = when (arg) {
+        val soundResult: Pair<List<OperatorSideEffect>, EvalSound> = when (arg) {
             is NullIota -> {
                 if (env.extractMedia(SILENCE_CHARM_MEDIA_COST, true) > 0) {
                     throw MishapNotEnoughMedia(SILENCE_CHARM_MEDIA_COST)
@@ -72,9 +73,10 @@ object OpSetCharmCastSound : Action {
                     throw MishapInvalidIota.ofType(arg, 0, "registered minecraft sound id")
                 }
                 CharmCastSoundOverrides.setSoundId(target, loc.toString())
-                listOf() to HexEvalSounds.NORMAL_EXECUTE
+                emptyList<OperatorSideEffect>() to HexEvalSounds.NORMAL_EXECUTE
             }
         }
+        val (sideEffects, evalSound) = soundResult
 
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(image2, sideEffects, continuation, evalSound)

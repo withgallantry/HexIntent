@@ -51,7 +51,7 @@ object CharmCastSoundOverrides {
         val loc = ResourceLocation.tryParse(soundId) ?: return false
         val sound = BuiltInRegistries.SOUND_EVENT.getOptional(loc)
         if (sound.isEmpty) {
-            Manifestation.LOGGER.warn("Invalid configured charm cast sound id '{}'; falling back to default curio behavior", soundId)
+            Manifestation.LOGGER.warn("Invalid configured charm cast sound id '{}'; falling back to default charm behavior", soundId)
             return false
         }
 

@@ -237,8 +237,6 @@ object ManifestationServer : ModInitializer {
             ManifestationNetworking.DISPATCH_ACTION_C2S
         ) { server, player, _, buf, _ ->
             val sessionToken = buf.readUUID()
-            val hand = buf.readEnum(InteractionHand::class.java)
-            val dispatchSource = buf.readEnum(MenuPayload.DispatchSource::class.java)
             if (!MenuDispatchAbuseGuard.shouldAllow(player)) {
                 return@registerGlobalReceiver
             }
@@ -319,7 +317,7 @@ object ManifestationServer : ModInitializer {
             val tags = (0 until count).map { buf.readNbt() }
             // Cast execution and session writes must run on the server thread.
             server.execute {
-                val resolved = MenuSessionRegistry.resolveAndConsume(player, sessionToken, hand, dispatchSource)
+                val resolved = MenuSessionRegistry.resolveAndConsume(player, sessionToken)
                 val dispatch = resolved.dispatch
                 if (dispatch == null) {
                     val message = resolved.rejectMessage ?: Component.translatable("message.manifestation.menu_expired")
@@ -344,7 +342,8 @@ object ManifestationServer : ModInitializer {
                 MenuActionDispatcher.dispatch(
                     player,
                     dispatch.hand,
-                    dispatch.source == MenuPayload.DispatchSource.STAFF,
+                    dispatch.source,
+                    dispatch.circleContext,
                     inputs,
                     iotas,
                     preservedImage

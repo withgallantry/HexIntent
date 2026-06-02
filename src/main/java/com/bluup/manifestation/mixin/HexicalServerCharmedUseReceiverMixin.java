@@ -10,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
@@ -45,6 +47,26 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
         @SuppressWarnings("unchecked")
         List<? extends Iota> castStack = (List<? extends Iota>) stack;
         invokePostCharmCast(curioItem, user, item, hand, world, castStack);
+    }
+
+    @Inject(
+        method = "init$lambda$1$lambda$0",
+        at = @At("TAIL"),
+        remap = false,
+        require = 0
+    )
+    private static void manifestation$handleNonCurioPostCastSound(
+        int inputMethod,
+        ServerPlayer user,
+        InteractionHand hand,
+        ItemStack item,
+        CallbackInfo ci
+    ) {
+        if (item.getItem() instanceof CurioItem) {
+            return;
+        }
+
+        CharmCastSoundOverrides.INSTANCE.handlePostCastSound(user, user.serverLevel(), item);
     }
 
     private static void invokePostCharmCast(

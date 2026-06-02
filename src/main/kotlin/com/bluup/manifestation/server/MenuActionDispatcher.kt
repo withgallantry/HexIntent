@@ -9,6 +9,7 @@ import at.petrak.hexcasting.api.casting.iota.ListIota
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.common.menu.MenuPayload
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
@@ -85,18 +86,19 @@ object MenuActionDispatcher {
     }
 
     /**
-        * Dispatch a button's payload through the player's validated menu session.
+        * Dispatch a button's payload through the player's menu session.
      *
-     * @param player the player who clicked the button
-     * @param hand which hand is holding the casting item
-     * @param fromStaffSession true when this menu came from staff casting
-     * @param inputs typed input values in menu order
+     * @param player = the player who clicked the button
+     * @param hand = which hand is holding the casting item
+         * @param source = where the menu session originated
+     * @param inputs = typed input values in menu order
      */
     @JvmStatic
     fun dispatch(
         player: ServerPlayer,
         hand: InteractionHand,
-        fromStaffSession: Boolean,
+            source: MenuPayload.DispatchSource,
+            circleContext: MenuSessionRegistry.CircleContext?,
         inputs: List<InputDatum>,
         iotas: List<Iota>,
         sessionImage: CastingImage
@@ -125,21 +127,69 @@ object MenuActionDispatcher {
         }
 
         Manifestation.LOGGER.info(
-            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {}, staffSession {})",
+            "MenuActionDispatcher: dispatching {} iotas for player {} (hand {}, source {})",
             iotas.size,
             player.name.string,
             hand,
-            fromStaffSession
+            source
         )
 
         val world = player.serverLevel()
         val inputIotas = toInputIotas(inputs, world)
-        if (fromStaffSession) {
-            dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
+        when (source) {
+            MenuPayload.DispatchSource.STAFF -> {
+                dispatchStaff(player, hand, sessionImage, inputIotas, iotas, world)
+            }
+
+            MenuPayload.DispatchSource.CIRCLE -> {
+                dispatchCircle(player, hand, circleContext, sessionImage, inputIotas, iotas, world)
+            }
+
+            // doing this as a fallback
+            MenuPayload.DispatchSource.PACKAGED_ITEM -> {
+                dispatchWithMenuEnv(player, hand, sessionImage, inputIotas, iotas, world)
+            }
+        }
+    }
+
+    private fun dispatchCircle(
+        player: ServerPlayer,
+        hand: InteractionHand,
+        circleContext: MenuSessionRegistry.CircleContext?,
+        capturedImage: CastingImage,
+        inputIotas: List<Iota>,
+        iotas: List<Iota>,
+        world: ServerLevel
+    ) {
+        if (circleContext == null) {
+            Manifestation.LOGGER.warn(
+                "MenuActionDispatcher: rejecting circle dispatch for {} due to missing circle context",
+                player.name.string
+            )
             return
         }
 
-        dispatchWithMenuEnv(player, hand, sessionImage, inputIotas, iotas, world)
+        val playerDimId = world.dimension().location().toString()
+        if (playerDimId != circleContext.dimensionId) {
+            Manifestation.LOGGER.warn(
+                "MenuActionDispatcher: rejecting circle dispatch for {} due to dimension mismatch (player {}, circle {})",
+                player.name.string,
+                playerDimId,
+                circleContext.dimensionId
+            )
+            return
+        }
+
+        val env = CircleMenuCastEnv(player, hand, circleContext.impetusPos)
+        val image = buildStartingImage(capturedImage, inputIotas)
+        val vm = CastingVM(image, env)
+        val clientInfo = vm.queueExecuteAndWrapIotas(iotas, world)
+        Manifestation.LOGGER.info(
+            "MenuActionDispatcher: {} dispatch complete, stack empty = {}, resolution = {}",
+            env.javaClass.simpleName,
+            clientInfo.isStackClear,
+            clientInfo.resolutionType
+        )
     }
 
     private fun dispatchWithMenuEnv(

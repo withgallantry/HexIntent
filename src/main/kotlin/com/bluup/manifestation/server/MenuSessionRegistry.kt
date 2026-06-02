@@ -73,9 +73,7 @@ object MenuSessionRegistry {
     @JvmStatic
     fun resolveAndConsume(
         player: ServerPlayer,
-        token: UUID,
-        clientHand: InteractionHand,
-        clientSource: MenuPayload.DispatchSource
+        token: UUID
     ): ResolveResult {
         val now = System.currentTimeMillis()
         val session = byPlayer.remove(player.uuid)
@@ -91,17 +89,6 @@ object MenuSessionRegistry {
 
         if (session.source == MenuPayload.DispatchSource.CIRCLE && !isCircleContextValid(player, session.circleContext)) {
             return ResolveResult(null, Component.translatable("message.manifestation.circle_disrupted"))
-        }
-
-        if (session.hand != clientHand || session.source != clientSource) {
-            Manifestation.LOGGER.warn(
-                "MenuSessionRegistry: client dispatch metadata mismatch for {} (client hand/source {} {}, server {} {})",
-                player.name.string,
-                clientHand,
-                clientSource,
-                session.hand,
-                session.source
-            )
         }
 
         return ResolveResult(

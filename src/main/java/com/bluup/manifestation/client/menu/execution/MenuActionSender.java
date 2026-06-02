@@ -3,12 +3,10 @@ package com.bluup.manifestation.client.menu.execution;
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.menu.MenuEntry;
-import com.bluup.manifestation.common.menu.MenuPayload;
 import com.bluup.manifestation.common.menu.StoredIota;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.InteractionHand;
 
 import java.util.List;
 import java.util.UUID;
@@ -60,7 +58,7 @@ public final class MenuActionSender {
     private MenuActionSender() {
     }
 
-    public static void send(MenuEntry entry, InteractionHand hand, MenuPayload.DispatchSource dispatchSource, UUID sessionToken, List<InputDatum> inputs) {
+    public static void send(MenuEntry entry, UUID sessionToken, List<InputDatum> inputs) {
         if (!entry.isButton()) {
             Manifestation.LOGGER.debug(
                     "MenuActionSender: entry '{}' is not a button, ignoring send",
@@ -77,13 +75,11 @@ public final class MenuActionSender {
         }
 
         Manifestation.LOGGER.debug(
-                "MenuActionSender: dispatching entry '{}' ({} iotas) via hand {}",
-                entry.label().getString(), actions.size(), hand);
+            "MenuActionSender: dispatching entry '{}' ({} iotas)",
+            entry.label().getString(), actions.size());
 
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeUUID(sessionToken);
-        buf.writeEnum(hand);
-        buf.writeEnum(dispatchSource);
         buf.writeVarInt(inputs.size());
         for (InputDatum input : inputs) {
             buf.writeVarInt(input.order());
