@@ -1,29 +1,28 @@
 package com.bluup.manifestation.mixin;
 
 import com.bluup.manifestation.server.CharmCastSoundOverrides;
+import miyucomics.hexical.features.curios.CurioItem;
+import at.petrak.hexcasting.api.casting.iota.Iota;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * Universal compatibility hook for Hexical right-click charm casts.
+ * Mixing for charm cast sound override. Made it so it's optional, as I don't want to hard depend on Hexical just for this.
  *
  * Intercepts the single invocation site where Hexical calls CurioItem.postCharmCast
  * and applies Manifestation per-item sound override/mute first.
  */
-@Pseudo
 @Mixin(targets = "miyucomics.hexical.features.charms.ServerCharmedUseReceiver")
 public abstract class HexicalServerCharmedUseReceiverMixin {
     @Redirect(
-        method = "lambda$init$0",
+        method = "init$lambda$1$lambda$0",
         at = @At(
             value = "INVOKE",
             target = "Lmiyucomics/hexical/features/curios/CurioItem;postCharmCast(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V"
@@ -43,7 +42,9 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
             return;
         }
 
-        invokePostCharmCast(curioItem, user, item, hand, world, stack);
+        @SuppressWarnings("unchecked")
+        List<? extends Iota> castStack = (List<? extends Iota>) stack;
+        invokePostCharmCast(curioItem, user, item, hand, world, castStack);
     }
 
     private static void invokePostCharmCast(
@@ -52,23 +53,8 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
         ItemStack item,
         InteractionHand hand,
         ServerLevel world,
-        List<?> stack
+        List<? extends Iota> stack
     ) {
-        try {
-            Method target = null;
-            for (Method method : curioItem.getClass().getMethods()) {
-                if (method.getName().equals("postCharmCast") && method.getParameterCount() == 5) {
-                    target = method;
-                    break;
-                }
-            }
-            if (target == null) {
-                return;
-            }
-
-            target.invoke(curioItem, user, item, hand, world, stack);
-        } catch (Throwable ignored) {
-            // Keep compatibility hook non-fatal if Hexical internals differ.
-        }
+        ((CurioItem) curioItem).postCharmCast(user, item, hand, world, stack);
     }
 }

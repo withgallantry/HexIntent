@@ -1,6 +1,6 @@
 plugins {
-    id 'fabric-loom' version '1.7-SNAPSHOT'
-    id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+    id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'org.jetbrains.kotlin.jvm' version '2.2.21'
     id 'java'
 }
 
@@ -17,8 +17,24 @@ repositories {
         url = "https://api.modrinth.com/maven"
     }
     maven {
+        name = "Kosmx"
+        url = "https://maven.kosmx.dev/"
+    }
+    maven {
+        name = "Shedaniel"
+        url = "https://maven.shedaniel.me/"
+    }
+    maven {
+        name = "Ladysnake"
+        url = "https://maven.ladysnake.org/releases"
+    }
+    maven {
         name = "Hex Casting"
         url = "https://maven.blamejared.com"
+    }
+    maven {
+        name = "Hexxy"
+        url = "https://maven.hexxy.media"
     }
     maven {
         name = "Terraformers"
@@ -33,18 +49,22 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // Fabric Language Kotlin — required because our server-side Actions are
-    // written in Kotlin. Players already have this because Hex Casting itself
-    // depends on it; we just need it on the classpath at compile/runtime.
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
 
-    // Hex Casting. modCompileOnly so we link against its types at build time
-    // but don't bundle it; players provide their own Hex install.
+    // Hex Casting. modCompileOnly just links types
     modCompileOnly "at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}"
 
-    // Hexical compat dependency reference.
-    modCompileOnly "maven.modrinth:hexical:${project.hexical_version}"
-    modLocalRuntime "maven.modrinth:hexical:${project.hexical_version}"
+    // This looks like the right way to do it if they're not on Modrinth. 
+    // Hexical isn't for 2.0 but kept this in for reference.
+    def hexicalModrinthVersion = project.findProperty("hexical_modrinth_version")?.toString()?.trim()
+    if (hexicalModrinthVersion) {
+        modCompileOnly "maven.modrinth:hexical:${hexicalModrinthVersion}"
+        modLocalRuntime "maven.modrinth:hexical:${hexicalModrinthVersion}"
+    } else {
+        def localHexicalJar = file("references/mods/hexical-main/build/libs/hexical-${project.hexical_version}.jar")
+        modCompileOnly files(localHexicalJar)
+        modLocalRuntime files(localHexicalJar)
+    }
 }
 
 processResources {

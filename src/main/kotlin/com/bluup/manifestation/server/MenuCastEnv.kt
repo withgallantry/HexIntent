@@ -16,14 +16,12 @@ import net.minecraft.world.phys.Vec3
  */
 class MenuCastEnv(
     caster: ServerPlayer,
-    private val hand: InteractionHand
+    hand: InteractionHand
 ) : PlayerBasedCastEnv(caster, hand) {
 
     override fun getMishapEnvironment(): MishapEnvironment {
         return MenuMishapEnvironment(world, caster)
     }
-
-    override fun getCastingHand(): InteractionHand = hand
 
     override fun isVecInRangeEnvironment(vec: Vec3): Boolean {
         return vec.distanceToSqr(caster.position()) <= MENU_AMBIT_RADIUS_SQ

@@ -889,19 +889,9 @@ object ManifestationServer : ModInitializer {
         player: ServerPlayer,
         payload: MenuPayload,
         circleContext: MenuSessionRegistry.CircleContext?,
-        explicitSessionImage: CastingImage?
+        sessionImage: CastingImage
     ) {
         val buf = PacketByteBufs.create()
-        val hand = payload.hand()
-        val dispatchSource = payload.dispatchSource()
-        val sessionImage: CastingImage = if (explicitSessionImage != null) {
-            explicitSessionImage
-        } else if (dispatchSource == MenuPayload.DispatchSource.STAFF) {
-            val vm = at.petrak.hexcasting.xplat.IXplatAbstractions.INSTANCE.getStaffcastVM(player, hand)
-            vm.image
-        } else {
-            CastingImage()
-        }
 
         val payloadWithSession = MenuSessionRegistry.attachSession(
             player,

@@ -99,7 +99,7 @@ object MenuActionDispatcher {
         fromStaffSession: Boolean,
         inputs: List<InputDatum>,
         iotas: List<Iota>,
-        sessionImage: CastingImage = CastingImage()
+        sessionImage: CastingImage
     ) {
         if (inputs.size > MAX_INPUTS) {
             Manifestation.LOGGER.warn(

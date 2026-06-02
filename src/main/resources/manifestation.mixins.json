@@ -2,15 +2,13 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.bluup.manifestation.mixin",
+  "plugin": "com.bluup.manifestation.mixin.ManifestationMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "BlockEntityRedstoneImpetusMixin",
     "HexicalCurioItemMixin",
     "HexicalServerCharmedUseReceiverMixin",
     "OpBrainsweepMixin"
-  ],
-  "client": [
-    "client.GuiSpellcastingMixin"
   ],
   "injectors": {
     "defaultRequire": 1

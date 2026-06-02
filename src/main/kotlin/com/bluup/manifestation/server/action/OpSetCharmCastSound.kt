@@ -53,13 +53,13 @@ object OpSetCharmCastSound : Action {
         val target = explicitTarget ?: resolveHeldTarget(caster, env.castingHand)
             ?: throw MishapInvalidIota.ofType(arg, 0, "string/text/null with a charmed item in casting or off hand")
 
-        val sideEffects = when (arg) {
+        val (sideEffects, evalSound) = when (arg) {
             is NullIota -> {
                 if (env.extractMedia(SILENCE_CHARM_MEDIA_COST, true) > 0) {
                     throw MishapNotEnoughMedia(SILENCE_CHARM_MEDIA_COST)
                 }
                 CharmCastSoundOverrides.setMuted(target, true)
-                listOf(OperatorSideEffect.ConsumeMedia(SILENCE_CHARM_MEDIA_COST))
+                listOf(OperatorSideEffect.ConsumeMedia(SILENCE_CHARM_MEDIA_COST)) to HexEvalSounds.MUTE
             }
             else -> {
                 val soundId = extractStringLikeValue(arg)
@@ -72,12 +72,12 @@ object OpSetCharmCastSound : Action {
                     throw MishapInvalidIota.ofType(arg, 0, "registered minecraft sound id")
                 }
                 CharmCastSoundOverrides.setSoundId(target, loc.toString())
-                listOf()
+                listOf() to HexEvalSounds.NORMAL_EXECUTE
             }
         }
 
         val image2 = image.withUsedOp().copy(stack = stack)
-        return OperationResult(image2, sideEffects, continuation, HexEvalSounds.NORMAL_EXECUTE)
+        return OperationResult(image2, sideEffects, continuation, evalSound)
     }
 
     private fun resolveExplicitTarget(env: CastingEnvironment, stack: MutableList<Iota>) =

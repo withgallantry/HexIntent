@@ -31,8 +31,7 @@ public final class MenuPayload {
     public enum DispatchSource {
         STAFF,
         PACKAGED_ITEM,
-        CIRCLE,
-        HEXICAL_CHARM
+        CIRCLE
     }
 
     private final Component title;

@@ -6,7 +6,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -14,14 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 /**
- * Stable compatibility hook for Hexical right-click charm casts.
- *
- * Hooking CurioItem.postCharmCast directly is more resilient than redirecting
- * a specific receiver lambda callsite that may change between Hexical versions.
- * Hexical's built-in curios override this method, so target the concrete
- * implementations as well instead of only the abstract base item class.
+ * Optional compatibility hook for Hexical right-click charm casts on the concrete curio classes.
  */
-@Pseudo
 @Mixin(targets = {
     "miyucomics.hexical.features.curios.CurioItem",
     "miyucomics.hexical.features.curios.curios.BaseCurio",
