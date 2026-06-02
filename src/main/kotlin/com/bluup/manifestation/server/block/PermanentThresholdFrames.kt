@@ -124,7 +124,7 @@ object PermanentThresholdFrames {
                 }
 
                 val state = level.getBlockState(pos)
-                if (!isDeepslateFrameBlock(state.block)) {
+                if (!isValidFrameBlock(state.block)) {
                     return false
                 }
 
@@ -159,7 +159,8 @@ object PermanentThresholdFrames {
             && pos.y in frame.minY..(frame.minY + 4)
     }
 
-    private fun isDeepslateFrameBlock(block: Block): Boolean = when (block) {
+    private fun isValidFrameBlock(block: Block): Boolean = when (block) {
+        ManifestationBlocks.CORRIDOR_PORTAL_BLOCK,
         Blocks.DEEPSLATE,
         Blocks.COBBLED_DEEPSLATE,
         Blocks.POLISHED_DEEPSLATE,

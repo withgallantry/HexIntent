@@ -34,7 +34,14 @@ object OpHexTrail : Action {
         val stack = image.stack.toMutableList()
 
         var particleType = 0
-        if (stack.size >= 6 && stack.last() is DoubleIota) {
+        val hasOptionalParticleType = stack.size >= 6
+            && stack[stack.lastIndex] is DoubleIota
+            && stack[stack.lastIndex - 1] is DoubleIota
+            && stack[stack.lastIndex - 2] is DoubleIota
+            && stack[stack.lastIndex - 3] is Vec3Iota
+            && stack[stack.lastIndex - 4] is Vec3Iota
+            && stack[stack.lastIndex - 5] is Vec3Iota
+        if (hasOptionalParticleType) {
             val typeIota = stack.removeAt(stack.lastIndex) as DoubleIota
             particleType = Math.round(typeIota.double).toInt()
         }

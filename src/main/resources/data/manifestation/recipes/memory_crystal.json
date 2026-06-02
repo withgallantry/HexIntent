@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "hexcasting:charged_amethyst"
+    }
+  ],
+  "result": {
+    "item": "manifestation:memory_crystal",
+    "count": 1
+  }
+}

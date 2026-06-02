@@ -44,7 +44,11 @@ object OpLinkIntentRelay : Action {
         val stack = image.stack.toMutableList()
         var redstoneStrength: Int? = null
 
-        if (stack.isNotEmpty() && stack.last() is DoubleIota) {
+        val hasOptionalSignal = stack.size >= 3
+            && stack[stack.lastIndex] is DoubleIota
+            && stack[stack.lastIndex - 1] is Vec3Iota
+            && stack[stack.lastIndex - 2] is Vec3Iota
+        if (hasOptionalSignal) {
             val signalIota = stack.removeAt(stack.lastIndex) as DoubleIota
             val rawSignal = signalIota.double
             if (rawSignal < 0.0 || rawSignal > 15.0) {

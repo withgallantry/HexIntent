@@ -59,24 +59,22 @@ object OpOpenCorridorPortal : Action {
         var pigmentTintOverrideRgb: Int? = null
         var portalLabel: String? = null
 
-        if (stack.size >= 5) {
+        if (canConsumeOptionalPigment(stack)) {
             val maybePigment = stack.last()
             pigmentTintOverrideRgb = extractPigmentTintRgb(maybePigment)
-            if (pigmentTintOverrideRgb != null) {
-                stack.removeAt(stack.lastIndex)
-            } else {
+            if (pigmentTintOverrideRgb == null) {
                 throw MishapInvalidIota.ofType(maybePigment, 0, "pigment color iota (optional 5th input)")
             }
+            stack.removeAt(stack.lastIndex)
         }
 
-        if (stack.size >= 4) {
+        if (canConsumeOptionalLabel(stack)) {
             val maybeLabel = stack.last()
             portalLabel = extractPortalLabel(maybeLabel)
-            if (portalLabel != null) {
-                stack.removeAt(stack.lastIndex)
-            } else if (maybeLabel !is DoubleIota) {
+            if (portalLabel == null) {
                 throw MishapInvalidIota.ofType(maybeLabel, 0, "text/string iota (optional label) or number (dust budget)")
             }
+            stack.removeAt(stack.lastIndex)
         }
 
         if (stack.size < 3) {
@@ -310,6 +308,13 @@ object OpOpenCorridorPortal : Action {
             bPortal.applyPortalAccentTint(null, request.portalTintResolvedRgb, request.portalTintColorizer)
             aPortal.setPortalLabel(request.portalLabel)
 
+            if (request.permanentFrameFlow) {
+                request.sourceFrame?.let { applyPermanentFrameControllers(sourceLevel, it) }
+                if (sourceLevel != targetLevel || request.sourcePos != request.targetPos) {
+                    request.targetFrame?.let { applyPermanentFrameControllers(targetLevel, it) }
+                }
+            }
+
             val ownershipStore = PortalOwnershipStore.get(server)
             val newSource = PortalOwnershipStore.PortalEndpoint(request.sourceDimensionId, request.sourcePos.immutable())
             val newTarget = PortalOwnershipStore.PortalEndpoint(request.targetDimensionId, request.targetPos.immutable())
@@ -438,6 +443,32 @@ object OpOpenCorridorPortal : Action {
         }
     }
 
+    private fun applyPermanentFrameControllers(
+        level: net.minecraft.server.level.ServerLevel,
+        frame: PermanentThresholdFrame
+    ) {
+        for (horizontal in 0..3) {
+            for (vertical in 0..4) {
+                val isRing = horizontal == 0 || horizontal == 3 || vertical == 0 || vertical == 4
+                if (!isRing) {
+                    continue
+                }
+
+                val pos = frame.framePos(horizontal, vertical)
+                val state = level.getBlockState(pos)
+                if (state.block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK
+                    && state.getValue(CorridorPortalBlock.AXIS) == frame.axis
+                ) {
+                    continue
+                }
+
+                val portalState = ManifestationBlocks.CORRIDOR_PORTAL_BLOCK.defaultBlockState()
+                    .setValue(CorridorPortalBlock.AXIS, frame.axis)
+                level.setBlock(pos, portalState, Block.UPDATE_ALL)
+            }
+        }
+    }
+
     private fun clearOwnedPortal(
         server: net.minecraft.server.MinecraftServer,
         oldEndpoint: PortalOwnershipStore.PortalEndpoint,
@@ -464,6 +495,50 @@ object OpOpenCorridorPortal : Action {
     }
 
     private fun yawFromFacing(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, facing.z)).toFloat()
+
+    private fun hasCoreSignature(stack: List<Iota>, optionCountAboveCore: Int): Boolean {
+        val budgetIndex = stack.lastIndex - optionCountAboveCore
+        val presenceIndex = budgetIndex - 1
+        val sourceIndex = budgetIndex - 2
+        if (sourceIndex < 0) {
+            return false
+        }
+
+        return stack[budgetIndex] is DoubleIota
+            && stack[presenceIndex] is PresenceIntentIota
+            && stack[sourceIndex] is Vec3Iota
+    }
+
+    private fun isStringLikeType(iota: Iota): Boolean {
+        val className = iota.javaClass.name.lowercase()
+        return className.contains("stringiota") || className.contains("textiota")
+    }
+
+    private fun canConsumeOptionalLabel(stack: List<Iota>): Boolean {
+        if (stack.isEmpty()) {
+            return false
+        }
+        val top = stack.last()
+        return isStringLikeType(top) && hasCoreSignature(stack, 1)
+    }
+
+    private fun canConsumeOptionalPigment(stack: List<Iota>): Boolean {
+        if (stack.isEmpty()) {
+            return false
+        }
+        val top = stack.last()
+        if (extractPigmentTintRgb(top) == null) {
+            return false
+        }
+
+        // pigment + core
+        if (hasCoreSignature(stack, 1)) {
+            return true
+        }
+
+        // pigment + label + core
+        return stack.size >= 5 && isStringLikeType(stack[stack.lastIndex - 1]) && hasCoreSignature(stack, 2)
+    }
 
     private fun horizontalAxisForYaw(yaw: Float): Direction.Axis = Direction.fromYRot(yaw.toDouble()).axis
 

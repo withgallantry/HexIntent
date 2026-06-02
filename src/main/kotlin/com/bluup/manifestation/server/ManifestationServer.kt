@@ -34,6 +34,9 @@ import com.bluup.manifestation.server.action.OpClearStack
 import com.bluup.manifestation.server.action.OpExitIfInteracting
 import com.bluup.manifestation.server.action.OpSetCharmCastSound
 import com.bluup.manifestation.server.action.OpSpellCircle
+import com.bluup.manifestation.server.action.OpMemoryReflection
+import com.bluup.manifestation.server.action.OpReplayMemory
+import com.bluup.manifestation.server.action.OpStoreMemory
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiCheckbox
 import com.bluup.manifestation.server.action.OpUiDropdown
@@ -50,6 +53,7 @@ import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.item.ManifestationItems
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
+import com.bluup.manifestation.server.recipe.ManifestationRecipes
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
@@ -88,6 +92,7 @@ object ManifestationServer : ModInitializer {
         ManifestationConfig.load()
         ManifestationItems.register()
         ManifestationBlocks.register()
+        ManifestationRecipes.register()
 
         registerIotaTypes()
         registerActions()
@@ -164,6 +169,9 @@ object ManifestationServer : ModInitializer {
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
         registerAction("set_charm_cast_sound", "wedwwdwee", HexDir.EAST, OpSetCharmCastSound)
+        registerAction("memory_reflection", "qwawqwaqw", HexDir.EAST, OpMemoryReflection)
+        registerAction("replay_memory", "qwawqwaa", HexDir.EAST, OpReplayMemory)
+        registerAction("store_memory", "qwawqwaqa", HexDir.EAST, OpStoreMemory)
         registerAction("exit_if_interacting", "qaqqqqe", HexDir.EAST, OpExitIfInteracting)
         registerAction("open_casting_screen", "aqaeawqqwqwqqw", HexDir.SOUTH_WEST, OpOpenCastingScreen)
         registerAction("clear_stack", "aqaeawqqwa", HexDir.SOUTH_WEST, OpClearStack)

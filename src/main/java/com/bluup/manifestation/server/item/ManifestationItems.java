@@ -10,6 +10,12 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 
 public final class ManifestationItems {
+    public static final Item MEMORY_CRYSTAL = Registry.register(
+        BuiltInRegistries.ITEM,
+        Manifestation.id("memory_crystal"),
+        new ItemMemoryCrystal(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON))
+    );
+
     public static final Item BLOSSOM_STAFF = registerStaff("blossom_staff");
     public static final Item DARK_FOREST_STAFF = registerStaff("dark_forest_staff");
     public static final Item ECLIPSE_STAFF = registerStaff("eclipse_staff");
@@ -36,6 +42,7 @@ public final class ManifestationItems {
 
     public static void register() {
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.accept(MEMORY_CRYSTAL);
             entries.accept(BLOSSOM_STAFF);
             entries.accept(DARK_FOREST_STAFF);
             entries.accept(ECLIPSE_STAFF);

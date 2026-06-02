@@ -321,6 +321,31 @@ public final class ManifestationUiIotaTypes {
         }
     };
 
+    public static final IotaType<MemoryIota> MEMORY = new IotaType<>() {
+        @Nullable
+        @Override
+        public MemoryIota deserialize(Tag tag, ServerLevel world) throws IllegalArgumentException {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var id = ctag.getString("id");
+            return new MemoryIota(id);
+        }
+
+        @Override
+        public Component display(Tag tag) {
+            var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
+            var id = ctag.getString("id");
+            return Component.literal("Memory(\"")
+                .append(Component.literal(id).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal("\")").withStyle(ChatFormatting.GRAY))
+                .withStyle(ChatFormatting.DARK_AQUA);
+        }
+
+        @Override
+        public int color() {
+            return 0xff_63c6d5;
+        }
+    };
+
     public static final IotaType<EquationParticleIota> EQUATION_PARTICLE = new IotaType<>() {
         @Nullable
         @Override
@@ -404,6 +429,7 @@ public final class ManifestationUiIotaTypes {
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_section"), UI_SECTION);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("intent_dropdown"), UI_DROPDOWN);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("presence_intent"), PRESENCE_INTENT);
+        Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("memory"), MEMORY);
         Registry.register(HexIotaTypes.REGISTRY, Manifestation.id("equation_particle"), EQUATION_PARTICLE);
     }
 }
