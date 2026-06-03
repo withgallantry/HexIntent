@@ -87,11 +87,11 @@ public final class MemoryCrystalData {
         }
 
         CompoundTag memory = root.getCompound(TAG_MEMORY_ROOT);
-        if (!memory.contains(TAG_MEMORY_PATTERNS, Tag.TAG_LIST)) {
+        if (!memory.contains(TAG_MEMORY_PATTERNS, Tag.TAG_COMPOUND)) {
             return new ListIota(java.util.List.of());
         }
 
-        Iota decoded = ListIota.TYPE.deserialize(memory.get(TAG_MEMORY_PATTERNS), world);
+        Iota decoded = IotaType.deserialize(memory.getCompound(TAG_MEMORY_PATTERNS), world);
         return decoded instanceof ListIota listIota ? listIota : null;
     }
 

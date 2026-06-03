@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "manifestation:block/permanent_threshold/side_pillar_block"
+    }
+  }
+}

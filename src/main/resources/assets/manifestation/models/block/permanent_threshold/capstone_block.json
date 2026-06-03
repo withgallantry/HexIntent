@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "manifestation:block/permanent_threshold/cobbled_deepslate_capstone"
+  }
+}

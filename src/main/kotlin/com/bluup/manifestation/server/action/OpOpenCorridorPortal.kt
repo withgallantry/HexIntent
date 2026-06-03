@@ -261,13 +261,6 @@ object OpOpenCorridorPortal : Action {
         val targetLevel = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation(request.targetDimensionId)))
             ?: throw MishapPortalNoSpace()
 
-        if (request.permanentFrameFlow) {
-            request.sourceFrame?.let { clearPermanentFrameControllers(sourceLevel, it) }
-            if (sourceLevel != targetLevel || request.sourcePos != request.targetPos) {
-                request.targetFrame?.let { clearPermanentFrameControllers(targetLevel, it) }
-            }
-        }
-
         val sourcePlacement = preparePortalPlacement(sourceLevel, request.sourcePos, request.sourceAxis)
         val targetPlacement = preparePortalPlacement(targetLevel, request.targetPos, request.targetAxis)
 
@@ -307,13 +300,6 @@ object OpOpenCorridorPortal : Action {
             aPortal.applyPortalAccentTint(null, request.portalTintResolvedRgb, request.portalTintColorizer)
             bPortal.applyPortalAccentTint(null, request.portalTintResolvedRgb, request.portalTintColorizer)
             aPortal.setPortalLabel(request.portalLabel)
-
-            if (request.permanentFrameFlow) {
-                request.sourceFrame?.let { applyPermanentFrameControllers(sourceLevel, it) }
-                if (sourceLevel != targetLevel || request.sourcePos != request.targetPos) {
-                    request.targetFrame?.let { applyPermanentFrameControllers(targetLevel, it) }
-                }
-            }
 
             val ownershipStore = PortalOwnershipStore.get(server)
             val newSource = PortalOwnershipStore.PortalEndpoint(request.sourceDimensionId, request.sourcePos.immutable())
@@ -426,47 +412,6 @@ object OpOpenCorridorPortal : Action {
         }
 
         level.removeBlock(placement.pos, false)
-    }
-
-    private fun clearPermanentFrameControllers(
-        level: net.minecraft.server.level.ServerLevel,
-        frame: PermanentThresholdFrame
-    ) {
-        for (horizontal in 0..3) {
-            for (vertical in 0..4) {
-                val pos = frame.framePos(horizontal, vertical)
-                val state = level.getBlockState(pos)
-                if (state.block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK) {
-                    level.removeBlock(pos, false)
-                }
-            }
-        }
-    }
-
-    private fun applyPermanentFrameControllers(
-        level: net.minecraft.server.level.ServerLevel,
-        frame: PermanentThresholdFrame
-    ) {
-        for (horizontal in 0..3) {
-            for (vertical in 0..4) {
-                val isRing = horizontal == 0 || horizontal == 3 || vertical == 0 || vertical == 4
-                if (!isRing) {
-                    continue
-                }
-
-                val pos = frame.framePos(horizontal, vertical)
-                val state = level.getBlockState(pos)
-                if (state.block == ManifestationBlocks.CORRIDOR_PORTAL_BLOCK
-                    && state.getValue(CorridorPortalBlock.AXIS) == frame.axis
-                ) {
-                    continue
-                }
-
-                val portalState = ManifestationBlocks.CORRIDOR_PORTAL_BLOCK.defaultBlockState()
-                    .setValue(CorridorPortalBlock.AXIS, frame.axis)
-                level.setBlock(pos, portalState, Block.UPDATE_ALL)
-            }
-        }
     }
 
     private fun clearOwnedPortal(

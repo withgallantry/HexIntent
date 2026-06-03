@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 
@@ -147,6 +148,31 @@ object PermanentThresholdFrames {
 
     fun isCanonicalOrigin(frame: PermanentThresholdFrame, pos: BlockPos): Boolean = frame.anchorPos() == pos
 
+    fun isPermanentThresholdFrameBlock(block: Block): Boolean = isValidFrameBlock(block)
+
+    fun resetFrameRingToDeepslate(level: Level, frame: PermanentThresholdFrame, skipPos: BlockPos? = null) {
+        for (horizontal in 0..3) {
+            for (vertical in 0..4) {
+                val isRing = horizontal == 0 || horizontal == 3 || vertical == 0 || vertical == 4
+                if (!isRing) {
+                    continue
+                }
+
+                val pos = frame.framePos(horizontal, vertical)
+                if (skipPos != null && pos == skipPos) {
+                    continue
+                }
+
+                val state = level.getBlockState(pos)
+                if (!isPermanentThresholdFrameBlock(state.block)) {
+                    continue
+                }
+
+                level.setBlock(pos, Blocks.DEEPSLATE.defaultBlockState(), Block.UPDATE_ALL)
+            }
+        }
+    }
+
     private fun contains(frame: PermanentThresholdFrame, pos: BlockPos): Boolean {
         if (frame.axis == Direction.Axis.Z) {
             return pos.z == frame.plane
@@ -160,15 +186,11 @@ object PermanentThresholdFrames {
     }
 
     private fun isValidFrameBlock(block: Block): Boolean = when (block) {
-        ManifestationBlocks.CORRIDOR_PORTAL_BLOCK,
-        Blocks.DEEPSLATE,
-        Blocks.COBBLED_DEEPSLATE,
-        Blocks.POLISHED_DEEPSLATE,
-        Blocks.DEEPSLATE_BRICKS,
-        Blocks.CRACKED_DEEPSLATE_BRICKS,
-        Blocks.DEEPSLATE_TILES,
-        Blocks.CRACKED_DEEPSLATE_TILES,
-        Blocks.CHISELED_DEEPSLATE -> true
+        ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_PLINTH_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_CAPSTONE_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_INNER_EDGE_BLOCK -> true
         else -> false
     }
 }

@@ -6,17 +6,14 @@ import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.iota.ListIota
-import at.petrak.hexcasting.common.lib.hex.HexIotaTypes
+import ram.talia.moreiotas.api.casting.iota.StringIota
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.menu.MenuPayload
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.StringTag
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
-import java.lang.reflect.Constructor
 
 /**
  * Server-side handler for menu button actions.
@@ -55,34 +52,6 @@ object MenuActionDispatcher {
                 return InputDatum(order, Kind.IOTA_LIST, "", 0.0, tags)
             }
         }
-    }
-
-    private var warnedMissingStringIota = false
-
-    private val possibleStringIotaClasses = listOf(
-        "ram.talia.moreiotas.casting.iota.StringIota",
-        "at.petrak.moreiotas.casting.iota.StringIota",
-        "ram.talia.moreiotas.api.casting.iota.StringIota",
-        "at.petrak.moreiotas.api.casting.iota.StringIota"
-    )
-
-    private val stringIotaCtor: Constructor<out Iota>? by lazy {
-        for (className in possibleStringIotaClasses) {
-            try {
-                val cls = Class.forName(className)
-                if (!Iota::class.java.isAssignableFrom(cls)) continue
-                @Suppress("UNCHECKED_CAST")
-                val iotaCls = cls as Class<out Iota>
-                return@lazy iotaCls.getConstructor(String::class.java)
-            } catch (_: Throwable) {
-                // Try next known class name.
-            }
-        }
-        null
-    }
-
-    private val stringTypeIds: List<ResourceLocation> by lazy {
-        HexIotaTypes.REGISTRY.keySet().filter { it.path.contains("string", ignoreCase = true) }
     }
 
     /**
@@ -264,17 +233,12 @@ object MenuActionDispatcher {
         }
 
         val out = mutableListOf<Iota>()
-        var attemptedNonEmptyString = false
         for (input in rawInputs.sortedBy { it.order }) {
             try {
                 when (input.kind) {
                     InputDatum.Kind.STRING -> {
                         if (input.stringValue.isNotEmpty()) {
-                            attemptedNonEmptyString = true
-                            val built = createStringIota(input.stringValue, world)
-                            if (built != null) {
-                                out.add(built)
-                            }
+                            out.add(createStringIota(input.stringValue))
                         }
                     }
 
@@ -304,37 +268,10 @@ object MenuActionDispatcher {
             }
         }
 
-        if (attemptedNonEmptyString && out.isEmpty() && !warnedMissingStringIota) {
-            warnedMissingStringIota = true
-            Manifestation.LOGGER.warn(
-                "MenuActionDispatcher: input fields provided, but no compatible string iota type could be built. " +
-                    "Ensure a string-iota addon (e.g. MoreIotas) is installed and registered."
-            )
-        }
-
         return out
     }
 
-    private fun createStringIota(text: String, world: ServerLevel): Iota? {
-        val ctor = stringIotaCtor
-        if (ctor != null) {
-            return ctor.newInstance(text)
-        }
-
-        // Fallback: discover a registered string-like iota type and roundtrip
-        // through IotaType.deserialize using a string data tag.
-        for (typeId in stringTypeIds) {
-            val serialized = CompoundTag()
-            serialized.putString(HexIotaTypes.KEY_TYPE, typeId.toString())
-            serialized.put(HexIotaTypes.KEY_DATA, StringTag.valueOf(text))
-
-            val iota = IotaType.deserialize(serialized, world)
-            val resolved = HexIotaTypes.REGISTRY.getKey(iota.type)
-            if (resolved != null && resolved.path.contains("string", ignoreCase = true)) {
-                return iota
-            }
-        }
-
-        return null
+    private fun createStringIota(text: String): Iota {
+        return StringIota.makeUnchecked(text)
     }
 }

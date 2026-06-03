@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityT
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -72,6 +73,41 @@ public final class ManifestationBlocks {
             .requiresCorrectToolForDrops()
     );
 
+    public static final Block PERMANENT_THRESHOLD_FRAME_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_PLINTH_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_CAPSTONE_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_INNER_EDGE_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
     public static final Item SPLINTER_CASTER_ITEM = new BlockItem(
         SPLINTER_CASTER_BLOCK,
         new Item.Properties()
@@ -107,6 +143,11 @@ public final class ManifestationBlocks {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("hex_box"), HEX_RELIQUARY_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("mind_vault"), MIND_VAULT_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("equation_synth"), EQUATION_SYNTH_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_frame"), PERMANENT_THRESHOLD_FRAME_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_plinth"), PERMANENT_THRESHOLD_PLINTH_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_side_pillar"), PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_capstone"), PERMANENT_THRESHOLD_CAPSTONE_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_inner_edge"), PERMANENT_THRESHOLD_INNER_EDGE_BLOCK);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("splinter_caster"), SPLINTER_CASTER_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("hex_box"), HEX_RELIQUARY_ITEM);
         Registry.register(BuiltInRegistries.ITEM, Manifestation.id("mind_vault"), MIND_VAULT_ITEM);
