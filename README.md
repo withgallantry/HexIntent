@@ -50,6 +50,15 @@ Example menu built using inputs, sections and buttons. Executes a teleport to a 
 
 The built jar is written to `build/libs/`.
 
+## Source Layout
+
+Code is organized by side and feature.
+
+- Keep top-level side grouping under `client`, `server`, and `common`.
+- Within each side, group files by feature first (for example `menu`, `portal`, `particle`, `intent_relay`, `mind_vault`, `splinter`, `equation_synth`).
+- Avoid large flat buckets like `action`, `block`, `iota`, or `render` when files can be grouped under a concrete feature.
+- Keep package declarations stable unless a package-level refactor is explicitly intended.
+
 ## Config
 
 Server config is in `config/manifestation.json`.

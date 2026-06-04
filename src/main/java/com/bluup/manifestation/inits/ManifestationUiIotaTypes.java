@@ -28,7 +28,7 @@ public final class ManifestationUiIotaTypes {
         String labelText = IotaType.getDisplay(HexUtils.downcast(labelTag, CompoundTag.TYPE)).getString();
         return Component.literal(name + "(\"")
             .append(Component.literal(labelText).withStyle(ChatFormatting.WHITE))
-            .append(Component.literal("\"").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("\"").withStyle(color))
             .withStyle(color);
     }
 
@@ -62,7 +62,7 @@ public final class ManifestationUiIotaTypes {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = NBTHelper.getCompound(ctag, "label");
             return displayWithQuotedLabel("IntentButton", labelTag, ChatFormatting.GOLD)
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.GOLD));
         }
 
         @Override
@@ -86,7 +86,7 @@ public final class ManifestationUiIotaTypes {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = NBTHelper.getCompound(ctag, "label");
             return displayWithQuotedLabel("IntentInput", labelTag, ChatFormatting.YELLOW)
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.YELLOW));
         }
 
         @Override
@@ -120,7 +120,7 @@ public final class ManifestationUiIotaTypes {
             }
 
             return out
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.DARK_AQUA));
         }
 
         @Override
@@ -147,7 +147,7 @@ public final class ManifestationUiIotaTypes {
             boolean checked = NBTHelper.getBoolean(ctag, "checked");
             return displayWithQuotedLabel("IntentCheckbox", labelTag, ChatFormatting.DARK_GREEN)
                 .append(Component.literal(", " + checked).withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.DARK_GREEN));
         }
 
         @Override
@@ -184,7 +184,7 @@ public final class ManifestationUiIotaTypes {
             boolean multiSelect = NBTHelper.getBoolean(ctag, "multi_select");
             return displayWithQuotedLabel("IntentSelectList", labelTag, ChatFormatting.DARK_BLUE)
                 .append(Component.literal(", options=" + optionsTag.size() + ", rows=" + maxRows + ", multi=" + multiSelect).withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.DARK_BLUE));
         }
 
         @Override
@@ -224,7 +224,7 @@ public final class ManifestationUiIotaTypes {
             }
 
             return out
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.AQUA));
         }
 
         @Override
@@ -248,7 +248,7 @@ public final class ManifestationUiIotaTypes {
             var ctag = HexUtils.downcast(tag, CompoundTag.TYPE);
             var labelTag = NBTHelper.getCompound(ctag, "label");
             return displayWithQuotedLabel("IntentSection", labelTag, ChatFormatting.LIGHT_PURPLE)
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.LIGHT_PURPLE));
         }
 
         @Override
@@ -283,7 +283,7 @@ public final class ManifestationUiIotaTypes {
             int selected = NBTHelper.getInt(ctag, "selected");
             return displayWithQuotedLabel("IntentDropdown", labelTag, ChatFormatting.BLUE)
                 .append(Component.literal(", options=" + optionsTag.size() + ", selected=" + selected).withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(")").withStyle(ChatFormatting.BLUE));
         }
 
         @Override
@@ -311,7 +311,7 @@ public final class ManifestationUiIotaTypes {
             Vec3 position = at.petrak.hexcasting.api.casting.iota.Vec3Iota.deserialize(NBTHelper.get(ctag, "position")).getVec3();
             return Component.literal("PresenceIntent(")
                 .append(at.petrak.hexcasting.api.casting.iota.Vec3Iota.display(position))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
                 .withStyle(ChatFormatting.GREEN);
         }
 
@@ -336,7 +336,7 @@ public final class ManifestationUiIotaTypes {
             var id = NBTHelper.getString(ctag, "id");
             return Component.literal("Memory(\"")
                 .append(Component.literal(id).withStyle(ChatFormatting.WHITE))
-                .append(Component.literal("\")").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("\")").withStyle(ChatFormatting.DARK_AQUA))
                 .withStyle(ChatFormatting.DARK_AQUA);
         }
 
@@ -409,7 +409,7 @@ public final class ManifestationUiIotaTypes {
             String x = NBTHelper.getString(ctag, "x");
             return Component.literal("EquationParticle(")
                 .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", x=" + x).withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(")").withStyle(ChatFormatting.LIGHT_PURPLE))
                 .withStyle(ChatFormatting.LIGHT_PURPLE);
         }
 

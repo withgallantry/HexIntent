@@ -16,6 +16,7 @@ import com.bluup.manifestation.server.block.MindVaultBlockEntity;
 import com.bluup.manifestation.server.mishap.MishapMindVaultFull;
 import com.bluup.manifestation.server.mishap.MishapMindVaultTypeMismatch;
 import com.bluup.manifestation.server.mishap.MishapMindVaultUnavailable;
+import com.bluup.manifestation.server.mishap.MishapMindVaultFlayception;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -99,7 +100,7 @@ public abstract class OpBrainsweepMixin {
             }
         }
 
-        // Branch 2: flay from a vault profile (vault vec, target vec).
+        // Flay from Vault
         if (!(args.get(0) instanceof Vec3Iota sourceVaultIota) || !(args.get(1) instanceof Vec3Iota targetIota)) {
             return;
         }
@@ -113,7 +114,7 @@ public abstract class OpBrainsweepMixin {
             return;
         }
         if (world.getBlockState(targetPos).getBlock() == ManifestationBlocks.MIND_VAULT_BLOCK) {
-            throw MishapInvalidIota.ofType(args.get(1), 1, "non_mind_vault_target_vector");
+            throw new MishapMindVaultFlayception();
         }
 
         var flayBe = world.getBlockEntity(flayVaultPos);

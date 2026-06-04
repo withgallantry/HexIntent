@@ -1,6 +1,7 @@
 package com.bluup.manifestation.mixin;
 
 import com.bluup.manifestation.server.CharmCastSoundOverrides;
+import miyucomics.hexical.features.charms.ServerCharmedUseReceiver;
 import miyucomics.hexical.features.curios.CurioItem;
 import at.petrak.hexcasting.api.casting.iota.Iota;
 import net.minecraft.server.level.ServerLevel;
@@ -16,12 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 /**
- * Mixing for charm cast sound override. Made it so it's optional, as I don't want to hard depend on Hexical just for this.
- *
- * Intercepts the single invocation site where Hexical calls CurioItem.postCharmCast
- * and applies Manifestation per-item sound override/mute first.
+ * Curio specific minix to allow sound override
  */
-@Mixin(targets = "miyucomics.hexical.features.charms.ServerCharmedUseReceiver")
+@Mixin(value = ServerCharmedUseReceiver.class, remap = false)
 public abstract class HexicalServerCharmedUseReceiverMixin {
     @Redirect(
         method = "init$lambda$1$lambda$0",

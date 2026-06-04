@@ -9,14 +9,18 @@ import com.bluup.manifestation.client.render.MindVaultBlockEntityRenderer;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.menu.MenuPayload;
 import com.bluup.manifestation.server.ManifestationConfig;
+import com.bluup.manifestation.server.block.ManifestationBlocks;
+import com.bluup.manifestation.server.item.ManifestationItems;
+import com.bluup.manifestation.server.item.MemoryCrystalData;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
-import com.bluup.manifestation.server.block.ManifestationBlocks;
 
 /**
  * Client entrypoint. Runs on every client, both connected-to-dedicated-server
@@ -74,10 +78,23 @@ public final class ManifestationClient implements ClientModInitializer {
         EquationCloudVisuals.register();
         SpellCircleVisuals.register();
 
+        ItemTooltipCallback.EVENT.register((stack, context, lines) -> {
+            if (stack.isEmpty() || stack.is(ManifestationItems.MEMORY_CRYSTAL)) {
+                return;
+            }
+
+            String memoryId = MemoryCrystalData.getMemoryId(stack);
+            if (memoryId == null) {
+                return;
+            }
+
+            lines.add(Component.literal("Memory Crystal [" + memoryId + "]"));
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(
                 ManifestationNetworking.SHOW_MENU_S2C,
                 (client, handler, buf, responseSender) -> {
-                    // Decode on the networking thread — it's cheap and pure.
+                    // Decode on the networking thread - it's cheap and pure.
                     final MenuPayload payload;
                     try {
                         payload = MenuPayload.read(buf);

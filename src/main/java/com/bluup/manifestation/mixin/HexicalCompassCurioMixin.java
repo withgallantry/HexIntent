@@ -1,6 +1,7 @@
 package com.bluup.manifestation.mixin;
 
 import com.bluup.manifestation.server.CharmCastSoundOverrides;
+import miyucomics.hexical.features.curios.curios.CompassCurio;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -13,10 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 /**
- * Compass curio has non-sound state updates; apply custom/mute sound handling
- * without cancelling the core post-cast behavior.
+ * Curio specific minix to allow sound override
  */
-@Mixin(targets = "miyucomics.hexical.features.curios.curios.CompassCurio", remap = false)
+@Mixin(value = CompassCurio.class, remap = false)
 public abstract class HexicalCompassCurioMixin {
     @Inject(
         method = "postCharmCast",

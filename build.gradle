@@ -12,6 +12,7 @@ base {
 }
 
 repositories {
+    mavenLocal()
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
@@ -29,6 +30,10 @@ repositories {
         url = "https://maven.ladysnake.org/releases"
     }
     maven {
+        name = "DevsOS"
+        url = "https://mvn.devos.one/snapshots/"
+    }
+    maven {
         name = "Hex Casting"
         url = "https://maven.blamejared.com"
     }
@@ -39,6 +44,10 @@ repositories {
     maven {
         name = "Terraformers"
         url = "https://maven.terraformersmc.com/"
+    }
+    maven {
+        name = "Pool"
+        url = "https://maven.pool.net.eu.org"
     }
     mavenCentral()
 }
@@ -52,20 +61,25 @@ dependencies {
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
     modImplementation "maven.modrinth:moreiotas:${project.moreiotas_modrinth_version}"
 
-    // Hex Casting. modCompileOnly just links types
-    modCompileOnly "at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}"
+    // Hex Casting must be present in dev runtime for runClient.
+    modImplementation "at.petra-k.hexcasting:hexcasting-fabric-${project.minecraft_version}:${project.hexcasting_version}"
 
-    // This looks like the right way to do it if they're not on Modrinth. 
-    // Hexical isn't for 2.0 but kept this in for reference.
-    def hexicalModrinthVersion = project.findProperty("hexical_modrinth_version")?.toString()?.trim()
-    if (hexicalModrinthVersion) {
-        modCompileOnly "maven.modrinth:hexical:${hexicalModrinthVersion}"
-        modLocalRuntime "maven.modrinth:hexical:${hexicalModrinthVersion}"
-    } else {
-        def localHexicalJar = file("references/mods/hexical-main/build/libs/hexical-${project.hexical_version}.jar")
-        modCompileOnly files(localHexicalJar)
-        modLocalRuntime files(localHexicalJar)
-    }
+    // Explicit dev runtime companions required by Fabric mod metadata.
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-item:${project.cardinal_components_version}"
+    modLocalRuntime "dev.onyxstudios.cardinal-components-api:cardinal-components-block:${project.cardinal_components_version}"
+    modLocalRuntime "at.petra-k.paucal:paucal-fabric-${project.minecraft_version}:${project.paucal_version}"
+    modLocalRuntime "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
+    modLocalRuntime "vazkii.patchouli:Patchouli:${project.minecraft_version}-${project.patchouli_version}-FABRIC"
+    modLocalRuntime "com.samsthenerd.inline:inline-fabric:${project.minecraft_version}-${project.inline_version}"
+    modLocalRuntime "miyucomics.hexpose:hexpose:${project.hexpose_version}"
+    modLocalRuntime "io.github.tropheusj:serialization-hooks:${project.serialization_hooks_version}"
+    modLocalRuntime "dev.kosmx.player-anim:player-animation-lib-fabric:${project.player_animator_version}"
+
+    // I've made hexical local as I couldn't find a published artifact
+    modCompileOnly "miyucomics.hexical:hexical:${project.hexical_maven_local_version}"
+    modLocalRuntime "miyucomics.hexical:hexical:${project.hexical_maven_local_version}"
 }
 
 processResources {

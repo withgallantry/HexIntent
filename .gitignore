@@ -108,3 +108,5 @@ hexpattern_javap.txt
 # hexdoc generated export artifacts
 doc/src/hexdoc_hexintent/_export/generated/*
 !doc/src/hexdoc_hexintent/_export/generated/__init__.py
+
+run/
