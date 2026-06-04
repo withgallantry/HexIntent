@@ -28,7 +28,8 @@ import java.util.UUID;
 public final class EquationCloudVisuals {
     private static final Map<CloudKey, CloudState> ACTIVE = new HashMap<>();
 
-    private static final int CLOUD_TTL_TICKS = 45;
+    private static final double ORIGIN_EPSILON_SQ = 1.0e-6;
+    private static final int CLOUD_TTL_TICKS = 100;
     private static final int MOVE_TICKS = 8;
     private static final float BASE_POINT_HALF = 0.017f;
     private static final float DRIFT_RADIUS = 0.016f;
@@ -308,6 +309,7 @@ public final class EquationCloudVisuals {
 
         Vec3 fromOrigin = Vec3.ZERO;
         Vec3 toOrigin = Vec3.ZERO;
+        Vec3 lastResolvedOrigin = Vec3.ZERO;
         long moveStartTick;
         int moveTicks = MOVE_TICKS;
         Integer followEntityId;
@@ -332,18 +334,29 @@ public final class EquationCloudVisuals {
             if (!initialized || !Objects.equals(this.dimensionId, dimensionId)) {
                 this.fromOrigin = newOrigin;
                 this.toOrigin = newOrigin;
+                this.lastResolvedOrigin = newOrigin;
                 this.moveStartTick = now;
                 this.moveTicks = MOVE_TICKS;
                 this.initialized = true;
             } else if (sameShape) {
+                if (this.toOrigin.distanceToSqr(newOrigin) <= ORIGIN_EPSILON_SQ) {
+                    this.fromOrigin = newOrigin;
+                    this.toOrigin = newOrigin;
+                    this.lastResolvedOrigin = newOrigin;
+                    this.moveStartTick = now;
+                    this.moveTicks = 1;
+                } else {
                 Vec3 start = currentOriginFromSnapshots(now);
                 this.fromOrigin = start;
                 this.toOrigin = newOrigin;
+                this.lastResolvedOrigin = start;
                 this.moveStartTick = now;
                 this.moveTicks = MOVE_TICKS;
+                }
             } else {
                 this.fromOrigin = newOrigin;
                 this.toOrigin = newOrigin;
+                this.lastResolvedOrigin = newOrigin;
                 this.moveStartTick = now;
                 this.moveTicks = 1;
             }
@@ -375,12 +388,15 @@ public final class EquationCloudVisuals {
                     Vec3 tracked = followed.getPosition(partialTick)
                         .add(0.0, followed.getBbHeight() * 0.5, 0.0)
                         .add(followOffset);
+                    lastResolvedOrigin = tracked;
                     fromOrigin = tracked;
                     toOrigin = tracked;
                     moveStartTick = now;
                     moveTicks = MOVE_TICKS;
                     return tracked;
                 }
+
+                return lastResolvedOrigin;
             }
 
 

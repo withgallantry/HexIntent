@@ -44,7 +44,6 @@ import com.bluup.manifestation.server.action.OpUiInput
 import com.bluup.manifestation.server.action.OpUiNumericInput
 import com.bluup.manifestation.server.action.OpUiSelectList
 import com.bluup.manifestation.server.action.OpLinkIntentRelay
-import com.bluup.manifestation.server.action.OpUnlinkIntentRelay
 import com.bluup.manifestation.server.action.OpUiSection
 import com.bluup.manifestation.server.action.OpUiSlider
 import com.bluup.manifestation.server.action.MenuOpenLoopGuard
@@ -155,7 +154,6 @@ object ManifestationServer : ModInitializer {
         registerAction("intent_dropdown", "awwaqwedwwdawaq", HexDir.NORTH_EAST, OpUiDropdown)
 
         registerAction("link_intent_relay", "edeweqaq", HexDir.SOUTH_WEST, OpLinkIntentRelay)
-        registerAction("unlink_intent_relay", "edeweqaqq", HexDir.SOUTH_WEST, OpUnlinkIntentRelay)
         registerAction("open_corridor_portal", "edqqdeew", HexDir.NORTH_WEST, OpOpenCorridorPortal)
 
         registerAction("presence_intent", "edewqaqdeeeweee", HexDir.NORTH_WEST, OpPresenceIntent)

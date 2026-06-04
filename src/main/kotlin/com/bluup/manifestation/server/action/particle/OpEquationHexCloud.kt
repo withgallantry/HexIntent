@@ -38,6 +38,12 @@ object OpEquationHexCloud : Action {
             throw MishapNotEnoughArgs(3, stack.size)
         }
 
+        val hasAnchorOffsetForm = stack.size >= 4
+            && stack[stack.lastIndex] is DoubleIota
+            && stack[stack.lastIndex - 1] is EquationParticleIota
+            && stack[stack.lastIndex - 2] is Vec3Iota
+            && stack[stack.lastIndex - 3] is EntityIota
+
         val idIota = stack.removeAt(stack.lastIndex)
         val equationIota = stack.removeAt(stack.lastIndex)
         val anchorOrOffsetIota = stack.removeAt(stack.lastIndex)
@@ -57,9 +63,8 @@ object OpEquationHexCloud : Action {
             }
 
             is Vec3Iota -> {
-                val maybeEntityAnchor = stack.lastOrNull() as? EntityIota
-                if (maybeEntityAnchor != null) {
-                    stack.removeAt(stack.lastIndex)
+                if (hasAnchorOffsetForm) {
+                    val maybeEntityAnchor = stack.removeAt(stack.lastIndex) as EntityIota
                     val entity = maybeEntityAnchor.entity
                     env.assertEntityInRange(entity)
                     FollowBinding(

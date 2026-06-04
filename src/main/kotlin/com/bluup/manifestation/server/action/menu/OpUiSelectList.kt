@@ -21,9 +21,6 @@ import com.bluup.manifestation.server.iota.UiSelectListIota
  *   label
  *   max rows
  *   [option, option, ...]
- *
- * Backward compatibility:
- *   also accepts the optional boolean beneath options.
  */
 object OpUiSelectList : Action {
     override fun operate(
@@ -36,10 +33,13 @@ object OpUiSelectList : Action {
             throw MishapNotEnoughArgs(3, stack.size)
         }
 
-        // Prefer the documented form where optional multi-select is on top.
-        // Keep support for the older form where it sits beneath options.
+        val hasTopOptionalMulti = stack.size >= 4
+            && stack[stack.lastIndex] is BooleanIota
+            && stack[stack.lastIndex - 2] is DoubleIota
+            && stack[stack.lastIndex - 3] is ListIota
+
         var parsedMultiSelect: Boolean? = null
-        if (stack.size >= 4 && stack[stack.lastIndex] is BooleanIota) {
+        if (hasTopOptionalMulti) {
             parsedMultiSelect = (stack.removeAt(stack.lastIndex) as BooleanIota).bool
         }
 
@@ -70,9 +70,6 @@ object OpUiSelectList : Action {
 
         val multiSelect = when {
             parsedMultiSelect != null -> parsedMultiSelect
-            stack.isNotEmpty() && stack[stack.lastIndex] is BooleanIota -> {
-                (stack.removeAt(stack.lastIndex) as BooleanIota).bool
-            }
             else -> false
         }
 

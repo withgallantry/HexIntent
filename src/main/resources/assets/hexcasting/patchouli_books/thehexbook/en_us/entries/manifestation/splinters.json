@@ -2,7 +2,7 @@
   "name": "hexcasting.entry.manifestation_splinters",
   "category": "hexcasting:patterns/spells",
   "icon": "hexcasting:amethyst_dust",
-  "sortnum": 902,
+  "sortnum": 903,
   "read_by_default": true,
   "pages": [
     {
@@ -17,7 +17,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:manifest_splinter",
       "anchor": "manifestation:manifest_splinter",
-      "input": "vec, num, [pattern]",
+      "input": "vec, num, list",
       "output": "none",
       "text": "hexcasting.page.manifestation.splinters.manifest_splinter"
     },

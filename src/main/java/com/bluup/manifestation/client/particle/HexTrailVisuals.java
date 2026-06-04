@@ -29,7 +29,7 @@ public final class HexTrailVisuals {
     private static final Map<TrailKey, TrailState> ACTIVE = new HashMap<>();
 
     private static final double MAX_SEGMENT_GAP_SQ = 10.0 * 10.0;
-    private static final int TRAIL_TTL_TICKS = 40;
+    private static final int TRAIL_TTL_TICKS = 100;
     private static final int SEGMENT_LIFETIME_TICKS = 2;
     private static final double MIN_SEGMENT_LENGTH = 0.001;
     private static final int LINE_HELIX_STEPS = 24;

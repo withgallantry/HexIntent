@@ -14,10 +14,18 @@
       "text": "hexcasting.page.manifestation.intro.2"
     },
     {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intents_intro"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.intents_intro.2"
+    },
+    {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_list_menu",
       "anchor": "manifestation:create_list_menu",
-      "input": "[intents], text",
+      "input": "list, text",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_list_menu"
     },
@@ -25,7 +33,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:create_grid_menu",
       "anchor": "manifestation:create_grid_menu",
-      "input": "[intents], text, num",
+      "input": "list, text, num",
       "output": "",
       "text": "hexcasting.page.manifestation.menus.create_grid_menu"
     },
@@ -39,39 +47,67 @@
     },
     {
       "type": "hexcasting:pattern",
-      "op_id": "manifestation:open_casting_screen",
-      "anchor": "manifestation:open_casting_screen",
-      "input": "none",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.menus.open_casting_screen"
+      "op_id": "manifestation:intent_button",
+      "anchor": "manifestation:intent_button",
+      "input": "list, text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_button"
     },
     {
       "type": "hexcasting:pattern",
-      "op_id": "manifestation:clear_stack",
-      "anchor": "manifestation:clear_stack",
-      "input": "none",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.menus.clear_stack"
+      "op_id": "manifestation:intent_input",
+      "anchor": "manifestation:intent_input",
+      "input": "text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_input"
     },
     {
       "type": "hexcasting:pattern",
-      "op_id": "manifestation:exit_if_interacting",
-      "anchor": "manifestation:exit_if_interacting",
-      "input": "none",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.menus.exit_if_interacting"
+      "op_id": "manifestation:intent_numeric_input",
+      "anchor": "manifestation:intent_numeric_input",
+      "input": "num, text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_numeric_input"
     },
     {
       "type": "hexcasting:pattern",
-      "op_id": "manifestation:set_charm_cast_sound",
-      "anchor": "manifestation:set_charm_cast_sound",
-      "input": "text | null, item?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.menus.set_charm_cast_sound"
+      "op_id": "manifestation:intent_slider",
+      "anchor": "manifestation:intent_slider",
+      "input": "num, num, num, text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_slider"
     },
     {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.menus.set_charm_cast_sound.2"
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:intent_checkbox",
+      "anchor": "manifestation:intent_checkbox",
+      "input": "bool, text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_checkbox"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:intent_select_list",
+      "anchor": "manifestation:intent_select_list",
+      "input": "list, num, text, bool?",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_select_list"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:intent_section",
+      "anchor": "manifestation:intent_section",
+      "input": "text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_section"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:intent_dropdown",
+      "anchor": "manifestation:intent_dropdown",
+      "input": "list, text",
+      "output": "intent",
+      "text": "hexcasting.page.manifestation.intents.intent_dropdown"
     },
     {
       "type": "hexcasting:pattern",
@@ -93,7 +129,7 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:store_memory",
       "anchor": "manifestation:store_memory",
-      "input": "memory, [pattern]",
+      "input": "memory, iota",
       "output": "none",
       "text": "hexcasting.page.manifestation.menus.store_memory"
     },
@@ -101,25 +137,9 @@
       "type": "hexcasting:pattern",
       "op_id": "manifestation:link_intent_relay",
       "anchor": "manifestation:link_intent_relay",
-      "input": "vec support, vec target, num?",
+      "input": "vec, vec, vec, num?",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.link_intent_relay"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:unlink_intent_relay",
-      "anchor": "manifestation:unlink_intent_relay",
-      "input": "vec",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.intents.unlink_intent_relay"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:open_corridor_portal",
-      "anchor": "manifestation:open_corridor_portal",
-      "input": "vec, presence, num, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
     },
     {
       "type": "hexcasting:pattern",
@@ -128,54 +148,6 @@
       "input": "vec, num",
       "output": "none",
       "text": "hexcasting.page.manifestation.intents.destroy_manifestation"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:hex_trail",
-      "anchor": "manifestation:hex_trail",
-      "input": "vec, vec, vec, num, num, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.hex_trail"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.hex_trail.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.hex_trail.3"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.hex_trail.4"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:equation_hex_cloud",
-      "anchor": "manifestation:equation_hex_cloud",
-      "input": "target, equation, num",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.2"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.3"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:spell_circle",
-      "anchor": "manifestation:spell_circle",
-      "input": "[pattern], vec, vec, num, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.splinters.spell_circle"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.splinters.spell_circle.2"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "name": "hexcasting.entry.manifestation_charm_audio",
   "category": "hexcasting:patterns/spells",
   "icon": "hexcasting:cypher",
-  "sortnum": 903,
+  "sortnum": 904,
   "read_by_default": true,
   "pages": [
     {
@@ -24,6 +24,30 @@
     {
       "type": "patchouli:text",
       "text": "hexcasting.page.manifestation.charm_audio.set_charm_cast_sound.3"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:exit_if_interacting",
+      "anchor": "manifestation:exit_if_interacting",
+      "input": "none",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.menus.exit_if_interacting"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:open_casting_screen",
+      "anchor": "manifestation:open_casting_screen",
+      "input": "none",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.menus.open_casting_screen"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:clear_stack",
+      "anchor": "manifestation:clear_stack",
+      "input": "none",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.menus.clear_stack"
     }
   ]
 }

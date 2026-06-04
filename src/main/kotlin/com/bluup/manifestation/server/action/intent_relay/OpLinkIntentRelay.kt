@@ -33,6 +33,7 @@ import net.minecraft.world.phys.Vec3
  * Stack shape on entry (top -> bottom):
  *   signal strength (optional; 1..15)
  *   target vector
+ *   relay face vector
  *   relay support vector
  */
 object OpLinkIntentRelay : Action {
@@ -44,10 +45,11 @@ object OpLinkIntentRelay : Action {
         val stack = image.stack.toMutableList()
         var redstoneStrength: Int? = null
 
-        val hasOptionalSignal = stack.size >= 3
+        val hasOptionalSignal = stack.size >= 4
             && stack[stack.lastIndex] is DoubleIota
             && stack[stack.lastIndex - 1] is Vec3Iota
             && stack[stack.lastIndex - 2] is Vec3Iota
+            && stack[stack.lastIndex - 3] is Vec3Iota
         if (hasOptionalSignal) {
             val signalIota = stack.removeAt(stack.lastIndex) as DoubleIota
             val rawSignal = signalIota.double
@@ -58,11 +60,12 @@ object OpLinkIntentRelay : Action {
             redstoneStrength = signal
         }
 
-        if (stack.size < 2) {
-            throw MishapNotEnoughArgs(2, stack.size)
+        if (stack.size < 3) {
+            throw MishapNotEnoughArgs(3, stack.size)
         }
 
         val targetIota = stack.removeAt(stack.lastIndex)
+        val relayFaceIota = stack.removeAt(stack.lastIndex)
         val relayIota = stack.removeAt(stack.lastIndex)
 
         val targetPos = if (targetIota is Vec3Iota) {
@@ -77,8 +80,25 @@ object OpLinkIntentRelay : Action {
             BlockPos.containing(relayIota.vec3)
         } else {
             stack.add(relayIota)
+            stack.add(relayFaceIota)
             stack.add(targetIota)
-            throw MishapInvalidIota.ofType(relayIota, 1, "vector")
+            throw MishapInvalidIota.ofType(relayIota, 2, "vector")
+        }
+
+        val relayFaceVec = if (relayFaceIota is Vec3Iota) {
+            relayFaceIota.vec3
+        } else {
+            stack.add(relayIota)
+            stack.add(relayFaceIota)
+            stack.add(targetIota)
+            throw MishapInvalidIota.ofType(relayFaceIota, 1, "vector")
+        }
+
+        if (relayFaceVec.lengthSqr() <= 1.0e-10) {
+            stack.add(relayIota)
+            stack.add(relayFaceIota)
+            stack.add(targetIota)
+            throw MishapInvalidIota.ofType(relayFaceIota, 1, "non-zero vector")
         }
 
         val caster = env.castingEntity as? ServerPlayer
@@ -94,7 +114,7 @@ object OpLinkIntentRelay : Action {
             throw MishapBadLocation(Vec3.atCenterOf(relaySupportPos), "out_of_world")
         }
 
-        val relayOutward = outwardTowardCaster(caster, relaySupportPos)
+        val relayOutward = Direction.getNearest(relayFaceVec.x, relayFaceVec.y, relayFaceVec.z)
         val relayPlacementPos = relaySupportPos.relative(relayOutward)
 
         val placedRelayPos = if (level.getBlockState(relaySupportPos).block == ManifestationBlocks.INTENT_RELAY_BLOCK) {
@@ -134,17 +154,6 @@ object OpLinkIntentRelay : Action {
 
         val image2 = image.withUsedOp().copy(stack = stack)
         return OperationResult(image2, listOf(), continuation, HexEvalSounds.NORMAL_EXECUTE)
-    }
-
-    private fun outwardTowardCaster(caster: ServerPlayer, targetPos: BlockPos): Direction {
-        val targetCenter = Vec3.atCenterOf(targetPos)
-        val toCaster = caster.eyePosition.subtract(targetCenter)
-
-        if (toCaster.lengthSqr() <= 1.0e-6) {
-            return caster.direction.opposite
-        }
-
-        return Direction.getNearest(toCaster.x, toCaster.y, toCaster.z)
     }
 
     private fun relayStateFor(outward: Direction, caster: ServerPlayer) =
