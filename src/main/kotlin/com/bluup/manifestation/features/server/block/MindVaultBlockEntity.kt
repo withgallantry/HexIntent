@@ -80,11 +80,12 @@ class MindVaultBlockEntity(
     }
 
     fun claimForFlay(gameTime: Long): Boolean {
+        val levelMultiplier = lockedVillagerLevel.coerceIn(1, MAX_VILLAGER_LEVEL).toLong()
         for (slot in 0 until SLOT_COUNT) {
             if (!occupiedSlots[slot]) continue
             if (cooldownUntilGameTime[slot] > gameTime) continue
 
-            cooldownUntilGameTime[slot] = gameTime + FLAY_COOLDOWN_TICKS
+            cooldownUntilGameTime[slot] = gameTime + (FLAY_COOLDOWN_TICKS * levelMultiplier)
             markUpdated()
             return true
         }
@@ -182,6 +183,7 @@ class MindVaultBlockEntity(
 
     companion object {
         const val SLOT_COUNT = 6
+        private const val MAX_VILLAGER_LEVEL = 5
         const val FLAY_COOLDOWN_TICKS = 20L * 300L
 
         private const val TAG_LOCKED_PROFESSION = "locked_profession"

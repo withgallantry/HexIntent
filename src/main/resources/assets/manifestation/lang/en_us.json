@@ -231,5 +231,6 @@
   "hexcasting.mishap.manifestation.splinter_caster_needs_focus": "Splinter Caster missing focus",
   "hexcasting.mishap.manifestation.requires_staff_in_hand": "This pattern requires a staff in hand.",
   "hexcasting.mishap.manifestation.requires_memory_crystal_in_hand": "This pattern requires a Memory Crystal in hand.",
-  "hexcasting.mishap.manifestation.memory_id_not_on_crystal": "That memory id is not present on the held Memory Crystal."
+  "hexcasting.mishap.manifestation.memory_id_not_on_crystal": "That memory id is not present on the held Memory Crystal.",
+  "hexcasting.mishap.invalid_value.class.non_mind_vault_target_vector": "target cannot be a mind vault."
 }

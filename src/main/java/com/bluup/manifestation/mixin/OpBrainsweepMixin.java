@@ -43,7 +43,7 @@ public abstract class OpBrainsweepMixin {
 
         var world = env.getWorld();
 
-        // Branch 1: store villager into a vault (villager, vault vec).
+        // Store Villager
         if (!(args.get(1) instanceof Vec3Iota vaultIota)) {
             return;
         }
@@ -108,8 +108,12 @@ public abstract class OpBrainsweepMixin {
         env.assertVecInRange(targetIota.getVec3());
 
         BlockPos flayVaultPos = BlockPos.containing(sourceVaultIota.getVec3());
+        BlockPos targetPos = BlockPos.containing(targetIota.getVec3());
         if (world.getBlockState(flayVaultPos).getBlock() != ManifestationBlocks.MIND_VAULT_BLOCK) {
             return;
+        }
+        if (world.getBlockState(targetPos).getBlock() == ManifestationBlocks.MIND_VAULT_BLOCK) {
+            throw MishapInvalidIota.ofType(args.get(1), 1, "non_mind_vault_target_vector");
         }
 
         var flayBe = world.getBlockEntity(flayVaultPos);
