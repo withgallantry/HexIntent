@@ -1,0 +1,25 @@
+{
+  "name": "hexcasting.entry.manifestation_manifest_portals",
+  "category": "hexcasting:patterns/spells",
+  "icon": "manifestation:corridor_portal",
+  "sortnum": 901,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:open_corridor_portal",
+      "anchor": "manifestation:open_corridor_portal",
+      "input": "vec, presence, num, text?, pigment?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.intents.open_corridor_portal"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:presence_intent",
+      "anchor": "manifestation:presence_intent",
+      "input": "vec, vec",
+      "output": "presenceIntent",
+      "text": "hexcasting.page.manifestation.intents.presence_intent"
+    }
+  ]
+}

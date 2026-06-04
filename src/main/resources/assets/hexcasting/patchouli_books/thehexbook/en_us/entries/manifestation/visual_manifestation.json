@@ -1,0 +1,57 @@
+{
+  "name": "hexcasting.entry.manifestation_visual_manifestation",
+  "category": "hexcasting:patterns/spells",
+  "icon": "manifestation:equation_synth",
+  "sortnum": 902,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:equation_hex_cloud",
+      "anchor": "manifestation:equation_hex_cloud",
+      "input": "vec|entity, equation, num",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.equation_hex_cloud.3"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:hex_trail",
+      "anchor": "manifestation:hex_trail",
+      "input": "vec, vec, vec, num, num, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.3"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.hex_trail.4"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:spell_circle",
+      "anchor": "manifestation:spell_circle",
+      "input": "[pattern], vec, vec, num, num?, vec?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.spell_circle"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.splinters.spell_circle.2"
+    }
+  ]
+}
