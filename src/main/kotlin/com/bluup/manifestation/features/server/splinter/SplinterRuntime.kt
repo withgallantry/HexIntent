@@ -12,6 +12,7 @@ import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.api.casting.circles.BlockEntityAbstractImpetus
 import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.common.ManifestationNetworking
+import com.bluup.manifestation.server.KotlinNbtCompat
 import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.block.SplinterCasterBlock
 import com.mojang.authlib.GameProfile
@@ -594,10 +595,10 @@ object SplinterRuntime {
     }
 
     private fun extractRavenmind(image: CastingImage): CompoundTag? {
-        if (!image.userData.contains(HexAPI.RAVENMIND_USERDATA)) {
+        if (!KotlinNbtCompat.contains(image.userData, HexAPI.RAVENMIND_USERDATA)) {
             return null
         }
-        return image.userData.getCompound(HexAPI.RAVENMIND_USERDATA).copy()
+        return KotlinNbtCompat.getCompound(image.userData, HexAPI.RAVENMIND_USERDATA).copy()
     }
 
     private fun buildStartingImage(ravenmind: CompoundTag?): CastingImage {
@@ -606,7 +607,7 @@ object SplinterRuntime {
         }
 
         val userData = CompoundTag()
-        userData.put(HexAPI.RAVENMIND_USERDATA, ravenmind.copy())
+        KotlinNbtCompat.put(userData, HexAPI.RAVENMIND_USERDATA, ravenmind.copy())
         return CastingImage().copy(userData = userData)
     }
 

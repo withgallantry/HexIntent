@@ -4,6 +4,7 @@ package com.bluup.manifestation.server.block
 
 import at.petrak.hexcasting.api.pigment.FrozenPigment
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.server.KotlinNbtCompat
 import com.bluup.manifestation.server.PortalOwnershipStore
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import net.minecraft.core.BlockPos
@@ -498,53 +499,53 @@ class CorridorPortalBlockEntity(
     override fun load(tag: CompoundTag) {
         super.load(tag)
 
-        targetDimensionId = if (tag.contains(TAG_TARGET_DIMENSION)) tag.getString(TAG_TARGET_DIMENSION) else null
-        targetPos = if (tag.contains(TAG_TARGET_POS)) BlockPos.of(tag.getLong(TAG_TARGET_POS)) else null
-        ownerUuid = if (tag.hasUUID(TAG_OWNER_UUID)) tag.getUUID(TAG_OWNER_UUID) else null
-        sustainMediaRemaining = tag.getLong(TAG_SUSTAIN_MEDIA_REMAINING)
-        lastSustainDrainGameTime = tag.getLong(TAG_LAST_SUSTAIN_DRAIN_TIME)
-        openedAtGameTime = tag.getLong(TAG_OPENED_AT_TIME)
-        collapseStartedAtGameTime = if (tag.contains(TAG_COLLAPSE_STARTED_AT_TIME)) {
-            tag.getLong(TAG_COLLAPSE_STARTED_AT_TIME)
+        targetDimensionId = if (KotlinNbtCompat.contains(tag, TAG_TARGET_DIMENSION)) KotlinNbtCompat.getString(tag, TAG_TARGET_DIMENSION) else null
+        targetPos = if (KotlinNbtCompat.contains(tag, TAG_TARGET_POS)) BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_TARGET_POS)) else null
+        ownerUuid = if (KotlinNbtCompat.hasUUID(tag, TAG_OWNER_UUID)) KotlinNbtCompat.getUUID(tag, TAG_OWNER_UUID) else null
+        sustainMediaRemaining = KotlinNbtCompat.getLong(tag, TAG_SUSTAIN_MEDIA_REMAINING)
+        lastSustainDrainGameTime = KotlinNbtCompat.getLong(tag, TAG_LAST_SUSTAIN_DRAIN_TIME)
+        openedAtGameTime = KotlinNbtCompat.getLong(tag, TAG_OPENED_AT_TIME)
+        collapseStartedAtGameTime = if (KotlinNbtCompat.contains(tag, TAG_COLLAPSE_STARTED_AT_TIME)) {
+            KotlinNbtCompat.getLong(tag, TAG_COLLAPSE_STARTED_AT_TIME)
         } else {
             -1L
         }
-        renderScale = if (tag.contains(TAG_RENDER_SCALE)) tag.getFloat(TAG_RENDER_SCALE) else 1.0f
-        renderYawDegrees = if (tag.contains(TAG_RENDER_YAW_DEGREES)) tag.getFloat(TAG_RENDER_YAW_DEGREES) else 0.0f
-        permanentFrameMode = tag.getBoolean(TAG_PERMANENT_FRAME_MODE)
-        localPermanentFrame = if (tag.contains(TAG_LOCAL_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
-            PermanentThresholdFrame.deserialize(tag.getCompound(TAG_LOCAL_PERMANENT_FRAME))
+        renderScale = if (KotlinNbtCompat.contains(tag, TAG_RENDER_SCALE)) KotlinNbtCompat.getFloat(tag, TAG_RENDER_SCALE) else 1.0f
+        renderYawDegrees = if (KotlinNbtCompat.contains(tag, TAG_RENDER_YAW_DEGREES)) KotlinNbtCompat.getFloat(tag, TAG_RENDER_YAW_DEGREES) else 0.0f
+        permanentFrameMode = KotlinNbtCompat.getBoolean(tag, TAG_PERMANENT_FRAME_MODE)
+        localPermanentFrame = if (KotlinNbtCompat.contains(tag, TAG_LOCAL_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
+            PermanentThresholdFrame.deserialize(KotlinNbtCompat.getCompound(tag, TAG_LOCAL_PERMANENT_FRAME))
         } else {
             null
         }
-        linkedPermanentFrame = if (tag.contains(TAG_LINKED_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
-            PermanentThresholdFrame.deserialize(tag.getCompound(TAG_LINKED_PERMANENT_FRAME))
+        linkedPermanentFrame = if (KotlinNbtCompat.contains(tag, TAG_LINKED_PERMANENT_FRAME, Tag.TAG_COMPOUND.toInt())) {
+            PermanentThresholdFrame.deserialize(KotlinNbtCompat.getCompound(tag, TAG_LINKED_PERMANENT_FRAME))
         } else {
             null
         }
-        portalBackdropColor = if (tag.contains(TAG_PORTAL_BACKDROP_COLOR)) tag.getInt(TAG_PORTAL_BACKDROP_COLOR) else DEFAULT_PORTAL_BACKDROP_COLOR
-        portalMidColor = if (tag.contains(TAG_PORTAL_MID_COLOR)) tag.getInt(TAG_PORTAL_MID_COLOR) else DEFAULT_PORTAL_MID_COLOR
-        portalHighlightColor = if (tag.contains(TAG_PORTAL_HIGHLIGHT_COLOR)) tag.getInt(TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
-        portalFrameColor = if (tag.contains(TAG_PORTAL_FRAME_COLOR)) tag.getInt(TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
-        portalResolvedTintColor = if (tag.contains(TAG_PORTAL_TINT_COLOR)) tag.getInt(TAG_PORTAL_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR
-        portalTintColorizer = if (tag.contains(TAG_PORTAL_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
-            FrozenPigment.fromNBT(tag.getCompound(TAG_PORTAL_TINT_COLORIZER))
+        portalBackdropColor = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_BACKDROP_COLOR)) KotlinNbtCompat.getInt(tag, TAG_PORTAL_BACKDROP_COLOR) else DEFAULT_PORTAL_BACKDROP_COLOR
+        portalMidColor = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_MID_COLOR)) KotlinNbtCompat.getInt(tag, TAG_PORTAL_MID_COLOR) else DEFAULT_PORTAL_MID_COLOR
+        portalHighlightColor = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_HIGHLIGHT_COLOR)) KotlinNbtCompat.getInt(tag, TAG_PORTAL_HIGHLIGHT_COLOR) else DEFAULT_PORTAL_HIGHLIGHT_COLOR
+        portalFrameColor = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_FRAME_COLOR)) KotlinNbtCompat.getInt(tag, TAG_PORTAL_FRAME_COLOR) else DEFAULT_PORTAL_FRAME_COLOR
+        portalResolvedTintColor = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_TINT_COLOR)) KotlinNbtCompat.getInt(tag, TAG_PORTAL_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR
+        portalTintColorizer = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
+            FrozenPigment.fromNBT(KotlinNbtCompat.getCompound(tag, TAG_PORTAL_TINT_COLORIZER))
         } else {
             null
         }
-        portalLabel = if (tag.contains(TAG_PORTAL_LABEL)) tag.getString(TAG_PORTAL_LABEL) else null
-        replacementCollapseMode = tag.getBoolean(TAG_REPLACEMENT_COLLAPSE_MODE)
-        pendingDeferredOpen = if (tag.contains(TAG_PENDING_DEFERRED_OPEN, Tag.TAG_COMPOUND.toInt())) {
-            deserializeDeferredPortalOpen(tag.getCompound(TAG_PENDING_DEFERRED_OPEN))
+        portalLabel = if (KotlinNbtCompat.contains(tag, TAG_PORTAL_LABEL)) KotlinNbtCompat.getString(tag, TAG_PORTAL_LABEL) else null
+        replacementCollapseMode = KotlinNbtCompat.getBoolean(tag, TAG_REPLACEMENT_COLLAPSE_MODE)
+        pendingDeferredOpen = if (KotlinNbtCompat.contains(tag, TAG_PENDING_DEFERRED_OPEN, Tag.TAG_COMPOUND.toInt())) {
+            deserializeDeferredPortalOpen(KotlinNbtCompat.getCompound(tag, TAG_PENDING_DEFERRED_OPEN))
         } else {
             null
         }
-        pendingDeferredOpenAtGameTime = if (tag.contains(TAG_PENDING_DEFERRED_OPEN_AT_TIME)) {
-            tag.getLong(TAG_PENDING_DEFERRED_OPEN_AT_TIME)
+        pendingDeferredOpenAtGameTime = if (KotlinNbtCompat.contains(tag, TAG_PENDING_DEFERRED_OPEN_AT_TIME)) {
+            KotlinNbtCompat.getLong(tag, TAG_PENDING_DEFERRED_OPEN_AT_TIME)
         } else {
             -1L
         }
-        awaitingReplacementDriver = tag.getBoolean(TAG_AWAITING_REPLACEMENT_DRIVER)
+        awaitingReplacementDriver = KotlinNbtCompat.getBoolean(tag, TAG_AWAITING_REPLACEMENT_DRIVER)
     }
 
     private fun executePendingDeferredOpen(level: ServerLevel) {
@@ -574,52 +575,52 @@ class CorridorPortalBlockEntity(
 
         val dim = targetDimensionId
         if (dim != null) {
-            tag.putString(TAG_TARGET_DIMENSION, dim)
+            KotlinNbtCompat.putString(tag, TAG_TARGET_DIMENSION, dim)
         }
         val target = targetPos
         if (target != null) {
-            tag.putLong(TAG_TARGET_POS, target.asLong())
+            KotlinNbtCompat.putLong(tag, TAG_TARGET_POS, target.asLong())
         }
         val owner = ownerUuid
         if (owner != null) {
-            tag.putUUID(TAG_OWNER_UUID, owner)
+            KotlinNbtCompat.putUUID(tag, TAG_OWNER_UUID, owner)
         }
-        tag.putLong(TAG_SUSTAIN_MEDIA_REMAINING, sustainMediaRemaining)
-        tag.putLong(TAG_LAST_SUSTAIN_DRAIN_TIME, lastSustainDrainGameTime)
-        tag.putLong(TAG_OPENED_AT_TIME, openedAtGameTime)
+        KotlinNbtCompat.putLong(tag, TAG_SUSTAIN_MEDIA_REMAINING, sustainMediaRemaining)
+        KotlinNbtCompat.putLong(tag, TAG_LAST_SUSTAIN_DRAIN_TIME, lastSustainDrainGameTime)
+        KotlinNbtCompat.putLong(tag, TAG_OPENED_AT_TIME, openedAtGameTime)
         if (collapseStartedAtGameTime >= 0L) {
-            tag.putLong(TAG_COLLAPSE_STARTED_AT_TIME, collapseStartedAtGameTime)
+            KotlinNbtCompat.putLong(tag, TAG_COLLAPSE_STARTED_AT_TIME, collapseStartedAtGameTime)
         }
-        tag.putFloat(TAG_RENDER_SCALE, renderScale)
-        tag.putFloat(TAG_RENDER_YAW_DEGREES, renderYawDegrees)
-        tag.putBoolean(TAG_PERMANENT_FRAME_MODE, permanentFrameMode)
-        localPermanentFrame?.let { tag.put(TAG_LOCAL_PERMANENT_FRAME, it.serialize()) }
-        linkedPermanentFrame?.let { tag.put(TAG_LINKED_PERMANENT_FRAME, it.serialize()) }
-        tag.putInt(TAG_PORTAL_BACKDROP_COLOR, portalBackdropColor)
-        tag.putInt(TAG_PORTAL_MID_COLOR, portalMidColor)
-        tag.putInt(TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
-        tag.putInt(TAG_PORTAL_FRAME_COLOR, portalFrameColor)
-        tag.putInt(TAG_PORTAL_TINT_COLOR, portalResolvedTintColor)
+        KotlinNbtCompat.putFloat(tag, TAG_RENDER_SCALE, renderScale)
+        KotlinNbtCompat.putFloat(tag, TAG_RENDER_YAW_DEGREES, renderYawDegrees)
+        KotlinNbtCompat.putBoolean(tag, TAG_PERMANENT_FRAME_MODE, permanentFrameMode)
+        localPermanentFrame?.let { KotlinNbtCompat.put(tag, TAG_LOCAL_PERMANENT_FRAME, it.serialize()) }
+        linkedPermanentFrame?.let { KotlinNbtCompat.put(tag, TAG_LINKED_PERMANENT_FRAME, it.serialize()) }
+        KotlinNbtCompat.putInt(tag, TAG_PORTAL_BACKDROP_COLOR, portalBackdropColor)
+        KotlinNbtCompat.putInt(tag, TAG_PORTAL_MID_COLOR, portalMidColor)
+        KotlinNbtCompat.putInt(tag, TAG_PORTAL_HIGHLIGHT_COLOR, portalHighlightColor)
+        KotlinNbtCompat.putInt(tag, TAG_PORTAL_FRAME_COLOR, portalFrameColor)
+        KotlinNbtCompat.putInt(tag, TAG_PORTAL_TINT_COLOR, portalResolvedTintColor)
         val colorizer = portalTintColorizer
         if (colorizer != null) {
-            tag.put(TAG_PORTAL_TINT_COLORIZER, colorizer.serializeToNBT())
+            KotlinNbtCompat.put(tag, TAG_PORTAL_TINT_COLORIZER, colorizer.serializeToNBT())
         }
         val label = portalLabel
         if (!label.isNullOrEmpty()) {
-            tag.putString(TAG_PORTAL_LABEL, label)
+            KotlinNbtCompat.putString(tag, TAG_PORTAL_LABEL, label)
         }
         if (replacementCollapseMode) {
-            tag.putBoolean(TAG_REPLACEMENT_COLLAPSE_MODE, true)
+            KotlinNbtCompat.putBoolean(tag, TAG_REPLACEMENT_COLLAPSE_MODE, true)
         }
         val deferredOpen = pendingDeferredOpen
         if (deferredOpen != null) {
-            tag.put(TAG_PENDING_DEFERRED_OPEN, serializeDeferredPortalOpen(deferredOpen))
+            KotlinNbtCompat.put(tag, TAG_PENDING_DEFERRED_OPEN, serializeDeferredPortalOpen(deferredOpen))
             if (pendingDeferredOpenAtGameTime >= 0L) {
-                tag.putLong(TAG_PENDING_DEFERRED_OPEN_AT_TIME, pendingDeferredOpenAtGameTime)
+                KotlinNbtCompat.putLong(tag, TAG_PENDING_DEFERRED_OPEN_AT_TIME, pendingDeferredOpenAtGameTime)
             }
         }
         if (awaitingReplacementDriver) {
-            tag.putBoolean(TAG_AWAITING_REPLACEMENT_DRIVER, true)
+            KotlinNbtCompat.putBoolean(tag, TAG_AWAITING_REPLACEMENT_DRIVER, true)
         }
     }
 
@@ -645,52 +646,52 @@ class CorridorPortalBlockEntity(
     }
 
     private fun deserializeDeferredPortalOpen(tag: CompoundTag): OpOpenCorridorPortal.DeferredPortalOpenRequest? {
-        if (!tag.contains(TAG_DEFERRED_SOURCE_DIMENSION)
-            || !tag.contains(TAG_DEFERRED_SOURCE_POS)
-            || !tag.contains(TAG_DEFERRED_SOURCE_AXIS)
-            || !tag.contains(TAG_DEFERRED_TARGET_DIMENSION)
-            || !tag.contains(TAG_DEFERRED_TARGET_POS)
-            || !tag.contains(TAG_DEFERRED_TARGET_AXIS)
-            || !tag.hasUUID(TAG_DEFERRED_OWNER_UUID)
+        if (!KotlinNbtCompat.contains(tag, TAG_DEFERRED_SOURCE_DIMENSION)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_SOURCE_POS)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_SOURCE_AXIS)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_TARGET_DIMENSION)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_TARGET_POS)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_TARGET_AXIS)
+            || !KotlinNbtCompat.hasUUID(tag, TAG_DEFERRED_OWNER_UUID)
         ) {
             return null
         }
 
-        val sourceAxis = runCatching { Direction.Axis.valueOf(tag.getString(TAG_DEFERRED_SOURCE_AXIS)) }.getOrNull() ?: return null
-        val targetAxis = runCatching { Direction.Axis.valueOf(tag.getString(TAG_DEFERRED_TARGET_AXIS)) }.getOrNull() ?: return null
+        val sourceAxis = runCatching { Direction.Axis.valueOf(KotlinNbtCompat.getString(tag, TAG_DEFERRED_SOURCE_AXIS)) }.getOrNull() ?: return null
+        val targetAxis = runCatching { Direction.Axis.valueOf(KotlinNbtCompat.getString(tag, TAG_DEFERRED_TARGET_AXIS)) }.getOrNull() ?: return null
 
         return OpOpenCorridorPortal.DeferredPortalOpenRequest(
-            sourceDimensionId = tag.getString(TAG_DEFERRED_SOURCE_DIMENSION),
-            sourcePos = BlockPos.of(tag.getLong(TAG_DEFERRED_SOURCE_POS)),
+            sourceDimensionId = KotlinNbtCompat.getString(tag, TAG_DEFERRED_SOURCE_DIMENSION),
+            sourcePos = BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_DEFERRED_SOURCE_POS)),
             sourceAxis = sourceAxis,
-            sourceRenderYaw = if (tag.contains(TAG_DEFERRED_SOURCE_YAW)) tag.getFloat(TAG_DEFERRED_SOURCE_YAW) else 0.0f,
-            targetDimensionId = tag.getString(TAG_DEFERRED_TARGET_DIMENSION),
-            targetPos = BlockPos.of(tag.getLong(TAG_DEFERRED_TARGET_POS)),
+            sourceRenderYaw = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_SOURCE_YAW)) KotlinNbtCompat.getFloat(tag, TAG_DEFERRED_SOURCE_YAW) else 0.0f,
+            targetDimensionId = KotlinNbtCompat.getString(tag, TAG_DEFERRED_TARGET_DIMENSION),
+            targetPos = BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_DEFERRED_TARGET_POS)),
             targetAxis = targetAxis,
-            targetRenderYaw = if (tag.contains(TAG_DEFERRED_TARGET_YAW)) tag.getFloat(TAG_DEFERRED_TARGET_YAW) else 0.0f,
-            ownerUuid = tag.getUUID(TAG_DEFERRED_OWNER_UUID),
-            mediaBudget = tag.getLong(TAG_DEFERRED_MEDIA_BUDGET),
-            scale = if (tag.contains(TAG_DEFERRED_SCALE)) tag.getFloat(TAG_DEFERRED_SCALE) else 1.0f,
-            permanentFrameFlow = tag.getBoolean(TAG_DEFERRED_PERMANENT_FLOW),
-            sourceFrame = if (tag.contains(TAG_DEFERRED_SOURCE_FRAME, Tag.TAG_COMPOUND.toInt())) {
-                PermanentThresholdFrame.deserialize(tag.getCompound(TAG_DEFERRED_SOURCE_FRAME))
+            targetRenderYaw = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_TARGET_YAW)) KotlinNbtCompat.getFloat(tag, TAG_DEFERRED_TARGET_YAW) else 0.0f,
+            ownerUuid = KotlinNbtCompat.getUUID(tag, TAG_DEFERRED_OWNER_UUID),
+            mediaBudget = KotlinNbtCompat.getLong(tag, TAG_DEFERRED_MEDIA_BUDGET),
+            scale = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_SCALE)) KotlinNbtCompat.getFloat(tag, TAG_DEFERRED_SCALE) else 1.0f,
+            permanentFrameFlow = KotlinNbtCompat.getBoolean(tag, TAG_DEFERRED_PERMANENT_FLOW),
+            sourceFrame = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_SOURCE_FRAME, Tag.TAG_COMPOUND.toInt())) {
+                PermanentThresholdFrame.deserialize(KotlinNbtCompat.getCompound(tag, TAG_DEFERRED_SOURCE_FRAME))
             } else {
                 null
             },
-            targetFrame = if (tag.contains(TAG_DEFERRED_TARGET_FRAME, Tag.TAG_COMPOUND.toInt())) {
-                PermanentThresholdFrame.deserialize(tag.getCompound(TAG_DEFERRED_TARGET_FRAME))
+            targetFrame = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_TARGET_FRAME, Tag.TAG_COMPOUND.toInt())) {
+                PermanentThresholdFrame.deserialize(KotlinNbtCompat.getCompound(tag, TAG_DEFERRED_TARGET_FRAME))
             } else {
                 null
             },
-            portalTintResolvedRgb = if (tag.contains(TAG_DEFERRED_TINT_COLOR)) tag.getInt(TAG_DEFERRED_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR,
-            portalTintColorizer = if (tag.contains(TAG_DEFERRED_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
-                FrozenPigment.fromNBT(tag.getCompound(TAG_DEFERRED_TINT_COLORIZER))
+            portalTintResolvedRgb = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_TINT_COLOR)) KotlinNbtCompat.getInt(tag, TAG_DEFERRED_TINT_COLOR) else DEFAULT_PORTAL_TINT_COLOR,
+            portalTintColorizer = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_TINT_COLORIZER, Tag.TAG_COMPOUND.toInt())) {
+                FrozenPigment.fromNBT(KotlinNbtCompat.getCompound(tag, TAG_DEFERRED_TINT_COLORIZER))
             } else {
                 null
             },
-            portalLabel = if (tag.contains(TAG_DEFERRED_LABEL)) tag.getString(TAG_DEFERRED_LABEL) else null,
-            previousOwnedPair = if (tag.contains(TAG_DEFERRED_PREVIOUS_PAIR, Tag.TAG_COMPOUND.toInt())) {
-                deserializePortalPair(tag.getCompound(TAG_DEFERRED_PREVIOUS_PAIR))
+            portalLabel = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_LABEL)) KotlinNbtCompat.getString(tag, TAG_DEFERRED_LABEL) else null,
+            previousOwnedPair = if (KotlinNbtCompat.contains(tag, TAG_DEFERRED_PREVIOUS_PAIR, Tag.TAG_COMPOUND.toInt())) {
+                deserializePortalPair(KotlinNbtCompat.getCompound(tag, TAG_DEFERRED_PREVIOUS_PAIR))
             } else {
                 null
             }
@@ -705,22 +706,22 @@ class CorridorPortalBlockEntity(
     }
 
     private fun deserializePortalPair(tag: CompoundTag): PortalOwnershipStore.PortalPair? {
-        if (!tag.contains(TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION)
-            || !tag.contains(TAG_DEFERRED_PREVIOUS_FIRST_POS)
-            || !tag.contains(TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION)
-            || !tag.contains(TAG_DEFERRED_PREVIOUS_SECOND_POS)
+        if (!KotlinNbtCompat.contains(tag, TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_PREVIOUS_FIRST_POS)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION)
+            || !KotlinNbtCompat.contains(tag, TAG_DEFERRED_PREVIOUS_SECOND_POS)
         ) {
             return null
         }
 
         return PortalOwnershipStore.PortalPair(
             PortalOwnershipStore.PortalEndpoint(
-                tag.getString(TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION),
-                BlockPos.of(tag.getLong(TAG_DEFERRED_PREVIOUS_FIRST_POS))
+                KotlinNbtCompat.getString(tag, TAG_DEFERRED_PREVIOUS_FIRST_DIMENSION),
+                BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_DEFERRED_PREVIOUS_FIRST_POS))
             ),
             PortalOwnershipStore.PortalEndpoint(
-                tag.getString(TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION),
-                BlockPos.of(tag.getLong(TAG_DEFERRED_PREVIOUS_SECOND_POS))
+                KotlinNbtCompat.getString(tag, TAG_DEFERRED_PREVIOUS_SECOND_DIMENSION),
+                BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_DEFERRED_PREVIOUS_SECOND_POS))
             )
         )
     }

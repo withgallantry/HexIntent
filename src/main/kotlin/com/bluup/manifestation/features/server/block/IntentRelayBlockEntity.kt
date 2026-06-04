@@ -3,6 +3,7 @@ package com.bluup.manifestation.server.block
 import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.ManifestationServer
 import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
@@ -261,22 +262,22 @@ class IntentRelayBlockEntity(
     override fun load(tag: CompoundTag) {
         super.load(tag)
 
-        targetDimensionId = if (tag.contains(TAG_TARGET_DIMENSION)) tag.getString(TAG_TARGET_DIMENSION) else null
+        targetDimensionId = if (KotlinNbtCompat.contains(tag, TAG_TARGET_DIMENSION)) KotlinNbtCompat.getString(tag, TAG_TARGET_DIMENSION) else null
         targetPositions.clear()
-        if (tag.contains(TAG_TARGET_POSITIONS, Tag.TAG_LONG_ARRAY.toInt())) {
-            for (raw in tag.getLongArray(TAG_TARGET_POSITIONS)) {
+        if (KotlinNbtCompat.contains(tag, TAG_TARGET_POSITIONS, Tag.TAG_LONG_ARRAY.toInt())) {
+            for (raw in KotlinNbtCompat.getLongArray(tag, TAG_TARGET_POSITIONS)) {
                 targetPositions.add(BlockPos.of(raw).immutable())
             }
-        } else if (tag.contains(TAG_TARGET_POS)) {
-            targetPositions.add(BlockPos.of(tag.getLong(TAG_TARGET_POS)).immutable())
+        } else if (KotlinNbtCompat.contains(tag, TAG_TARGET_POS)) {
+            targetPositions.add(BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_TARGET_POS)).immutable())
         }
-        ownerUuid = if (tag.hasUUID(TAG_OWNER_UUID)) tag.getUUID(TAG_OWNER_UUID) else null
-        nextUseGameTime = tag.getLong(TAG_NEXT_USE_TIME)
-        redstoneMode = tag.getBoolean(TAG_REDSTONE_MODE)
-        redstoneStrength = tag.getInt(TAG_REDSTONE_STRENGTH).coerceIn(0, 15)
-        displayedItem = if (tag.contains(TAG_DISPLAYED_ITEM)) {
+        ownerUuid = if (KotlinNbtCompat.hasUUID(tag, TAG_OWNER_UUID)) KotlinNbtCompat.getUUID(tag, TAG_OWNER_UUID) else null
+        nextUseGameTime = KotlinNbtCompat.getLong(tag, TAG_NEXT_USE_TIME)
+        redstoneMode = KotlinNbtCompat.getBoolean(tag, TAG_REDSTONE_MODE)
+        redstoneStrength = KotlinNbtCompat.getInt(tag, TAG_REDSTONE_STRENGTH).coerceIn(0, 15)
+        displayedItem = if (KotlinNbtCompat.contains(tag, TAG_DISPLAYED_ITEM)) {
             try {
-                val loaded = ItemStack.of(tag.getCompound(TAG_DISPLAYED_ITEM))
+                val loaded = ItemStack.of(KotlinNbtCompat.getCompound(tag, TAG_DISPLAYED_ITEM))
                 if (loaded.isEmpty) ItemStack.EMPTY else loaded.copyWithCount(1)
             } catch (t: Throwable) {
                 Manifestation.LOGGER.warn("Manifestation: failed to load relay display item at {}", worldPosition, t)
@@ -286,21 +287,21 @@ class IntentRelayBlockEntity(
             ItemStack.EMPTY
         }
 
-        activeFallbackUntilGameTime = tag.getLong(TAG_ACTIVE_FALLBACK_UNTIL)
-        deactivateAfterAnimationGameTime = tag.getLong(TAG_DEACTIVATE_AFTER_ANIMATION)
-        trackingEnabled = tag.getBoolean(TAG_TRACKING_ENABLED)
-        trackedTargetDimensionId = if (tag.contains(TAG_TRACKED_TARGET_DIMENSION)) {
-            tag.getString(TAG_TRACKED_TARGET_DIMENSION)
+        activeFallbackUntilGameTime = KotlinNbtCompat.getLong(tag, TAG_ACTIVE_FALLBACK_UNTIL)
+        deactivateAfterAnimationGameTime = KotlinNbtCompat.getLong(tag, TAG_DEACTIVATE_AFTER_ANIMATION)
+        trackingEnabled = KotlinNbtCompat.getBoolean(tag, TAG_TRACKING_ENABLED)
+        trackedTargetDimensionId = if (KotlinNbtCompat.contains(tag, TAG_TRACKED_TARGET_DIMENSION)) {
+            KotlinNbtCompat.getString(tag, TAG_TRACKED_TARGET_DIMENSION)
         } else {
             null
         }
-        trackedTargetPos = if (tag.contains(TAG_TRACKED_TARGET_POS)) {
-            BlockPos.of(tag.getLong(TAG_TRACKED_TARGET_POS))
+        trackedTargetPos = if (KotlinNbtCompat.contains(tag, TAG_TRACKED_TARGET_POS)) {
+            BlockPos.of(KotlinNbtCompat.getLong(tag, TAG_TRACKED_TARGET_POS))
         } else {
             null
         }
-        trackedActiveStateKey = if (tag.contains(TAG_TRACKED_ACTIVE_STATE_KEY)) {
-            tag.getString(TAG_TRACKED_ACTIVE_STATE_KEY)
+        trackedActiveStateKey = if (KotlinNbtCompat.contains(tag, TAG_TRACKED_ACTIVE_STATE_KEY)) {
+            KotlinNbtCompat.getString(tag, TAG_TRACKED_ACTIVE_STATE_KEY)
         } else {
             null
         }
@@ -311,39 +312,39 @@ class IntentRelayBlockEntity(
 
         val dimId = targetDimensionId
         if (dimId != null) {
-            tag.putString(TAG_TARGET_DIMENSION, dimId)
+            KotlinNbtCompat.putString(tag, TAG_TARGET_DIMENSION, dimId)
         }
 
         if (targetPositions.isNotEmpty()) {
-            tag.putLongArray(TAG_TARGET_POSITIONS, targetPositions.map { it.asLong() })
+            KotlinNbtCompat.putLongArray(tag, TAG_TARGET_POSITIONS, targetPositions.map { it.asLong() }.toLongArray())
         }
 
         val owner = ownerUuid
         if (owner != null) {
-            tag.putUUID(TAG_OWNER_UUID, owner)
+            KotlinNbtCompat.putUUID(tag, TAG_OWNER_UUID, owner)
         }
 
-        tag.putLong(TAG_NEXT_USE_TIME, nextUseGameTime)
-        tag.putBoolean(TAG_REDSTONE_MODE, redstoneMode)
-        tag.putInt(TAG_REDSTONE_STRENGTH, redstoneStrength)
+        KotlinNbtCompat.putLong(tag, TAG_NEXT_USE_TIME, nextUseGameTime)
+        KotlinNbtCompat.putBoolean(tag, TAG_REDSTONE_MODE, redstoneMode)
+        KotlinNbtCompat.putInt(tag, TAG_REDSTONE_STRENGTH, redstoneStrength)
         if (!displayedItem.isEmpty) {
-            tag.put(TAG_DISPLAYED_ITEM, displayedItem.save(CompoundTag()))
+            KotlinNbtCompat.put(tag, TAG_DISPLAYED_ITEM, displayedItem.save(CompoundTag()))
         }
-        tag.putLong(TAG_ACTIVE_FALLBACK_UNTIL, activeFallbackUntilGameTime)
-        tag.putLong(TAG_DEACTIVATE_AFTER_ANIMATION, deactivateAfterAnimationGameTime)
-        tag.putBoolean(TAG_TRACKING_ENABLED, trackingEnabled)
+        KotlinNbtCompat.putLong(tag, TAG_ACTIVE_FALLBACK_UNTIL, activeFallbackUntilGameTime)
+        KotlinNbtCompat.putLong(tag, TAG_DEACTIVATE_AFTER_ANIMATION, deactivateAfterAnimationGameTime)
+        KotlinNbtCompat.putBoolean(tag, TAG_TRACKING_ENABLED, trackingEnabled)
 
         val trackedDim = trackedTargetDimensionId
         if (trackedDim != null) {
-            tag.putString(TAG_TRACKED_TARGET_DIMENSION, trackedDim)
+            KotlinNbtCompat.putString(tag, TAG_TRACKED_TARGET_DIMENSION, trackedDim)
         }
         val trackedPos = trackedTargetPos
         if (trackedPos != null) {
-            tag.putLong(TAG_TRACKED_TARGET_POS, trackedPos.asLong())
+            KotlinNbtCompat.putLong(tag, TAG_TRACKED_TARGET_POS, trackedPos.asLong())
         }
         val trackedState = trackedActiveStateKey
         if (trackedState != null) {
-            tag.putString(TAG_TRACKED_ACTIVE_STATE_KEY, trackedState)
+            KotlinNbtCompat.putString(tag, TAG_TRACKED_ACTIVE_STATE_KEY, trackedState)
         }
     }
 

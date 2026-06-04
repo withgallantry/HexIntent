@@ -1,5 +1,6 @@
 package com.bluup.manifestation.server.block
 
+import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
@@ -27,10 +28,10 @@ data class PermanentThresholdFrame(
     }
 
     fun serialize(): CompoundTag = CompoundTag().apply {
-        putString(TAG_AXIS, axis.name)
-        putInt(TAG_PLANE, plane)
-        putInt(TAG_MIN_HORIZONTAL, minHorizontal)
-        putInt(TAG_MIN_Y, minY)
+        KotlinNbtCompat.putString(this, TAG_AXIS, axis.name)
+        KotlinNbtCompat.putInt(this, TAG_PLANE, plane)
+        KotlinNbtCompat.putInt(this, TAG_MIN_HORIZONTAL, minHorizontal)
+        KotlinNbtCompat.putInt(this, TAG_MIN_Y, minY)
     }
 
     companion object {
@@ -40,21 +41,25 @@ data class PermanentThresholdFrame(
         private const val TAG_MIN_Y = "MinY"
 
         fun deserialize(tag: CompoundTag): PermanentThresholdFrame? {
-            if (!tag.contains(TAG_AXIS) || !tag.contains(TAG_PLANE) || !tag.contains(TAG_MIN_HORIZONTAL) || !tag.contains(TAG_MIN_Y)) {
+            if (!KotlinNbtCompat.contains(tag, TAG_AXIS)
+                || !KotlinNbtCompat.contains(tag, TAG_PLANE)
+                || !KotlinNbtCompat.contains(tag, TAG_MIN_HORIZONTAL)
+                || !KotlinNbtCompat.contains(tag, TAG_MIN_Y)
+            ) {
                 return null
             }
 
             val axis = try {
-                Direction.Axis.valueOf(tag.getString(TAG_AXIS))
+                Direction.Axis.valueOf(KotlinNbtCompat.getString(tag, TAG_AXIS))
             } catch (_: IllegalArgumentException) {
                 return null
             }
 
             return PermanentThresholdFrame(
                 axis = axis,
-                plane = tag.getInt(TAG_PLANE),
-                minHorizontal = tag.getInt(TAG_MIN_HORIZONTAL),
-                minY = tag.getInt(TAG_MIN_Y)
+                plane = KotlinNbtCompat.getInt(tag, TAG_PLANE),
+                minHorizontal = KotlinNbtCompat.getInt(tag, TAG_MIN_HORIZONTAL),
+                minY = KotlinNbtCompat.getInt(tag, TAG_MIN_Y)
             )
         }
     }

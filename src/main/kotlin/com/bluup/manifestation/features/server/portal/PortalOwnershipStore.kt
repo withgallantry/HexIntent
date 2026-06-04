@@ -42,14 +42,14 @@ class PortalOwnershipStore : SavedData() {
         val list = ListTag()
         for ((owner, pair) in ownedPortalPairs) {
             val entry = CompoundTag()
-            entry.putUUID("owner", owner)
-            entry.putString("first_dim", pair.first.dimensionId)
-            entry.putLong("first_pos", pair.first.pos.asLong())
-            entry.putString("second_dim", pair.second.dimensionId)
-            entry.putLong("second_pos", pair.second.pos.asLong())
+            KotlinNbtCompat.putUUID(entry, "owner", owner)
+            KotlinNbtCompat.putString(entry, "first_dim", pair.first.dimensionId)
+            KotlinNbtCompat.putLong(entry, "first_pos", pair.first.pos.asLong())
+            KotlinNbtCompat.putString(entry, "second_dim", pair.second.dimensionId)
+            KotlinNbtCompat.putLong(entry, "second_pos", pair.second.pos.asLong())
             list.add(entry)
         }
-        tag.put("portal_pairs", list)
+        KotlinNbtCompat.put(tag, "portal_pairs", list)
         return tag
     }
 
@@ -66,21 +66,21 @@ class PortalOwnershipStore : SavedData() {
 
         private fun load(tag: CompoundTag): PortalOwnershipStore {
             val out = PortalOwnershipStore()
-            val list = tag.getList("portal_pairs", Tag.TAG_COMPOUND.toInt())
+            val list = KotlinNbtCompat.getList(tag, "portal_pairs", Tag.TAG_COMPOUND.toInt())
             for (entry in list) {
                 val data = entry as? CompoundTag ?: continue
-                if (!data.hasUUID("owner")) {
+                if (!KotlinNbtCompat.hasUUID(data, "owner")) {
                     continue
                 }
 
-                val owner = data.getUUID("owner")
+                val owner = KotlinNbtCompat.getUUID(data, "owner")
                 val first = PortalEndpoint(
-                    data.getString("first_dim"),
-                    BlockPos.of(data.getLong("first_pos"))
+                    KotlinNbtCompat.getString(data, "first_dim"),
+                    BlockPos.of(KotlinNbtCompat.getLong(data, "first_pos"))
                 )
                 val second = PortalEndpoint(
-                    data.getString("second_dim"),
-                    BlockPos.of(data.getLong("second_pos"))
+                    KotlinNbtCompat.getString(data, "second_dim"),
+                    BlockPos.of(KotlinNbtCompat.getLong(data, "second_pos"))
                 )
                 out.ownedPortalPairs[owner] = PortalPair(first, second)
             }

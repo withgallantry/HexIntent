@@ -2,6 +2,7 @@ package com.bluup.manifestation.server.block
 
 import at.petrak.hexcasting.api.block.circle.BlockCircleComponent
 import com.bluup.manifestation.server.ManifestationConfig
+import com.bluup.manifestation.server.KotlinNbtCompat
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.CompoundTag
@@ -105,27 +106,27 @@ class SplinterCasterBlockEntity(
 
     override fun load(tag: CompoundTag) {
         super.load(tag)
-        focus = if (tag.contains(TAG_FOCUS)) ItemStack.of(tag.getCompound(TAG_FOCUS)) else ItemStack.EMPTY
-        waitingForSplinter = tag.getBoolean(TAG_WAITING)
+        focus = if (KotlinNbtCompat.contains(tag, TAG_FOCUS)) ItemStack.of(KotlinNbtCompat.getCompound(tag, TAG_FOCUS)) else ItemStack.EMPTY
+        waitingForSplinter = KotlinNbtCompat.getBoolean(tag, TAG_WAITING)
     }
 
     override fun saveAdditional(tag: CompoundTag) {
         super.saveAdditional(tag)
         if (!focus.isEmpty) {
-            tag.put(TAG_FOCUS, focus.save(CompoundTag()))
+            KotlinNbtCompat.put(tag, TAG_FOCUS, focus.save(CompoundTag()))
         }
         if (waitingForSplinter) {
-            tag.putBoolean(TAG_WAITING, true)
+            KotlinNbtCompat.putBoolean(tag, TAG_WAITING, true)
         }
     }
 
     override fun getUpdateTag(): CompoundTag {
         val tag = super.getUpdateTag()
         if (!focus.isEmpty) {
-            tag.put(TAG_FOCUS, focus.save(CompoundTag()))
+            KotlinNbtCompat.put(tag, TAG_FOCUS, focus.save(CompoundTag()))
         }
         if (waitingForSplinter) {
-            tag.putBoolean(TAG_WAITING, true)
+            KotlinNbtCompat.putBoolean(tag, TAG_WAITING, true)
         }
         return tag
     }

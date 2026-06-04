@@ -2,6 +2,7 @@ package com.bluup.manifestation.server.block
 
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
+import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
@@ -56,38 +57,38 @@ class HexReliquaryBlockEntity(
             iotaTags[i] = null
         }
 
-        if (!tag.contains(TAG_SLOTS)) {
+        if (!KotlinNbtCompat.contains(tag, TAG_SLOTS)) {
             return
         }
 
-        val slots = tag.getList(TAG_SLOTS, CompoundTag.TAG_COMPOUND.toInt())
+        val slots = KotlinNbtCompat.getList(tag, TAG_SLOTS, CompoundTag.TAG_COMPOUND.toInt())
         for (entryTag in slots) {
             if (entryTag !is CompoundTag) {
                 continue
             }
 
-            val slot = entryTag.getInt(TAG_SLOT_INDEX)
+            val slot = KotlinNbtCompat.getInt(entryTag, TAG_SLOT_INDEX)
             if (slot !in 0 until HexReliquaryBlock.SLOT_COUNT) {
                 continue
             }
 
-            val label = entryTag.getString(TAG_LABEL)
+            val label = KotlinNbtCompat.getString(entryTag, TAG_LABEL)
             labels[slot] = if (label.isBlank()) defaultLabel(slot) else label
 
-            if (entryTag.contains(TAG_IOTA, CompoundTag.TAG_COMPOUND.toInt())) {
-                iotaTags[slot] = entryTag.getCompound(TAG_IOTA)
+            if (KotlinNbtCompat.contains(entryTag, TAG_IOTA, CompoundTag.TAG_COMPOUND.toInt())) {
+                iotaTags[slot] = KotlinNbtCompat.getCompound(entryTag, TAG_IOTA)
             }
         }
     }
 
     override fun saveAdditional(tag: CompoundTag) {
         super.saveAdditional(tag)
-        tag.put(TAG_SLOTS, buildSlotsTag())
+        KotlinNbtCompat.put(tag, TAG_SLOTS, buildSlotsTag())
     }
 
     override fun getUpdateTag(): CompoundTag {
         val tag = super.getUpdateTag()
-        tag.put(TAG_SLOTS, buildSlotsTag())
+        KotlinNbtCompat.put(tag, TAG_SLOTS, buildSlotsTag())
         return tag
     }
 
@@ -97,12 +98,12 @@ class HexReliquaryBlockEntity(
         val slots = ListTag()
         for (slot in 0 until HexReliquaryBlock.SLOT_COUNT) {
             val entry = CompoundTag()
-            entry.putInt(TAG_SLOT_INDEX, slot)
-            entry.putString(TAG_LABEL, labels[slot])
+            KotlinNbtCompat.putInt(entry, TAG_SLOT_INDEX, slot)
+            KotlinNbtCompat.putString(entry, TAG_LABEL, labels[slot])
 
             val serialized = iotaTags[slot]
             if (serialized != null) {
-                entry.put(TAG_IOTA, serialized)
+                KotlinNbtCompat.put(entry, TAG_IOTA, serialized)
             }
 
             slots.add(entry)

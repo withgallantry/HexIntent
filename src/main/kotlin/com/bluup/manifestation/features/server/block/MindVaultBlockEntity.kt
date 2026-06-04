@@ -1,5 +1,6 @@
 package com.bluup.manifestation.server.block
 
+import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
@@ -112,24 +113,24 @@ class MindVaultBlockEntity(
     override fun load(tag: CompoundTag) {
         super.load(tag)
 
-        lockedProfessionId = if (tag.contains(TAG_LOCKED_PROFESSION, CompoundTag.TAG_STRING.toInt())) {
-            tag.getString(TAG_LOCKED_PROFESSION)
+        lockedProfessionId = if (KotlinNbtCompat.contains(tag, TAG_LOCKED_PROFESSION, CompoundTag.TAG_STRING.toInt())) {
+            KotlinNbtCompat.getString(tag, TAG_LOCKED_PROFESSION)
         } else {
             null
         }
-        lockedVillagerLevel = tag.getInt(TAG_LOCKED_LEVEL).coerceIn(0, 5)
+        lockedVillagerLevel = KotlinNbtCompat.getInt(tag, TAG_LOCKED_LEVEL).coerceIn(0, 5)
 
         occupiedSlots.fill(false)
         cooldownUntilGameTime.fill(0L)
 
-        val slots = tag.getList(TAG_SLOTS, CompoundTag.TAG_COMPOUND.toInt())
+        val slots = KotlinNbtCompat.getList(tag, TAG_SLOTS, CompoundTag.TAG_COMPOUND.toInt())
         for (entryRaw in slots) {
             val entry = entryRaw as? CompoundTag ?: continue
-            val slot = entry.getInt(TAG_SLOT_INDEX)
+            val slot = KotlinNbtCompat.getInt(entry, TAG_SLOT_INDEX)
             if (slot !in 0 until SLOT_COUNT) continue
 
-            occupiedSlots[slot] = entry.getBoolean(TAG_SLOT_OCCUPIED)
-            cooldownUntilGameTime[slot] = entry.getLong(TAG_SLOT_COOLDOWN)
+            occupiedSlots[slot] = KotlinNbtCompat.getBoolean(entry, TAG_SLOT_OCCUPIED)
+            cooldownUntilGameTime[slot] = KotlinNbtCompat.getLong(entry, TAG_SLOT_COOLDOWN)
         }
     }
 
@@ -137,20 +138,20 @@ class MindVaultBlockEntity(
         super.saveAdditional(tag)
         val professionId = lockedProfessionId
         if (!professionId.isNullOrBlank()) {
-            tag.putString(TAG_LOCKED_PROFESSION, professionId)
+            KotlinNbtCompat.putString(tag, TAG_LOCKED_PROFESSION, professionId)
         }
-        tag.putInt(TAG_LOCKED_LEVEL, lockedVillagerLevel)
-        tag.put(TAG_SLOTS, buildSlotsTag())
+        KotlinNbtCompat.putInt(tag, TAG_LOCKED_LEVEL, lockedVillagerLevel)
+        KotlinNbtCompat.put(tag, TAG_SLOTS, buildSlotsTag())
     }
 
     override fun getUpdateTag(): CompoundTag {
         val tag = super.getUpdateTag()
         val professionId = lockedProfessionId
         if (!professionId.isNullOrBlank()) {
-            tag.putString(TAG_LOCKED_PROFESSION, professionId)
+            KotlinNbtCompat.putString(tag, TAG_LOCKED_PROFESSION, professionId)
         }
-        tag.putInt(TAG_LOCKED_LEVEL, lockedVillagerLevel)
-        tag.put(TAG_SLOTS, buildSlotsTag())
+        KotlinNbtCompat.putInt(tag, TAG_LOCKED_LEVEL, lockedVillagerLevel)
+        KotlinNbtCompat.put(tag, TAG_SLOTS, buildSlotsTag())
         return tag
     }
 
@@ -160,9 +161,9 @@ class MindVaultBlockEntity(
         val out = ListTag()
         for (slot in 0 until SLOT_COUNT) {
             val entry = CompoundTag()
-            entry.putInt(TAG_SLOT_INDEX, slot)
-            entry.putBoolean(TAG_SLOT_OCCUPIED, occupiedSlots[slot])
-            entry.putLong(TAG_SLOT_COOLDOWN, cooldownUntilGameTime[slot])
+            KotlinNbtCompat.putInt(entry, TAG_SLOT_INDEX, slot)
+            KotlinNbtCompat.putBoolean(entry, TAG_SLOT_OCCUPIED, occupiedSlots[slot])
+            KotlinNbtCompat.putLong(entry, TAG_SLOT_COOLDOWN, cooldownUntilGameTime[slot])
             out.add(entry)
         }
         return out

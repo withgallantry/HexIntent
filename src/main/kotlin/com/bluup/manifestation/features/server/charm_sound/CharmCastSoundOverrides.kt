@@ -17,33 +17,30 @@ object CharmCastSoundOverrides {
 
     fun isHexicalCharmedStack(stack: ItemStack): Boolean {
         // Mirror Hexical charm marker contract without direct API linkage.
-        return stack.tag?.contains("charmed") == true
+        return KotlinNbtCompat.contains(stack, "charmed")
     }
 
     fun setMuted(stack: ItemStack, muted: Boolean) {
-        val tag = stack.orCreateTag
-        tag.putBoolean(TAG_MUTE_CAST_SOUND, muted)
+        KotlinNbtCompat.putBoolean(stack, TAG_MUTE_CAST_SOUND, muted)
         if (muted) {
-            tag.remove(TAG_CAST_SOUND_ID)
+            KotlinNbtCompat.remove(stack, TAG_CAST_SOUND_ID)
         }
     }
 
     fun setSoundId(stack: ItemStack, soundId: String) {
-        val tag = stack.orCreateTag
-        tag.putBoolean(TAG_MUTE_CAST_SOUND, false)
-        tag.putString(TAG_CAST_SOUND_ID, soundId)
+        KotlinNbtCompat.putBoolean(stack, TAG_MUTE_CAST_SOUND, false)
+        KotlinNbtCompat.putString(stack, TAG_CAST_SOUND_ID, soundId)
     }
 
     /**
      * Returns true if cast sound was fully handled (muted or custom sound played).
      */
     fun handlePostCastSound(player: ServerPlayer, world: ServerLevel, stack: ItemStack): Boolean {
-        val tag = stack.tag ?: return false
-        if (tag.getBoolean(TAG_MUTE_CAST_SOUND)) {
+        if (KotlinNbtCompat.getBoolean(stack, TAG_MUTE_CAST_SOUND)) {
             return true
         }
 
-        val soundId = tag.getString(TAG_CAST_SOUND_ID)
+        val soundId = KotlinNbtCompat.getString(stack, TAG_CAST_SOUND_ID)
         if (soundId.isBlank()) {
             return false
         }

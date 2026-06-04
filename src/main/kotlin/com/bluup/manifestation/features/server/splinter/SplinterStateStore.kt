@@ -1,5 +1,6 @@
 package com.bluup.manifestation.server.splinter
 
+import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.Tag
@@ -65,37 +66,37 @@ class SplinterStateStore : SavedData() {
         for ((_, records) in splintersByOwner) {
             for ((_, record) in records) {
                 val out = CompoundTag()
-                out.putUUID("id", record.id)
-                out.putUUID("owner", record.owner)
-                out.putString("dimension", record.dimensionId)
-                out.putDouble("x", record.position.x)
-                out.putDouble("y", record.position.y)
-                out.putDouble("z", record.position.z)
+                KotlinNbtCompat.putUUID(out, "id", record.id)
+                KotlinNbtCompat.putUUID(out, "owner", record.owner)
+                KotlinNbtCompat.putString(out, "dimension", record.dimensionId)
+                KotlinNbtCompat.putDouble(out, "x", record.position.x)
+                KotlinNbtCompat.putDouble(out, "y", record.position.y)
+                KotlinNbtCompat.putDouble(out, "z", record.position.z)
                 if (record.anchorPosition != null) {
-                    out.putDouble("anchor_x", record.anchorPosition!!.x)
-                    out.putDouble("anchor_y", record.anchorPosition!!.y)
-                    out.putDouble("anchor_z", record.anchorPosition!!.z)
+                    KotlinNbtCompat.putDouble(out, "anchor_x", record.anchorPosition!!.x)
+                    KotlinNbtCompat.putDouble(out, "anchor_y", record.anchorPosition!!.y)
+                    KotlinNbtCompat.putDouble(out, "anchor_z", record.anchorPosition!!.z)
                 }
                 if (record.circleImpetusPos != null) {
-                    out.putDouble("circle_impetus_x", record.circleImpetusPos!!.x)
-                    out.putDouble("circle_impetus_y", record.circleImpetusPos!!.y)
-                    out.putDouble("circle_impetus_z", record.circleImpetusPos!!.z)
+                    KotlinNbtCompat.putDouble(out, "circle_impetus_x", record.circleImpetusPos!!.x)
+                    KotlinNbtCompat.putDouble(out, "circle_impetus_y", record.circleImpetusPos!!.y)
+                    KotlinNbtCompat.putDouble(out, "circle_impetus_z", record.circleImpetusPos!!.z)
                 }
-                out.putLong("cast_at", record.castAtGameTime)
-                out.putString("hand", record.castingHand.name)
+                KotlinNbtCompat.putLong(out, "cast_at", record.castAtGameTime)
+                KotlinNbtCompat.putString(out, "hand", record.castingHand.name)
 
                 val payload = ListTag()
                 for (iotaTag in record.payloadTags) {
                     payload.add(iotaTag.copy())
                 }
-                out.put("payload", payload)
+                KotlinNbtCompat.put(out, "payload", payload)
                 if (record.ravenmindTag != null) {
-                    out.put("ravenmind", record.ravenmindTag!!.copy())
+                    KotlinNbtCompat.put(out, "ravenmind", record.ravenmindTag!!.copy())
                 }
                 list.add(out)
             }
         }
-        tag.put("splinters", list)
+        KotlinNbtCompat.put(tag, "splinters", list)
         return tag
     }
 
@@ -109,46 +110,46 @@ class SplinterStateStore : SavedData() {
 
         private fun load(tag: CompoundTag): SplinterStateStore {
             val out = SplinterStateStore()
-            val list = tag.getList("splinters", Tag.TAG_COMPOUND.toInt())
+            val list = KotlinNbtCompat.getList(tag, "splinters", Tag.TAG_COMPOUND.toInt())
             for (entry in list) {
                 val t = entry as? CompoundTag ?: continue
-                if (!t.hasUUID("id") || !t.hasUUID("owner")) {
+                if (!KotlinNbtCompat.hasUUID(t, "id") || !KotlinNbtCompat.hasUUID(t, "owner")) {
                     continue
                 }
 
-                val id = t.getUUID("id")
-                val owner = t.getUUID("owner")
-                val dimension = t.getString("dimension")
-                val pos = Vec3(t.getDouble("x"), t.getDouble("y"), t.getDouble("z"))
-                val anchorPos = if (t.contains("anchor_x", Tag.TAG_DOUBLE.toInt())
-                    && t.contains("anchor_y", Tag.TAG_DOUBLE.toInt())
-                    && t.contains("anchor_z", Tag.TAG_DOUBLE.toInt())
+                val id = KotlinNbtCompat.getUUID(t, "id")
+                val owner = KotlinNbtCompat.getUUID(t, "owner")
+                val dimension = KotlinNbtCompat.getString(t, "dimension")
+                val pos = Vec3(KotlinNbtCompat.getDouble(t, "x"), KotlinNbtCompat.getDouble(t, "y"), KotlinNbtCompat.getDouble(t, "z"))
+                val anchorPos = if (KotlinNbtCompat.contains(t, "anchor_x", Tag.TAG_DOUBLE.toInt())
+                    && KotlinNbtCompat.contains(t, "anchor_y", Tag.TAG_DOUBLE.toInt())
+                    && KotlinNbtCompat.contains(t, "anchor_z", Tag.TAG_DOUBLE.toInt())
                 ) {
-                    Vec3(t.getDouble("anchor_x"), t.getDouble("anchor_y"), t.getDouble("anchor_z"))
+                    Vec3(KotlinNbtCompat.getDouble(t, "anchor_x"), KotlinNbtCompat.getDouble(t, "anchor_y"), KotlinNbtCompat.getDouble(t, "anchor_z"))
                 } else {
                     null
                 }
-                val castAt = t.getLong("cast_at")
-                val handName = t.getString("hand")
+                val castAt = KotlinNbtCompat.getLong(t, "cast_at")
+                val handName = KotlinNbtCompat.getString(t, "hand")
                 val hand = runCatching { InteractionHand.valueOf(handName) }.getOrElse { InteractionHand.MAIN_HAND }
-                val circleImpetusPos = if (t.contains("circle_impetus_x", Tag.TAG_DOUBLE.toInt())
-                    && t.contains("circle_impetus_y", Tag.TAG_DOUBLE.toInt())
-                    && t.contains("circle_impetus_z", Tag.TAG_DOUBLE.toInt())
+                val circleImpetusPos = if (KotlinNbtCompat.contains(t, "circle_impetus_x", Tag.TAG_DOUBLE.toInt())
+                    && KotlinNbtCompat.contains(t, "circle_impetus_y", Tag.TAG_DOUBLE.toInt())
+                    && KotlinNbtCompat.contains(t, "circle_impetus_z", Tag.TAG_DOUBLE.toInt())
                 ) {
-                    Vec3(t.getDouble("circle_impetus_x"), t.getDouble("circle_impetus_y"), t.getDouble("circle_impetus_z"))
+                    Vec3(KotlinNbtCompat.getDouble(t, "circle_impetus_x"), KotlinNbtCompat.getDouble(t, "circle_impetus_y"), KotlinNbtCompat.getDouble(t, "circle_impetus_z"))
                 } else {
                     null
                 }
 
                 val payload = mutableListOf<CompoundTag>()
-                if (t.contains("payload", Tag.TAG_LIST.toInt())) {
-                    val payloadList = t.getList("payload", Tag.TAG_COMPOUND.toInt())
+                if (KotlinNbtCompat.contains(t, "payload", Tag.TAG_LIST.toInt())) {
+                    val payloadList = KotlinNbtCompat.getList(t, "payload", Tag.TAG_COMPOUND.toInt())
                     for (i in 0 until payloadList.size) {
                         payload.add(payloadList.getCompound(i).copy())
                     }
                 }
-                val ravenmind = if (t.contains("ravenmind", Tag.TAG_COMPOUND.toInt())) {
-                    t.getCompound("ravenmind").copy()
+                val ravenmind = if (KotlinNbtCompat.contains(t, "ravenmind", Tag.TAG_COMPOUND.toInt())) {
+                    KotlinNbtCompat.getCompound(t, "ravenmind").copy()
                 } else {
                     null
                 }

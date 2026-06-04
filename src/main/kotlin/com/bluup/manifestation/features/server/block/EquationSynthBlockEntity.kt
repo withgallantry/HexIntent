@@ -2,6 +2,7 @@ package com.bluup.manifestation.server.block
 
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.common.equation.EquationParticleConfig
+import com.bluup.manifestation.server.KotlinNbtCompat
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.CompoundTag
@@ -137,19 +138,19 @@ class EquationSynthBlockEntity(
 
     override fun load(tag: CompoundTag) {
         super.load(tag)
-        focus = if (tag.contains(TAG_FOCUS, CompoundTag.TAG_COMPOUND.toInt())) {
-            ItemStack.of(tag.getCompound(TAG_FOCUS))
+        focus = if (KotlinNbtCompat.contains(tag, TAG_FOCUS, CompoundTag.TAG_COMPOUND.toInt())) {
+            ItemStack.of(KotlinNbtCompat.getCompound(tag, TAG_FOCUS))
         } else {
             ItemStack.EMPTY
         }
-        previewEquation = if (tag.contains(TAG_PREVIEW, CompoundTag.TAG_COMPOUND.toInt())) {
-            readConfigTag(tag.getCompound(TAG_PREVIEW))
+        previewEquation = if (KotlinNbtCompat.contains(tag, TAG_PREVIEW, CompoundTag.TAG_COMPOUND.toInt())) {
+            readConfigTag(KotlinNbtCompat.getCompound(tag, TAG_PREVIEW))
         } else {
             null
         }
-        animationPreset = normalizeAnimationPreset(tag.getString(TAG_ANIMATION_PRESET))
-        renderDensity = if (tag.contains(TAG_RENDER_DENSITY, CompoundTag.TAG_DOUBLE.toInt())) {
-            normalizeRenderDensity(tag.getDouble(TAG_RENDER_DENSITY))
+        animationPreset = normalizeAnimationPreset(KotlinNbtCompat.getString(tag, TAG_ANIMATION_PRESET))
+        renderDensity = if (KotlinNbtCompat.contains(tag, TAG_RENDER_DENSITY, CompoundTag.TAG_DOUBLE.toInt())) {
+            normalizeRenderDensity(KotlinNbtCompat.getDouble(tag, TAG_RENDER_DENSITY))
         } else {
             DEFAULT_RENDER_DENSITY
         }
@@ -158,14 +159,14 @@ class EquationSynthBlockEntity(
     override fun saveAdditional(tag: CompoundTag) {
         super.saveAdditional(tag)
         if (!focus.isEmpty) {
-            tag.put(TAG_FOCUS, focus.save(CompoundTag()))
+            KotlinNbtCompat.put(tag, TAG_FOCUS, focus.save(CompoundTag()))
         }
         val preview = previewEquation
         if (preview != null) {
-            tag.put(TAG_PREVIEW, writeConfigTag(preview))
+            KotlinNbtCompat.put(tag, TAG_PREVIEW, writeConfigTag(preview))
         }
-        tag.putString(TAG_ANIMATION_PRESET, animationPreset)
-        tag.putDouble(TAG_RENDER_DENSITY, renderDensity)
+        KotlinNbtCompat.putString(tag, TAG_ANIMATION_PRESET, animationPreset)
+        KotlinNbtCompat.putDouble(tag, TAG_RENDER_DENSITY, renderDensity)
     }
 
     override fun getUpdateTag(): CompoundTag {
@@ -257,55 +258,55 @@ class EquationSynthBlockEntity(
 
     private fun writeConfigTag(config: EquationParticleConfig): CompoundTag {
         val tag = CompoundTag()
-        tag.putString("x", config.xExpr())
-        tag.putString("y", config.yExpr())
-        tag.putString("z", config.zExpr())
-        tag.putDouble("t_min", config.tMin())
-        tag.putDouble("t_max", config.tMax())
-        tag.putDouble("u_min", config.uMin())
-        tag.putDouble("u_max", config.uMax())
-        tag.putBoolean("use_u", config.useU())
-        tag.putInt("points", config.pointCount())
-        tag.putString("color_mode", config.colorMode())
-        tag.putDouble("fixed_r", config.fixedR())
-        tag.putDouble("fixed_g", config.fixedG())
-        tag.putDouble("fixed_b", config.fixedB())
-        tag.putDouble("grad_start_r", config.gradientStartR())
-        tag.putDouble("grad_start_g", config.gradientStartG())
-        tag.putDouble("grad_start_b", config.gradientStartB())
-        tag.putDouble("grad_end_r", config.gradientEndR())
-        tag.putDouble("grad_end_g", config.gradientEndG())
-        tag.putDouble("grad_end_b", config.gradientEndB())
-        tag.putString("color_expr_r", config.colorExprR())
-        tag.putString("color_expr_g", config.colorExprG())
-        tag.putString("color_expr_b", config.colorExprB())
+        KotlinNbtCompat.putString(tag, "x", config.xExpr())
+        KotlinNbtCompat.putString(tag, "y", config.yExpr())
+        KotlinNbtCompat.putString(tag, "z", config.zExpr())
+        KotlinNbtCompat.putDouble(tag, "t_min", config.tMin())
+        KotlinNbtCompat.putDouble(tag, "t_max", config.tMax())
+        KotlinNbtCompat.putDouble(tag, "u_min", config.uMin())
+        KotlinNbtCompat.putDouble(tag, "u_max", config.uMax())
+        KotlinNbtCompat.putBoolean(tag, "use_u", config.useU())
+        KotlinNbtCompat.putInt(tag, "points", config.pointCount())
+        KotlinNbtCompat.putString(tag, "color_mode", config.colorMode())
+        KotlinNbtCompat.putDouble(tag, "fixed_r", config.fixedR())
+        KotlinNbtCompat.putDouble(tag, "fixed_g", config.fixedG())
+        KotlinNbtCompat.putDouble(tag, "fixed_b", config.fixedB())
+        KotlinNbtCompat.putDouble(tag, "grad_start_r", config.gradientStartR())
+        KotlinNbtCompat.putDouble(tag, "grad_start_g", config.gradientStartG())
+        KotlinNbtCompat.putDouble(tag, "grad_start_b", config.gradientStartB())
+        KotlinNbtCompat.putDouble(tag, "grad_end_r", config.gradientEndR())
+        KotlinNbtCompat.putDouble(tag, "grad_end_g", config.gradientEndG())
+        KotlinNbtCompat.putDouble(tag, "grad_end_b", config.gradientEndB())
+        KotlinNbtCompat.putString(tag, "color_expr_r", config.colorExprR())
+        KotlinNbtCompat.putString(tag, "color_expr_g", config.colorExprG())
+        KotlinNbtCompat.putString(tag, "color_expr_b", config.colorExprB())
         return tag
     }
 
     private fun readConfigTag(tag: CompoundTag): EquationParticleConfig {
         return EquationParticleConfig(
-            tag.getString("x"),
-            tag.getString("y"),
-            tag.getString("z"),
-            tag.getDouble("t_min"),
-            tag.getDouble("t_max"),
-            tag.getDouble("u_min"),
-            tag.getDouble("u_max"),
-            tag.getBoolean("use_u"),
-            tag.getInt("points"),
-            tag.getString("color_mode"),
-            tag.getDouble("fixed_r"),
-            tag.getDouble("fixed_g"),
-            tag.getDouble("fixed_b"),
-            tag.getDouble("grad_start_r"),
-            tag.getDouble("grad_start_g"),
-            tag.getDouble("grad_start_b"),
-            tag.getDouble("grad_end_r"),
-            tag.getDouble("grad_end_g"),
-            tag.getDouble("grad_end_b"),
-            tag.getString("color_expr_r"),
-            tag.getString("color_expr_g"),
-            tag.getString("color_expr_b")
+            KotlinNbtCompat.getString(tag, "x"),
+            KotlinNbtCompat.getString(tag, "y"),
+            KotlinNbtCompat.getString(tag, "z"),
+            KotlinNbtCompat.getDouble(tag, "t_min"),
+            KotlinNbtCompat.getDouble(tag, "t_max"),
+            KotlinNbtCompat.getDouble(tag, "u_min"),
+            KotlinNbtCompat.getDouble(tag, "u_max"),
+            KotlinNbtCompat.getBoolean(tag, "use_u"),
+            KotlinNbtCompat.getInt(tag, "points"),
+            KotlinNbtCompat.getString(tag, "color_mode"),
+            KotlinNbtCompat.getDouble(tag, "fixed_r"),
+            KotlinNbtCompat.getDouble(tag, "fixed_g"),
+            KotlinNbtCompat.getDouble(tag, "fixed_b"),
+            KotlinNbtCompat.getDouble(tag, "grad_start_r"),
+            KotlinNbtCompat.getDouble(tag, "grad_start_g"),
+            KotlinNbtCompat.getDouble(tag, "grad_start_b"),
+            KotlinNbtCompat.getDouble(tag, "grad_end_r"),
+            KotlinNbtCompat.getDouble(tag, "grad_end_g"),
+            KotlinNbtCompat.getDouble(tag, "grad_end_b"),
+            KotlinNbtCompat.getString(tag, "color_expr_r"),
+            KotlinNbtCompat.getString(tag, "color_expr_g"),
+            KotlinNbtCompat.getString(tag, "color_expr_b")
         ).normalized()
     }
 
