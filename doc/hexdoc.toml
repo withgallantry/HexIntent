@@ -18,7 +18,7 @@ export_dir = "src/hexdoc_hexintent/_export/generated"
 _pattern_regex = { "!Raw" = 'registerAction\("(?P<name>[a-zA-Z0-9_\/]+)",\s*"(?P<signature>[qweasd]+)",\s*HexDir\.(?P<startdir>\w+),' }
 
 [[extra.hexcasting.pattern_stubs]]
-path = "{$_common.src}/main/kotlin/com/bluup/manifestation/server/ManifestationServer.kt"
+path = "{$_common.src}/main/kotlin/com/bluup/manifestation/inits/ManifestationServer.kt"
 regex = "{^_pattern_regex}"
 
 [template]

@@ -1,14 +1,20 @@
 package com.bluup.manifestation.server.block
 
+import at.petrak.hexcasting.api.casting.ParticleSpray
+import at.petrak.hexcasting.api.pigment.FrozenPigment
+import at.petrak.hexcasting.common.lib.HexItems
 import com.bluup.manifestation.server.KotlinNbtCompat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.Util
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.phys.Vec3
+import net.minecraft.world.item.ItemStack
 
 data class PermanentThresholdFrame(
     val axis: Direction.Axis,
@@ -179,6 +185,7 @@ object PermanentThresholdFrames {
                     continue
                 }
 
+                spawnTransitionParticles(level, frame, pos)
                 level.setBlock(pos, Blocks.DEEPSLATE.defaultBlockState(), Block.UPDATE_ALL)
             }
         }
@@ -210,6 +217,9 @@ object PermanentThresholdFrames {
                 }
 
                 replacedStates.add(pos.immutable() to currentState)
+                if (currentBlock == Blocks.DEEPSLATE) {
+                    spawnTransitionParticles(level, frame, pos)
+                }
                 level.setBlock(pos, desiredState, Block.UPDATE_ALL)
             }
         }
@@ -272,5 +282,13 @@ object PermanentThresholdFrames {
             vertical == 4 -> ManifestationBlocks.PERMANENT_THRESHOLD_CAPSTONE_BLOCK
             else -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK
         }
+    }
+
+    private fun spawnTransitionParticles(level: Level, frame: PermanentThresholdFrame, pos: BlockPos) {
+        val serverLevel = level as? net.minecraft.server.level.ServerLevel ?: return
+        val portal = level.getBlockEntity(frame.anchorPos()) as? CorridorPortalBlockEntity
+        val pigment = portal?.getPortalTintColorizer()
+            ?: FrozenPigment(ItemStack(HexItems.DEFAULT_PIGMENT), Util.NIL_UUID)
+        ParticleSpray.burst(Vec3.atCenterOf(pos), 0.18, 4).sprayParticles(serverLevel, pigment)
     }
 }

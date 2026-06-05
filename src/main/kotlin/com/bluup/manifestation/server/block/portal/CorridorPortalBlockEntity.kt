@@ -215,6 +215,8 @@ class CorridorPortalBlockEntity(
 
     fun getPortalResolvedTintColor(): Int = portalResolvedTintColor
 
+    fun getPortalTintColorizer(): FrozenPigment? = portalTintColorizer
+
     fun samplePortalTintColor(time: Float, samplePosition: Vec3): Int {
         val pigment = portalTintColorizer ?: return portalResolvedTintColor
         return try {
@@ -1095,7 +1097,6 @@ class CorridorPortalBlockEntity(
             )
             val velocity = towardPlane.add(alongFace).add(verticalDrift).add(shimmer)
 
-            // Drift stream follows the portal's active tint instead of vanilla reverse-portal purple.
             level.sendParticles(particle, spawn.x, spawn.y, spawn.z, 0, velocity.x * 0.55, velocity.y * 0.55, velocity.z * 0.55, 1.0)
         }
     }

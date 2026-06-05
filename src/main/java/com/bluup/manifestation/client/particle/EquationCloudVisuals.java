@@ -115,7 +115,7 @@ public final class EquationCloudVisuals {
                 Vec3 origin = state.currentOrigin(now, mc, mc.getFrameTime());
                 double dist = origin.distanceTo(camera);
                 int step = computeSampleStep(state.points.size(), dist);
-                int phase = (int) (now % step);
+                int phase = Math.floorMod(state.sampleSeed, step);
                 float baseSize = computePointHalfSize(dist);
                 float alpha = computeAlpha(dist);
 
@@ -271,6 +271,7 @@ public final class EquationCloudVisuals {
         int moveTicks = MOVE_TICKS;
         Integer followEntityId;
         Vec3 followOffset = Vec3.ZERO;
+        int sampleSeed;
 
         long lastUpdateTick;
         boolean initialized;
@@ -283,10 +284,16 @@ public final class EquationCloudVisuals {
             Vec3 followOffset,
             long now
         ) {
+            Vec3 resolvedFollowOffset = followOffset == null ? Vec3.ZERO : followOffset;
             long fp = fingerprint(newConfig);
             boolean sameShape = initialized
                 && Objects.equals(this.dimensionId, dimensionId)
                 && this.configFingerprint == fp;
+            boolean sameFollowBinding = Objects.equals(this.followEntityId, followEntityId)
+                && Objects.equals(this.followOffset, resolvedFollowOffset);
+
+            this.followEntityId = followEntityId;
+            this.followOffset = resolvedFollowOffset;
 
             if (!initialized || !Objects.equals(this.dimensionId, dimensionId)) {
                 this.fromOrigin = newOrigin;
@@ -294,7 +301,14 @@ public final class EquationCloudVisuals {
                 this.lastResolvedOrigin = newOrigin;
                 this.moveStartTick = now;
                 this.moveTicks = MOVE_TICKS;
+                this.sampleSeed = Objects.hash(dimensionId, fp, newOrigin.x, newOrigin.y, newOrigin.z);
                 this.initialized = true;
+            } else if (followEntityId != null && sameShape && sameFollowBinding) {
+                // Follow-bound clouds should stay entity-anchored, not packet-snapshot-anchored.
+                this.fromOrigin = this.lastResolvedOrigin;
+                this.toOrigin = this.lastResolvedOrigin;
+                this.moveStartTick = now;
+                this.moveTicks = 1;
             } else if (sameShape) {
                 if (this.toOrigin.distanceToSqr(newOrigin) <= ORIGIN_EPSILON_SQ) {
                     this.fromOrigin = newOrigin;
@@ -303,12 +317,12 @@ public final class EquationCloudVisuals {
                     this.moveStartTick = now;
                     this.moveTicks = 1;
                 } else {
-                Vec3 start = currentOriginFromSnapshots(now);
-                this.fromOrigin = start;
-                this.toOrigin = newOrigin;
-                this.lastResolvedOrigin = start;
-                this.moveStartTick = now;
-                this.moveTicks = MOVE_TICKS;
+                    Vec3 start = currentOriginFromSnapshots(now, 0.0f);
+                    this.fromOrigin = start;
+                    this.toOrigin = newOrigin;
+                    this.lastResolvedOrigin = start;
+                    this.moveStartTick = now;
+                    this.moveTicks = MOVE_TICKS;
                 }
             } else {
                 this.fromOrigin = newOrigin;
@@ -316,6 +330,7 @@ public final class EquationCloudVisuals {
                 this.lastResolvedOrigin = newOrigin;
                 this.moveStartTick = now;
                 this.moveTicks = 1;
+                this.sampleSeed = Objects.hash(dimensionId, fp, newOrigin.x, newOrigin.y, newOrigin.z, now);
             }
 
             if (!sameShape) {
@@ -333,8 +348,6 @@ public final class EquationCloudVisuals {
             this.config = newConfig;
             this.configFingerprint = fp;
             this.dimensionId = dimensionId;
-            this.followEntityId = followEntityId;
-            this.followOffset = followOffset == null ? Vec3.ZERO : followOffset;
             this.lastUpdateTick = now;
         }
 
@@ -349,7 +362,7 @@ public final class EquationCloudVisuals {
                     fromOrigin = tracked;
                     toOrigin = tracked;
                     moveStartTick = now;
-                    moveTicks = MOVE_TICKS;
+                    moveTicks = 1;
                     return tracked;
                 }
 
@@ -357,14 +370,14 @@ public final class EquationCloudVisuals {
             }
 
 
-            return currentOriginFromSnapshots(now);
+            return currentOriginFromSnapshots(now, partialTick);
         }
 
-        private Vec3 currentOriginFromSnapshots(long now) {
+        private Vec3 currentOriginFromSnapshots(long now, float partialTick) {
             if (moveTicks <= 1) {
                 return toOrigin;
             }
-            float alpha = Mth.clamp((float) (now - moveStartTick) / (float) moveTicks, 0.0f, 1.0f);
+            float alpha = Mth.clamp(((float) (now - moveStartTick) + partialTick) / (float) moveTicks, 0.0f, 1.0f);
             return new Vec3(
                 Mth.lerp(alpha, fromOrigin.x, toOrigin.x),
                 Mth.lerp(alpha, fromOrigin.y, toOrigin.y),

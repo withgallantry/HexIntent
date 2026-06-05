@@ -1,7 +1,7 @@
 {
   "name": "hexcasting.entry.manifestation_manifest_portals",
   "category": "hexcasting:patterns/spells",
-  "icon": "manifestation:permanent_threshold_frame",
+  "icon": "minecraft:end_portal_frame",
   "sortnum": 901,
   "read_by_default": true,
   "pages": [

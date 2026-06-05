@@ -312,9 +312,14 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float previousHalfWidth = resolvePermanentOpeningHalfWidth(previousAge);
         float currentPatchProgress = resolvePermanentPatchProgress(activationAge);
         float previousPatchProgress = resolvePermanentPatchProgress(previousAge);
-        // Keep replacement close fully mask-driven; avoid a full-frame transient rim that can
-        // appear from certain viewing angles when closing around a broken/partially occluding frame.
+        // Reintroduce close-phase rim fade, but keep it constrained so replacement collapse
+        // does not flash a full-frame outline at oblique angles.
         float transientRimReveal = 0.0f;
+        if (replacementClosing) {
+            float closingFade = 1.0f - Mth.clamp(collapseProgress, 0.0f, 1.0f);
+            float widthFactor = Mth.clamp(currentHalfWidth / 0.5f, 0.0f, 1.0f);
+            transientRimReveal = 0.7f * easeOutCubic(closingFade) * widthFactor;
+        }
 
         drawPermanentOpeningCorridorPortal(
             poseStack,

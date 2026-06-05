@@ -1,6 +1,6 @@
 {
   "name": "hexcasting.entry.manifestation_menus",
-  "category": "hexcasting:patterns/spells",
+  "category": "hexcasting:manifestation_menus",
   "icon": "minecraft:book",
   "sortnum": 900,
   "read_by_default": true,
