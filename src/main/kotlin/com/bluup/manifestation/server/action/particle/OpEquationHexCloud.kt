@@ -25,9 +25,12 @@ import net.minecraft.world.phys.Vec3
  *   id (number)
  *   equation particle iota
  *   origin vector OR anchor entity
- *   optional offset vector when using an anchor entity
+ *   optional offset vector under anchor entity (entity form only)
  */
 object OpEquationHexCloud : Action {
+    private const val MAX_ANCHOR_OFFSET_BLOCKS = 16.0
+    private const val MAX_ANCHOR_OFFSET_SQ = MAX_ANCHOR_OFFSET_BLOCKS * MAX_ANCHOR_OFFSET_BLOCKS
+
     override fun operate(
         env: CastingEnvironment,
         image: CastingImage,
@@ -37,12 +40,6 @@ object OpEquationHexCloud : Action {
         if (stack.size < 3) {
             throw MishapNotEnoughArgs(3, stack.size)
         }
-
-        val hasAnchorOffsetForm = stack.size >= 4
-            && stack[stack.lastIndex] is DoubleIota
-            && stack[stack.lastIndex - 1] is EquationParticleIota
-            && stack[stack.lastIndex - 2] is Vec3Iota
-            && stack[stack.lastIndex - 3] is EntityIota
 
         val idIota = stack.removeAt(stack.lastIndex)
         val equationIota = stack.removeAt(stack.lastIndex)
@@ -55,28 +52,28 @@ object OpEquationHexCloud : Action {
             is EntityIota -> {
                 val entity = anchorOrOffsetIota.entity
                 env.assertEntityInRange(entity)
-                FollowBinding(
-                    entity.position().add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0),
-                    entity,
+                // I might get rid of offset. Got this weird bug where the cloud render jumps. I suspect it's offset related but it's hard to properly debug. 
+                // so more defensive codign it is!
+                val offset = if (stack.isNotEmpty() && stack[stack.lastIndex] is Vec3Iota) {
+                    val maybeOffset = (stack[stack.lastIndex] as Vec3Iota).vec3
+                    if (maybeOffset.lengthSqr() <= MAX_ANCHOR_OFFSET_SQ) {
+                        stack.removeAt(stack.lastIndex)
+                        maybeOffset
+                    } else {
+                        Vec3.ZERO
+                    }
+                } else {
                     Vec3.ZERO
+                }
+                FollowBinding(
+                    entity.position().add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0).add(offset),
+                    entity,
+                    offset
                 )
             }
 
             is Vec3Iota -> {
-                if (hasAnchorOffsetForm) {
-                    val maybeEntityAnchor = stack.removeAt(stack.lastIndex) as EntityIota
-                    val entity = maybeEntityAnchor.entity
-                    env.assertEntityInRange(entity)
-                    FollowBinding(
-                        entity.position()
-                            .add(0.0, entity.bbHeight.toDouble() * 0.5, 0.0)
-                            .add(anchorOrOffsetIota.vec3),
-                        entity,
-                        anchorOrOffsetIota.vec3
-                    )
-                } else {
-                    FollowBinding(anchorOrOffsetIota.vec3, null, null)
-                }
+                FollowBinding(anchorOrOffsetIota.vec3, null, null)
             }
 
             else -> throw MishapInvalidIota.ofType(anchorOrOffsetIota, 2, "vector or entity")

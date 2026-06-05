@@ -1,11 +1,12 @@
 {
   "variants": {
     "axis=z": {
-      "model": "manifestation:block/permanent_threshold/inner_edge_block"
+      "model": "manifestation:block/permanent_threshold/inner_edge_block",
+      "y": 180
     },
     "axis=x": {
       "model": "manifestation:block/permanent_threshold/inner_edge_block",
-      "y": 90
+      "y": 270
     }
   }
 }

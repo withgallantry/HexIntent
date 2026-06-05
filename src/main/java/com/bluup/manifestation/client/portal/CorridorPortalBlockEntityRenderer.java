@@ -240,13 +240,14 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        float activationAge = blockEntity.isReplacementCollapseMode()
+        boolean replacementClosing = blockEntity.isReplacementCollapseMode();
+        float activationAge = replacementClosing
             ? resolvePermanentReverseActivationAge(collapseProgress)
             : resolvePermanentActivationAge(blockEntity, worldTicks);
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
-        if (activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
+        if (!replacementClosing && activationAge >= PERMANENT_OPEN_STAGE_TICKS) {
             float rimRevealProgress = resolvePermanentRimRevealProgress(blockEntity, activationAge);
             drawPermanentCorridorSquarePortal(
                 poseStack,
@@ -297,13 +298,22 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             return;
         }
 
-        float previousAge = Math.max(activationAge - 1.0f, 0.0f);
+        float previousAge = replacementClosing
+            ? Math.min(activationAge + 1.0f, PERMANENT_OPEN_STAGE_TICKS)
+            : Math.max(activationAge - 1.0f, 0.0f);
         AlphaMask previousMask = currentMask;
 
         float currentHalfWidth = resolvePermanentOpeningHalfWidth(activationAge);
         float previousHalfWidth = resolvePermanentOpeningHalfWidth(previousAge);
         float currentPatchProgress = resolvePermanentPatchProgress(activationAge);
         float previousPatchProgress = resolvePermanentPatchProgress(previousAge);
+        float transientRimReveal = replacementClosing
+            ? easeOutCubic(Mth.clamp(
+                (activationAge - PERMANENT_SEAM_START_TICKS) / (PERMANENT_OPEN_STAGE_TICKS - PERMANENT_SEAM_START_TICKS),
+                0.0f,
+                1.0f
+            ))
+            : 0.0f;
 
         drawPermanentOpeningCorridorPortal(
             poseStack,
@@ -321,7 +331,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             worldTicks,
             membraneTintColour,
             internalAccentColour,
-            rimInnerColour
+            rimInnerColour,
+            !replacementClosing,
+            transientRimReveal,
+            edgeVeilColour,
+            rimOuterColour
         );
 
         poseStack.popPose();
@@ -372,7 +386,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         double worldTicks,
         int membraneTintColour,
         int internalAccentColour,
-        int activeEdgeColour
+        int activeEdgeColour,
+        boolean renderActiveBand,
+        float transientRimReveal,
+        int rimEdgeColour,
+        int rimOuterColour
     ) {
         poseStack.pushPose();
         poseStack.scale(PERMANENT_HALF_WIDTH / HALF_WIDTH, PERMANENT_HALF_HEIGHT / HALF_HEIGHT, 1.0f);
@@ -387,24 +405,40 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         drawMaskedPermanentPortalSurface(portalVc, mat4, halfW, halfH, -Z_EPSILON, currentMask, currentHalfWidth, currentPatchProgress);
         drawMaskedPermanentColorLayer(fxVc, mat4, normal, light, halfW, halfH, 0.0f, membraneTintColour, 0.72f, currentMask, currentHalfWidth, currentPatchProgress);
         drawMaskedPermanentColorLayer(energyVc, mat4, normal, light, halfW, halfH, Z_EPSILON + 0.0012f, internalAccentColour, 0.12f, currentMask, currentHalfWidth, currentPatchProgress);
-        drawPermanentActiveBand(
-            energyVc,
-            mat4,
-            normal,
-            light,
-            halfW,
-            halfH,
-            Z_EPSILON + 0.0025f,
-            currentMask,
-            previousMask,
-            currentHalfWidth,
-            previousHalfWidth,
-            currentPatchProgress,
-            previousPatchProgress,
-            worldTicks,
-            activeEdgeColour,
-            0.42f
-        );
+        if (transientRimReveal > 0.001f) {
+            drawPermanentSquareInnerRim(
+                poseStack,
+                fxVc,
+                energyVc,
+                light,
+                scale,
+                (float) (worldTicks * 0.042),
+                rimEdgeColour,
+                rimOuterColour,
+                activeEdgeColour,
+                transientRimReveal
+            );
+        }
+        if (renderActiveBand) {
+            drawPermanentActiveBand(
+                energyVc,
+                mat4,
+                normal,
+                light,
+                halfW,
+                halfH,
+                Z_EPSILON + 0.0025f,
+                currentMask,
+                previousMask,
+                currentHalfWidth,
+                previousHalfWidth,
+                currentPatchProgress,
+                previousPatchProgress,
+                worldTicks,
+                activeEdgeColour,
+                0.42f
+            );
+        }
 
         poseStack.popPose();
     }

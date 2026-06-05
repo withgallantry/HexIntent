@@ -96,14 +96,6 @@
       "input": "list, text",
       "output": "intent",
       "text": "hexcasting.page.manifestation.intents.intent_dropdown"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:destroy_manifestation",
-      "anchor": "manifestation:destroy_manifestation",
-      "input": "vec, num",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.intents.destroy_manifestation"
     }
   ]
 }

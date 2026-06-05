@@ -21,7 +21,7 @@
       "anchor": "manifestation:mind_vault_counts",
       "input": "vec",
       "output": "[num, num]",
-      "text": "hexcasting.page.manifestation.intents.mind_vault_counts"
+      "text": "hexcasting.page.manifestation.mind_vault.read"
     }
   ]
 }

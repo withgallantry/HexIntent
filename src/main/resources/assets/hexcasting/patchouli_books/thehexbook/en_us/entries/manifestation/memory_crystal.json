@@ -1,0 +1,48 @@
+{
+  "name": "hexcasting.entry.manifestation_memory_crystal",
+  "icon": "manifestation:memory_crystal",
+  "category": "hexcasting:items",
+  "sortnum": 12,
+  "advancement": "hexcasting:root",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "manifestation:memory_crystal",
+      "title": "item.manifestation.memory_crystal",
+      "text": "hexcasting.page.memory_crystal.1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.memory_crystal.2"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "manifestation:memory_crystal",
+      "text": "hexcasting.page.memory_crystal.crafting.desc"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:memory_reflection",
+      "anchor": "manifestation:memory_reflection",
+      "input": "none",
+      "output": "memory",
+      "text": "hexcasting.page.manifestation.menus.memory_reflection"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:replay_memory",
+      "anchor": "manifestation:replay_memory",
+      "input": "memory",
+      "output": "[pattern] | null",
+      "text": "hexcasting.page.manifestation.menus.replay_memory"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:store_memory",
+      "anchor": "manifestation:store_memory",
+      "input": "memory, iota",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.menus.store_memory"
+    }
+  ]
+}

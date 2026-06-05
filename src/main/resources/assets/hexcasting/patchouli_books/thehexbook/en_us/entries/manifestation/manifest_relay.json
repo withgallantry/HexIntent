@@ -1,0 +1,25 @@
+{
+  "name": "hexcasting.entry.manifestation_manifest_relay",
+  "category": "hexcasting:patterns/spells",
+  "icon": "manifestation:intent_relay",
+  "sortnum": 902,
+  "read_by_default": true,
+  "pages": [
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:link_intent_relay",
+      "anchor": "manifestation:link_intent_relay",
+      "input": "vec, vec, vec, num?",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.manifest_relay.link_intent_relay"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.manifest_relay.link_intent_relay.2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.portals.destroy_manifestation"
+    }
+  ]
+}
