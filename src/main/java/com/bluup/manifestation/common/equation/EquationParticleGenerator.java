@@ -18,6 +18,15 @@ public final class EquationParticleGenerator {
         int maxPoints,
         int evalBudget
     ) {
+        return generate(input, maxPoints, evalBudget, 0.0);
+    }
+
+    public static List<GeneratedPoint> generate(
+        EquationParticleConfig input,
+        int maxPoints,
+        int evalBudget,
+        double time
+    ) {
         EquationParticleConfig config = input.normalized();
         int targetPoints = Math.max(1, Math.min(config.pointCount(), maxPoints));
         int budget = Math.max(6, evalBudget);
@@ -50,7 +59,7 @@ public final class EquationParticleGenerator {
                         break;
                     }
                     double t = lerp(config.tMin(), config.tMax(), tSteps <= 1 ? 0.0 : (double) ti / (double) (tSteps - 1));
-                    addPoint(out, out.size(), targetPoints, mode, config, xCompiled, yCompiled, zCompiled, rCompiled, gCompiled, bCompiled, t, u);
+                    addPoint(out, out.size(), targetPoints, mode, config, xCompiled, yCompiled, zCompiled, rCompiled, gCompiled, bCompiled, t, u, time);
                     budget -= evalsPerPoint;
                 }
                 if (out.size() >= targetPoints || budget < evalsPerPoint) {
@@ -60,7 +69,7 @@ public final class EquationParticleGenerator {
         } else {
             for (int i = 0; i < targetPoints && budget >= evalsPerPoint; i++) {
                 double t = lerp(config.tMin(), config.tMax(), targetPoints <= 1 ? 0.0 : (double) i / (double) (targetPoints - 1));
-                addPoint(out, i, targetPoints, mode, config, xCompiled, yCompiled, zCompiled, rCompiled, gCompiled, bCompiled, t, 0.0);
+                addPoint(out, i, targetPoints, mode, config, xCompiled, yCompiled, zCompiled, rCompiled, gCompiled, bCompiled, t, 0.0, time);
                 budget -= evalsPerPoint;
             }
         }
@@ -94,11 +103,12 @@ public final class EquationParticleGenerator {
         EquationEvaluator.CompiledExpression gCompiled,
         EquationEvaluator.CompiledExpression bCompiled,
         double t,
-        double u
+        double u,
+        double time
     ) {
-        double x = xCompiled.eval(t, u);
-        double y = yCompiled.eval(t, u);
-        double z = zCompiled.eval(t, u);
+        double x = xCompiled.eval(t, u, time);
+        double y = yCompiled.eval(t, u, time);
+        double z = zCompiled.eval(t, u, time);
         if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) {
             return;
         }
@@ -115,9 +125,9 @@ public final class EquationParticleGenerator {
             );
         } else {
             color = clamp(
-                rCompiled.eval(t, u),
-                gCompiled.eval(t, u),
-                bCompiled.eval(t, u)
+                rCompiled.eval(t, u, time),
+                gCompiled.eval(t, u, time),
+                bCompiled.eval(t, u, time)
             );
         }
 
@@ -148,5 +158,33 @@ public final class EquationParticleGenerator {
 
     private static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
+    }
+
+    public static boolean usesTime(EquationParticleConfig config) {
+        return containsTime(config.xExpr())
+            || containsTime(config.yExpr())
+            || containsTime(config.zExpr())
+            || containsTime(config.colorExprR())
+            || containsTime(config.colorExprG())
+            || containsTime(config.colorExprB());
+    }
+
+    private static boolean containsTime(String expr) {
+        if (expr == null) {
+            return false;
+        }
+
+        String lower = expr.toLowerCase(Locale.ROOT);
+        int idx = lower.indexOf("time");
+        while (idx >= 0) {
+            boolean leftOk = idx == 0 || !Character.isLetterOrDigit(lower.charAt(idx - 1)) && lower.charAt(idx - 1) != '_';
+            int rightIndex = idx + 4;
+            boolean rightOk = rightIndex >= lower.length() || !Character.isLetterOrDigit(lower.charAt(rightIndex)) && lower.charAt(rightIndex) != '_';
+            if (leftOk && rightOk) {
+                return true;
+            }
+            idx = lower.indexOf("time", idx + 1);
+        }
+        return false;
     }
 }

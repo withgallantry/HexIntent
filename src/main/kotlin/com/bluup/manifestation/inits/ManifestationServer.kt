@@ -332,6 +332,7 @@ object ManifestationServer : ModInitializer {
                 return@registerGlobalReceiver
             }
             val animationPreset = buf.readUtf(32)
+            val animationSpeed = buf.readDouble()
             val renderDensity = buf.readDouble()
 
             server.execute {
@@ -374,13 +375,14 @@ object ManifestationServer : ModInitializer {
                     return@execute
                 }
 
-                val writeError = be.writeEquation(normalized, animationPreset)
+                val writeError = be.writeEquation(normalized, animationPreset, animationSpeed)
                 if (writeError != null) {
                     player.displayClientMessage(Component.literal("Equation write failed: $writeError"), false)
                     return@execute
                 }
 
                 be.setAnimationPreset(animationPreset)
+                be.setAnimationSpeed(animationSpeed)
                 be.setRenderDensity(renderDensity)
 
                 player.displayClientMessage(
@@ -546,6 +548,7 @@ object ManifestationServer : ModInitializer {
             )
             buf.writeNbt(config.serializeToNbt())
             buf.writeUtf(equation.animationPreset, 32)
+            buf.writeDouble(equation.animationSpeed)
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
         }

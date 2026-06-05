@@ -23,6 +23,7 @@ class EquationSynthBlockEntity(
     private var focus: ItemStack = ItemStack.EMPTY
     private var previewEquation: EquationParticleConfig? = null
     private var animationPreset: String = ANIM_ROTATE
+    private var animationSpeed: Double = DEFAULT_ANIMATION_SPEED
     private var renderDensity: Double = DEFAULT_RENDER_DENSITY
     private var refreshTicker = 0
 
@@ -33,6 +34,8 @@ class EquationSynthBlockEntity(
     fun getPreviewEquation(): EquationParticleConfig? = previewEquation
 
     fun getAnimationPreset(): String = animationPreset
+
+    fun getAnimationSpeed(): Double = animationSpeed
 
     fun getRenderDensity(): Double = renderDensity
 
@@ -74,6 +77,15 @@ class EquationSynthBlockEntity(
         markUpdated()
     }
 
+    fun setAnimationSpeed(value: Double) {
+        val normalized = normalizeAnimationSpeed(value)
+        if (animationSpeed == normalized) {
+            return
+        }
+        animationSpeed = normalized
+        markUpdated()
+    }
+
     fun setRenderDensity(value: Double) {
         val normalized = normalizeRenderDensity(value)
         if (renderDensity == normalized) {
@@ -83,7 +95,11 @@ class EquationSynthBlockEntity(
         markUpdated()
     }
 
-    fun writeEquation(config: EquationParticleConfig, animationPreset: String = this.animationPreset): String? {
+    fun writeEquation(
+        config: EquationParticleConfig,
+        animationPreset: String = this.animationPreset,
+        animationSpeed: Double = this.animationSpeed
+    ): String? {
         if (focus.isEmpty) {
             return "No focus inserted."
         }
@@ -93,6 +109,7 @@ class EquationSynthBlockEntity(
 
         val normalized = config.normalized()
         val normalizedAnimationPreset = normalizeAnimationPreset(animationPreset)
+        val normalizedAnimationSpeed = normalizeAnimationSpeed(animationSpeed)
         val iota = EquationParticleIota(
             normalized.xExpr(),
             normalized.yExpr(),
@@ -117,6 +134,7 @@ class EquationSynthBlockEntity(
             normalized.colorExprG(),
             normalized.colorExprB(),
             normalizedAnimationPreset
+            ,normalizedAnimationSpeed
         )
 
         if (!holder.writeIota(iota, true)) {
@@ -125,6 +143,7 @@ class EquationSynthBlockEntity(
 
         holder.writeIota(iota, false)
         this.animationPreset = normalizedAnimationPreset
+        this.animationSpeed = normalizedAnimationSpeed
         previewEquation = normalized
         syncVisualState()
         markUpdated()
@@ -152,6 +171,11 @@ class EquationSynthBlockEntity(
             null
         }
         animationPreset = normalizeAnimationPreset(KotlinNbtCompat.getString(tag, TAG_ANIMATION_PRESET))
+        animationSpeed = if (KotlinNbtCompat.contains(tag, TAG_ANIMATION_SPEED, CompoundTag.TAG_DOUBLE.toInt())) {
+            normalizeAnimationSpeed(KotlinNbtCompat.getDouble(tag, TAG_ANIMATION_SPEED))
+        } else {
+            DEFAULT_ANIMATION_SPEED
+        }
         renderDensity = if (KotlinNbtCompat.contains(tag, TAG_RENDER_DENSITY, CompoundTag.TAG_DOUBLE.toInt())) {
             normalizeRenderDensity(KotlinNbtCompat.getDouble(tag, TAG_RENDER_DENSITY))
         } else {
@@ -169,6 +193,7 @@ class EquationSynthBlockEntity(
             KotlinNbtCompat.put(tag, TAG_PREVIEW, writeConfigTag(preview))
         }
         KotlinNbtCompat.putString(tag, TAG_ANIMATION_PRESET, animationPreset)
+        KotlinNbtCompat.putDouble(tag, TAG_ANIMATION_SPEED, animationSpeed)
         KotlinNbtCompat.putDouble(tag, TAG_RENDER_DENSITY, renderDensity)
     }
 
@@ -234,6 +259,7 @@ class EquationSynthBlockEntity(
         val holder = IXplatAbstractions.INSTANCE.findDataHolder(focus) ?: return null
         val iota = holder.readIota(serverLevel) as? EquationParticleIota ?: return null
         animationPreset = normalizeAnimationPreset(iota.animationPreset)
+        animationSpeed = normalizeAnimationSpeed(iota.animationSpeed)
         return EquationParticleConfig(
             iota.xExpr,
             iota.yExpr,
@@ -318,9 +344,11 @@ class EquationSynthBlockEntity(
         private const val TAG_FOCUS = "Focus"
         private const val TAG_PREVIEW = "PreviewEquation"
         private const val TAG_ANIMATION_PRESET = "AnimationPreset"
+        private const val TAG_ANIMATION_SPEED = "AnimationSpeed"
         private const val TAG_RENDER_DENSITY = "RenderDensity"
 
         private const val DEFAULT_RENDER_DENSITY = 0.6
+        private const val DEFAULT_ANIMATION_SPEED = 1.0
 
         private const val ANIM_STATIC = "static"
         private const val ANIM_ROTATE = "rotate"
@@ -345,6 +373,13 @@ class EquationSynthBlockEntity(
                 return DEFAULT_RENDER_DENSITY
             }
             return value.coerceIn(0.1, 1.0)
+        }
+
+        private fun normalizeAnimationSpeed(value: Double): Double {
+            if (!value.isFinite()) {
+                return DEFAULT_ANIMATION_SPEED
+            }
+            return value.coerceIn(0.1, 4.0)
         }
     }
 }

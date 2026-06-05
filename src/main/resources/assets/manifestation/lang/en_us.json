@@ -32,8 +32,6 @@
   "hexcasting.action.manifestation:open_casting_screen": "Open Casting Screen",
   "hexcasting.action.manifestation:clear_stack": "Clear Stack",
 
-  "hexcasting.action.book.manifestation:intent_button": "Intent Button",
-  "hexcasting.action.book.manifestation:intent_input": "Intent Input",
   "hexcasting.action.book.manifestation:intent_numeric_input": "Intent Numeric Input",
   "hexcasting.action.book.manifestation:intent_slider": "Intent Slider",
   "hexcasting.action.book.manifestation:intent_checkbox": "Intent Checkbox",
@@ -121,8 +119,6 @@
   "block.manifestation.hex_reliquary.slot_label_default": "Slot %s",
   "message.manifestation.hex_reliquary.rename_hint": "Stored in slot %s. Rename the held focus in an anvil to set a custom label.",
 
-  "hexcasting.category.manifestation_menus": "General Manifestation",
-  "hexcasting.category.manifestation_menus.desc": "Pattern constructors for list, grid, and radial manifestations.",
   "hexcasting.category.manifestation_intents": "Intent",
   "hexcasting.category.manifestation_intents.desc": "Interactive intent primitives for manifested spells.",
 
@@ -200,7 +196,7 @@
   "hexcasting.page.manifestation.splinters.spell_circle.2": "$(br)Inputs:$(br)patterns: non-empty list of patterns to embed around the ring (max 48).$(br)origin: vector for circle center.$(br)facing: vector used as the circle plane.$(br2)duration: lifetime in ticks (1..1200).$(br2)size?: optional number 1..6 (default 3).",
   "hexcasting.page.manifestation.equation_synth.overview": "The Equation Synthesizer writes an Equation Particle iota directly into a held focus. Use it when you want large particle effects.",
   "hexcasting.page.manifestation.equation_synth.usage": "Insert a focus, open the synthesizer UI, and define x/y/z expressions with ranges and point count. Configure color mode (fixed, gradient, or expression), then click write to write the equation into the focus. You must right click the synthesizer first with a focus to insert, then with a non-empty hand to open the UI. Click with an empty hand to remove the focus.",
-  "hexcasting.page.manifestation.equation_synth.usage.2": "Use that stored iota with Equation Hex Cloud to render the particles.$(br2)Reusing the same cloud id updates the existing channel for smoother continuous animation during loops and quines.",
+  "hexcasting.page.manifestation.equation_synth.usage.2": "Use that stored iota with Equation Hex Cloud to render the particles.$(br2)Reusing the same cloud id updates the existing channel for smoother continuous animation during loops and quines.$(br2)You can also use the optional $(bold)time$() variable in your equations to make the shape itself animate over time.",
   "hexcasting.page.manifestation.hex_box.overview": "The Hex Reliquary copies the contents of a focus into itself, in one of five slots, it'll also copy the contents back to an empty focus. It'll use the focus's name as a slot label.",
   "hexcasting.page.manifestation.hex_box.usage": "Right click the reliquary with a focus to copy to it, and with an empty to copy from it. An empty hand will rotate the slots. Use a scrying lens to see what slot is selected and the name.",
   "hexcasting.page.manifestation.mind_vault.overview": "The Mind Vault lets you flay villagers body and mind into the vault, storing it for later use. The true innovation is that by consuming the essence of the villager, it allows you to reuse their mind over and over, with a cooldown between uses. The downside is that one vault can only store one type of villager mind, at that level.",

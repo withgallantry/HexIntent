@@ -17,6 +17,7 @@ public final class EquationParticleIota extends Iota {
     private static final String ANIM_PULSE = "pulse";
     private static final String ANIM_ORBIT = "orbit";
     private static final String ANIM_SPIN_BOB = "spin_bob";
+    private static final double DEFAULT_ANIMATION_SPEED = 1.0;
 
     private final String xExpr;
     private final String yExpr;
@@ -41,6 +42,7 @@ public final class EquationParticleIota extends Iota {
     private final String colorExprG;
     private final String colorExprB;
     private final String animationPreset;
+    private final double animationSpeed;
 
     public EquationParticleIota(
         String xExpr,
@@ -65,7 +67,8 @@ public final class EquationParticleIota extends Iota {
         String colorExprR,
         String colorExprG,
         String colorExprB,
-        String animationPreset
+        String animationPreset,
+        double animationSpeed
     ) {
         super(ManifestationUiIotaTypes.EQUATION_PARTICLE, List.of(pointCount));
         this.xExpr = Objects.requireNonNull(xExpr, "xExpr");
@@ -91,6 +94,7 @@ public final class EquationParticleIota extends Iota {
         this.colorExprG = Objects.requireNonNull(colorExprG, "colorExprG");
         this.colorExprB = Objects.requireNonNull(colorExprB, "colorExprB");
         this.animationPreset = normalizeAnimationPreset(animationPreset);
+        this.animationSpeed = normalizeAnimationSpeed(animationSpeed);
     }
 
     public EquationParticleIota(
@@ -127,7 +131,8 @@ public final class EquationParticleIota extends Iota {
             "1",
             "1",
             "1",
-            ANIM_ROTATE
+            ANIM_ROTATE,
+            DEFAULT_ANIMATION_SPEED
         );
     }
 
@@ -223,6 +228,10 @@ public final class EquationParticleIota extends Iota {
         return animationPreset;
     }
 
+    public double getAnimationSpeed() {
+        return animationSpeed;
+    }
+
     @Override
     public boolean isTruthy() {
         return true;
@@ -255,7 +264,8 @@ public final class EquationParticleIota extends Iota {
                 && colorExprR.equals(other.colorExprR)
                 && colorExprG.equals(other.colorExprG)
                 && colorExprB.equals(other.colorExprB)
-                && animationPreset.equals(other.animationPreset);
+                && animationPreset.equals(other.animationPreset)
+                && Math.abs(animationSpeed - other.animationSpeed) <= 1.0e-9;
     }
 
     @Override
@@ -284,6 +294,7 @@ public final class EquationParticleIota extends Iota {
         NBTHelper.putString(out, "color_expr_g", colorExprG);
         NBTHelper.putString(out, "color_expr_b", colorExprB);
         NBTHelper.putString(out, "anim_preset", animationPreset);
+        NBTHelper.putDouble(out, "anim_speed", animationSpeed);
         return out;
     }
 
@@ -311,7 +322,8 @@ public final class EquationParticleIota extends Iota {
             colorExprR,
             colorExprG,
             colorExprB,
-            animationPreset
+            animationPreset,
+            animationSpeed
         );
     }
 
@@ -328,6 +340,13 @@ public final class EquationParticleIota extends Iota {
             case ANIM_SPIN_BOB -> ANIM_SPIN_BOB;
             default -> ANIM_ROTATE;
         };
+    }
+
+    private static double normalizeAnimationSpeed(double raw) {
+        if (!Double.isFinite(raw)) {
+            return DEFAULT_ANIMATION_SPEED;
+        }
+        return Math.max(0.1, Math.min(4.0, raw));
     }
 
     @Override

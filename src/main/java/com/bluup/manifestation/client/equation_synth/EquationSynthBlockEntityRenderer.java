@@ -61,20 +61,29 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
 
         long cacheKey = blockEntity.getBlockPos().asLong();
         long fingerprint = fingerprint(config);
-        CachedPreview preview = CACHE.get(cacheKey);
-        if (preview == null || preview.fingerprint != fingerprint) {
-            preview = rebuild(config, fingerprint);
-            CACHE.put(cacheKey, preview);
-            if (CACHE.size() > 512) {
-                CACHE.clear();
+        long gameTime = blockEntity.getLevel() == null ? 0L : blockEntity.getLevel().getGameTime();
+        float animTime = gameTime + partialTick;
+        float animationSpeed = (float) blockEntity.getAnimationSpeed();
+
+        boolean timeDependent = EquationParticleGenerator.usesTime(config);
+        CachedPreview preview;
+        if (timeDependent) {
+            preview = rebuild(config, fingerprint, animTime);
+        } else {
+            preview = CACHE.get(cacheKey);
+            if (preview == null || preview.fingerprint != fingerprint) {
+                preview = rebuild(config, fingerprint, 0.0);
+                CACHE.put(cacheKey, preview);
+                if (CACHE.size() > 512) {
+                    CACHE.clear();
+                }
             }
         }
+
         if (preview.points.isEmpty()) {
             return;
         }
 
-        long gameTime = blockEntity.getLevel() == null ? 0L : blockEntity.getLevel().getGameTime();
-        float animTime = gameTime + partialTick;
         double density = Mth.clamp(blockEntity.getRenderDensity(), 0.1, 1.0);
         int targetVisible = Mth.clamp((int) Math.round(TARGET_VISIBLE_MIN + (density * (TARGET_VISIBLE_MAX - TARGET_VISIBLE_MIN))), TARGET_VISIBLE_MIN, TARGET_VISIBLE_MAX);
         int step = Math.max(1, (preview.points.size() + targetVisible - 1) / targetVisible);
@@ -83,7 +92,7 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.55, 0.5);
-        applyAnimationPreset(poseStack, blockEntity.getAnimationPreset(), animTime);
+        applyAnimationPreset(poseStack, blockEntity.getAnimationPreset(), animTime, animationSpeed);
 
         VertexConsumer sparkBuffer = buffer.getBuffer(RenderType.lightning());
         PoseStack.Pose pose = poseStack.last();
@@ -135,35 +144,37 @@ public final class EquationSynthBlockEntityRenderer implements BlockEntityRender
         poseStack.popPose();
     }
 
-    private static void applyAnimationPreset(PoseStack poseStack, String preset, float animTime) {
+    private static void applyAnimationPreset(PoseStack poseStack, String preset, float animTime, float speed) {
+        float scaledTime = animTime * Math.max(0.1f, speed);
         switch (preset) {
             case "static" -> {
                 // Keep rendered cloud fixed in-place.
             }
-            case "bob" -> poseStack.translate(0.0, Mth.sin(animTime * 0.09f) * 0.08f, 0.0);
+            case "bob" -> poseStack.translate(0.0, Mth.sin(scaledTime * 0.09f) * 0.08f, 0.0);
             case "pulse" -> {
-                float scale = 1.0f + (0.18f * Mth.sin(animTime * 0.12f));
+                float scale = 1.0f + (0.18f * Mth.sin(scaledTime * 0.12f));
                 poseStack.scale(scale, scale, scale);
             }
             case "orbit" -> {
-                poseStack.translate(Mth.cos(animTime * 0.05f) * 0.08f, 0.0, Mth.sin(animTime * 0.05f) * 0.08f);
-                poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.4f));
+                poseStack.translate(Mth.cos(scaledTime * 0.05f) * 0.08f, 0.0, Mth.sin(scaledTime * 0.05f) * 0.08f);
+                poseStack.mulPose(Axis.YP.rotationDegrees(scaledTime * 1.4f));
             }
             case "spin_bob" -> {
-                poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.9f));
-                poseStack.translate(0.0, Mth.sin(animTime * 0.09f) * 0.08f, 0.0);
+                poseStack.mulPose(Axis.YP.rotationDegrees(scaledTime * 1.9f));
+                poseStack.translate(0.0, Mth.sin(scaledTime * 0.09f) * 0.08f, 0.0);
             }
-            default -> poseStack.mulPose(Axis.YP.rotationDegrees(animTime * 1.9f));
+            default -> poseStack.mulPose(Axis.YP.rotationDegrees(scaledTime * 1.9f));
         }
     }
 
-    private static CachedPreview rebuild(EquationParticleConfig input, long fingerprint) {
+    private static CachedPreview rebuild(EquationParticleConfig input, long fingerprint, double time) {
         EquationParticleConfig config = input.normalized();
         try {
             List<EquationParticleGenerator.GeneratedPoint> generated = EquationParticleGenerator.generate(
                 config,
                 PREVIEW_MAX_POINTS,
-                PREVIEW_EVAL_BUDGET
+                PREVIEW_EVAL_BUDGET,
+                time
             );
 
             if (generated.isEmpty()) {

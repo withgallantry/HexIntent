@@ -92,6 +92,7 @@ public final class EquationSynthScreen extends Screen {
     private Button colorPanelButton;
     private Button animationPanelButton;
     private Button animationPresetButton;
+    private AnimationSpeedSlider animationSpeedSlider;
     private DensitySlider densitySlider;
     private Button writeButton;
     private Button closeButton;
@@ -104,6 +105,37 @@ public final class EquationSynthScreen extends Screen {
         "orbit",
         "static"
     };
+
+    private static final class AnimationSpeedSlider extends AbstractSliderButton {
+        AnimationSpeedSlider(int x, int y, int width, int height, double initial) {
+            super(x, y, width, height, Component.empty(), normalize(initial));
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            this.setMessage(Component.literal(String.format(java.util.Locale.ROOT, "Speed: %.2fx", getSpeed())));
+        }
+
+        @Override
+        protected void applyValue() {
+            updateMessage();
+        }
+
+        double getSpeed() {
+            return 0.1 + (this.value * 3.9);
+        }
+
+        void setSpeed(double speed) {
+            this.value = normalize(speed);
+            updateMessage();
+        }
+
+        private static double normalize(double raw) {
+            double clamped = Math.max(0.1, Math.min(4.0, raw));
+            return (clamped - 0.1) / 3.9;
+        }
+    }
 
     private static final class DensitySlider extends AbstractSliderButton {
         DensitySlider(int x, int y, int width, int height, double initial) {
@@ -288,6 +320,8 @@ public final class EquationSynthScreen extends Screen {
         }).bounds(this.leftPanelX + 8, 0, this.inputWidth, 20).build());
         syncAnimationPresetButton();
 
+        this.animationSpeedSlider = this.addRenderableWidget(new AnimationSpeedSlider(this.leftPanelX + 8, 0, this.inputWidth, 20, 1.0));
+
         this.densitySlider = this.addRenderableWidget(new DensitySlider(this.leftPanelX + 8, 0, this.inputWidth, 20, 0.6));
 
         this.colorA_R = addNumBox(this.leftPanelX + 8, 0, 42, "0.96");
@@ -424,6 +458,7 @@ public final class EquationSynthScreen extends Screen {
 
         if (!animationPanelCollapsed) {
             graphics.drawString(this.font, "Animation Preset", this.animationPresetButton.getX(), this.animationPresetButton.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
+            graphics.drawString(this.font, "Animation Speed", this.animationSpeedSlider.getX(), this.animationSpeedSlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
             graphics.drawString(this.font, "Render Density", this.densitySlider.getX(), this.densitySlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
         }
 
@@ -448,7 +483,7 @@ public final class EquationSynthScreen extends Screen {
 
         for (int i = 0; i < previewDots.size(); i++) {
             Dot dot = previewDots.get(i);
-            Vec3 animated = applyPreviewAnimation(dot.x, dot.y, dot.z, animationPreset, animTime);
+            Vec3 animated = applyPreviewAnimation(dot.x, dot.y, dot.z, animationPreset, animTime, this.animationSpeedSlider.getSpeed());
             double x1 = animated.x * cy + animated.z * sy;
             double z1 = -animated.x * sy + animated.z * cy;
             double y1 = animated.y * cp - z1 * sp;
@@ -608,10 +643,13 @@ public final class EquationSynthScreen extends Screen {
 
         boolean animationVisible = !animationPanelCollapsed;
         setWidgetVisible(this.animationPresetButton, animationVisible);
+        setWidgetVisible(this.animationSpeedSlider, animationVisible);
         setWidgetVisible(this.densitySlider, animationVisible);
         if (animationVisible) {
             y += PANEL_CONTENT_TOP_PADDING;
             this.animationPresetButton.setY(y);
+            y += 36;
+            this.animationSpeedSlider.setY(y);
             y += 36;
             this.densitySlider.setY(y);
             y += 36;
@@ -655,6 +693,7 @@ public final class EquationSynthScreen extends Screen {
 
         this.animationPreset = synth.getAnimationPreset();
         syncAnimationPresetButton();
+        this.animationSpeedSlider.setSpeed(synth.getAnimationSpeed());
         this.densitySlider.setDensity(synth.getRenderDensity());
     }
 
@@ -731,6 +770,7 @@ public final class EquationSynthScreen extends Screen {
         buf.writeBlockPos(blockPos);
         buf.writeNbt(config.serializeToNbt());
         buf.writeUtf(animationPreset, 32);
+        buf.writeDouble(this.animationSpeedSlider.getSpeed());
         buf.writeDouble(this.densitySlider.getDensity());
         ClientPlayNetworking.send(ManifestationNetworking.WRITE_EQUATION_PARTICLE_C2S, buf);
 
@@ -856,24 +896,25 @@ public final class EquationSynthScreen extends Screen {
         }
     }
 
-    private static Vec3 applyPreviewAnimation(double x, double y, double z, String preset, double animTime) {
+    private static Vec3 applyPreviewAnimation(double x, double y, double z, String preset, double animTime, double speed) {
+        double scaledTime = animTime * Math.max(0.1, speed);
         return switch (preset) {
             case "static" -> new Vec3(x, y, z);
-            case "bob" -> new Vec3(x, y + (Math.sin(animTime * 0.09) * 0.08), z);
+            case "bob" -> new Vec3(x, y + (Math.sin(scaledTime * 0.09) * 0.08), z);
             case "pulse" -> {
-                double s = 1.0 + (0.18 * Math.sin(animTime * 0.12));
+                double s = 1.0 + (0.18 * Math.sin(scaledTime * 0.12));
                 yield new Vec3(x * s, y * s, z * s);
             }
             case "orbit" -> {
-                double tx = x + (Math.cos(animTime * 0.05) * 0.08);
-                double tz = z + (Math.sin(animTime * 0.05) * 0.08);
-                yield rotateY(tx, y, tz, Math.toRadians(animTime * 1.4));
+                double tx = x + (Math.cos(scaledTime * 0.05) * 0.08);
+                double tz = z + (Math.sin(scaledTime * 0.05) * 0.08);
+                yield rotateY(tx, y, tz, Math.toRadians(scaledTime * 1.4));
             }
             case "spin_bob" -> {
-                Vec3 spun = rotateY(x, y, z, Math.toRadians(animTime * 1.9));
-                yield new Vec3(spun.x, spun.y + (Math.sin(animTime * 0.09) * 0.08), spun.z);
+                Vec3 spun = rotateY(x, y, z, Math.toRadians(scaledTime * 1.9));
+                yield new Vec3(spun.x, spun.y + (Math.sin(scaledTime * 0.09) * 0.08), spun.z);
             }
-            default -> rotateY(x, y, z, Math.toRadians(animTime * 1.9));
+            default -> rotateY(x, y, z, Math.toRadians(scaledTime * 1.9));
         };
     }
 

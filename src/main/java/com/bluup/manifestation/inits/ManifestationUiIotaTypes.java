@@ -374,6 +374,7 @@ public final class ManifestationUiIotaTypes {
             String colorExprG = NBTHelper.hasString(ctag, "color_expr_g") ? NBTHelper.getString(ctag, "color_expr_g") : "1";
             String colorExprB = NBTHelper.hasString(ctag, "color_expr_b") ? NBTHelper.getString(ctag, "color_expr_b") : "1";
             String animPreset = NBTHelper.hasString(ctag, "anim_preset") ? NBTHelper.getString(ctag, "anim_preset") : "rotate";
+            double animSpeed = NBTHelper.hasDouble(ctag, "anim_speed") ? NBTHelper.getDouble(ctag, "anim_speed") : 1.0;
 
             return new EquationParticleIota(
                 x,
@@ -398,7 +399,8 @@ public final class ManifestationUiIotaTypes {
                 colorExprR,
                 colorExprG,
                 colorExprB,
-                animPreset
+                animPreset,
+                animSpeed
             );
         }
 
@@ -409,9 +411,10 @@ public final class ManifestationUiIotaTypes {
             boolean useU = NBTHelper.getBoolean(ctag, "use_u");
             String mode = NBTHelper.hasString(ctag, "color_mode") ? NBTHelper.getString(ctag, "color_mode") : "gradient";
             String animPreset = NBTHelper.hasString(ctag, "anim_preset") ? NBTHelper.getString(ctag, "anim_preset") : "rotate";
+            double animSpeed = NBTHelper.hasDouble(ctag, "anim_speed") ? NBTHelper.getDouble(ctag, "anim_speed") : 1.0;
             String x = NBTHelper.getString(ctag, "x");
             return Component.literal("EquationParticle(")
-                .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", anim=" + animPreset + ", x=" + x).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", anim=" + animPreset + "@" + String.format(java.util.Locale.ROOT, "%.2f", animSpeed) + ", x=" + x).withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(")").withStyle(ChatFormatting.LIGHT_PURPLE))
                 .withStyle(ChatFormatting.LIGHT_PURPLE);
         }

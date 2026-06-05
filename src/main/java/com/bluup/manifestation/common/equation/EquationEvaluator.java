@@ -6,7 +6,7 @@ import java.util.Locale;
 
 public final class EquationEvaluator {
     public interface CompiledExpression {
-        double eval(double t, double u);
+        double eval(double t, double u, double time);
     }
 
     private EquationEvaluator() {
@@ -18,8 +18,8 @@ public final class EquationEvaluator {
         }
         Parser parser = new Parser(expression);
         Node root = parser.parse();
-        return (t, u) -> {
-            double v = root.eval(t, u);
+        return (t, u, time) -> {
+            double v = root.eval(t, u, time);
             if (!Double.isFinite(v)) {
                 throw new IllegalArgumentException("non_finite_result");
             }
@@ -28,36 +28,41 @@ public final class EquationEvaluator {
     }
 
     private interface Node {
-        double eval(double t, double u);
+        double eval(double t, double u, double time);
     }
 
     private record NumberNode(double value) implements Node {
         @Override
-        public double eval(double t, double u) {
+        public double eval(double t, double u, double time) {
             return value;
         }
     }
 
-    private record VarNode(char symbol) implements Node {
+    private record VarNode(String symbol) implements Node {
         @Override
-        public double eval(double t, double u) {
-            return symbol == 't' ? t : u;
+        public double eval(double t, double u, double time) {
+            return switch (symbol) {
+                case "t", "path" -> t;
+                case "u", "sweep" -> u;
+                case "time" -> time;
+                default -> throw new IllegalStateException("Unexpected variable: " + symbol);
+            };
         }
     }
 
     private record UnaryNode(char op, Node child) implements Node {
         @Override
-        public double eval(double t, double u) {
-            double v = child.eval(t, u);
+        public double eval(double t, double u, double time) {
+            double v = child.eval(t, u, time);
             return op == '-' ? -v : v;
         }
     }
 
     private record BinaryNode(char op, Node left, Node right) implements Node {
         @Override
-        public double eval(double t, double u) {
-            double a = left.eval(t, u);
-            double b = right.eval(t, u);
+        public double eval(double t, double u, double time) {
+            double a = left.eval(t, u, time);
+            double b = right.eval(t, u, time);
             return switch (op) {
                 case '+' -> a + b;
                 case '-' -> a - b;
@@ -71,24 +76,24 @@ public final class EquationEvaluator {
 
     private record FuncNode(String name, List<Node> args) implements Node {
         @Override
-        public double eval(double t, double u) {
+        public double eval(double t, double u, double time) {
             return switch (name) {
-                case "sin" -> Math.sin(args.get(0).eval(t, u));
-                case "cos" -> Math.cos(args.get(0).eval(t, u));
-                case "tan" -> Math.tan(args.get(0).eval(t, u));
-                case "asin" -> Math.asin(args.get(0).eval(t, u));
-                case "acos" -> Math.acos(args.get(0).eval(t, u));
-                case "atan" -> Math.atan(args.get(0).eval(t, u));
-                case "sqrt" -> Math.sqrt(args.get(0).eval(t, u));
-                case "abs" -> Math.abs(args.get(0).eval(t, u));
-                case "exp" -> Math.exp(args.get(0).eval(t, u));
-                case "log" -> Math.log(args.get(0).eval(t, u));
-                case "floor" -> Math.floor(args.get(0).eval(t, u));
-                case "ceil" -> Math.ceil(args.get(0).eval(t, u));
-                case "round" -> Math.rint(args.get(0).eval(t, u));
-                case "min" -> Math.min(args.get(0).eval(t, u), args.get(1).eval(t, u));
-                case "max" -> Math.max(args.get(0).eval(t, u), args.get(1).eval(t, u));
-                case "pow" -> Math.pow(args.get(0).eval(t, u), args.get(1).eval(t, u));
+                case "sin" -> Math.sin(args.get(0).eval(t, u, time));
+                case "cos" -> Math.cos(args.get(0).eval(t, u, time));
+                case "tan" -> Math.tan(args.get(0).eval(t, u, time));
+                case "asin" -> Math.asin(args.get(0).eval(t, u, time));
+                case "acos" -> Math.acos(args.get(0).eval(t, u, time));
+                case "atan" -> Math.atan(args.get(0).eval(t, u, time));
+                case "sqrt" -> Math.sqrt(args.get(0).eval(t, u, time));
+                case "abs" -> Math.abs(args.get(0).eval(t, u, time));
+                case "exp" -> Math.exp(args.get(0).eval(t, u, time));
+                case "log" -> Math.log(args.get(0).eval(t, u, time));
+                case "floor" -> Math.floor(args.get(0).eval(t, u, time));
+                case "ceil" -> Math.ceil(args.get(0).eval(t, u, time));
+                case "round" -> Math.rint(args.get(0).eval(t, u, time));
+                case "min" -> Math.min(args.get(0).eval(t, u, time), args.get(1).eval(t, u, time));
+                case "max" -> Math.max(args.get(0).eval(t, u, time), args.get(1).eval(t, u, time));
+                case "pow" -> Math.pow(args.get(0).eval(t, u, time), args.get(1).eval(t, u, time));
                 default -> throw new IllegalArgumentException("unknown_function");
             };
         }
@@ -151,14 +156,14 @@ public final class EquationEvaluator {
             }
             if (match(TokenType.IDENT)) {
                 String name = previous().text;
-                if ("t".equals(name) || "u".equals(name)) {
-                    return new VarNode(name.charAt(0));
+                if ("t".equals(name) || "u".equals(name) || "time".equals(name)) {
+                    return new VarNode(name);
                 }
                 if ("path".equals(name)) {
-                    return new VarNode('t');
+                    return new VarNode("path");
                 }
                 if ("sweep".equals(name)) {
-                    return new VarNode('u');
+                    return new VarNode("sweep");
                 }
                 if ("pi".equals(name)) {
                     return new NumberNode(Math.PI);
