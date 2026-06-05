@@ -10,12 +10,20 @@ on:
         description: Release this version
         type: boolean
         default: false
+      publish:
+        description: Package index to publish to
+        type: choice
+        default: none
+        options:
+          - none
+          - PyPI
 
 permissions:
   contents: read
 
 env:
   HEXDOC_BRANCHES: '["main"]'
+  PYPI_PACKAGE: hexdoc-hexintent
 
 jobs:
   build-hexdoc:
@@ -26,6 +34,7 @@ jobs:
     outputs:
       pages-url: ${{ steps.build.outputs.pages-url }}
       deploy: ${{ github.event_name != 'pull_request' && contains(fromJson(env.HEXDOC_BRANCHES), github.ref_name) || inputs.release == true }}
+      release: ${{ inputs.release == true }}
     steps:
       - uses: actions/checkout@v4
 
@@ -83,3 +92,22 @@ jobs:
           release: ${{ inputs.release == true }}
           merge: false
           pages-branch: gh-pages
+
+  publish-pypi:
+    needs: build-hexdoc
+    if: needs.build-hexdoc.outputs.release == 'true' && inputs.publish == 'PyPI'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/${{ env.PYPI_PACKAGE }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hexdoc-build
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

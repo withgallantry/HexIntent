@@ -30,6 +30,17 @@ hexdoc merge
 hexdoc serve
 ```
 
+## Publish to PyPI
+
+The Python package published from this repo is `hexdoc-hexintent`.
+
+Use the `Build the web book` GitHub Actions workflow with:
+
+- `release = true`
+- `publish = PyPI`
+
+The workflow publishes via GitHub OIDC trusted publishing, so the repository must be configured as a trusted publisher for the `hexdoc-hexintent` project on PyPI.
+
 Watch mode:
 
 ```sh
