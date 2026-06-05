@@ -1,17 +1,10 @@
 {
   "name": "hexcasting.entry.manifestation_manifest_relay",
   "category": "hexcasting:patterns/spells",
-  "icon": "manifestation:intent_relay",
+  "icon": "manifestation:textures/block/intent_circle/intent_circle.png",
   "sortnum": 902,
   "read_by_default": true,
   "pages": [
-    {
-      "type": "patchouli:image",
-      "images": [
-        "manifestation:textures/block/intent_circle/intent_circle.png"
-      ],
-      "border": false
-    },
     {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:link_intent_relay",

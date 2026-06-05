@@ -1,10 +1,14 @@
 {
   "name": "hexcasting.entry.manifestation_manifest_portals",
   "category": "hexcasting:patterns/spells",
-  "icon": "minecraft:end_portal",
+  "icon": "manifestation:permanent_threshold_frame",
   "sortnum": 901,
   "read_by_default": true,
   "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "hexcasting.page.manifestation.portals_intro"
+    },
     {
       "type": "hexcasting:pattern",
       "op_id": "manifestation:open_corridor_portal",

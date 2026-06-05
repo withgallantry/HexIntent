@@ -73,8 +73,11 @@ object OpSetCharmCastSound : Action {
                 if (!BuiltInRegistries.SOUND_EVENT.containsKey(loc)) {
                     throw MishapInvalidIota.ofType(arg, 0, "registered minecraft sound id")
                 }
+                if (env.extractMedia(SILENCE_CHARM_MEDIA_COST, true) > 0) {
+                    throw MishapNotEnoughMedia(SILENCE_CHARM_MEDIA_COST)
+                }
                 CharmCastSoundOverrides.setSoundId(target, loc.toString())
-                emptyList<OperatorSideEffect>() to HexEvalSounds.NORMAL_EXECUTE
+                listOf(OperatorSideEffect.ConsumeMedia(SILENCE_CHARM_MEDIA_COST)) to HexEvalSounds.NORMAL_EXECUTE
             }
         }
         val (sideEffects, evalSound) = soundResult
