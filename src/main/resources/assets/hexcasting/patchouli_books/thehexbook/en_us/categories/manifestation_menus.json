@@ -1,0 +1,7 @@
+{
+  "name": "hexcasting.category.manifestation_menus",
+  "icon": "minecraft:book",
+  "description": "hexcasting.category.manifestation_menus.desc",
+  "parent": "hexcasting:patterns",
+  "sortnum": 2
+}
