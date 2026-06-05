@@ -30,7 +30,9 @@ public final class EquationCloudVisuals {
     private static final Map<CloudKey, CloudState> ACTIVE = new HashMap<>();
 
     private static final double ORIGIN_EPSILON_SQ = 1.0e-6;
-    private static final int CLOUD_TTL_TICKS = 100;
+    private static final int DEFAULT_DURATION_TICKS = 100;
+    private static final float FADE_IN_TICKS = 10.0f;
+    private static final float FADE_OUT_TICKS = 10.0f;
     private static final int MOVE_TICKS = 8;
     private static final float BASE_POINT_HALF = 0.017f;
     private static final float DRIFT_RADIUS = 0.016f;
@@ -61,6 +63,7 @@ public final class EquationCloudVisuals {
                 EquationParticleConfig config = EquationParticleConfig.fromNbt(configTag).normalized();
                 String animationPreset = buf.readableBytes() > 0 ? buf.readUtf(32) : "rotate";
                 double animationSpeed = buf.readableBytes() > 0 ? buf.readDouble() : 1.0;
+                int durationTicks = buf.readableBytes() > 0 ? buf.readVarInt() : DEFAULT_DURATION_TICKS;
 
                 client.execute(() -> {
                     if (client.level == null) {
@@ -69,7 +72,7 @@ public final class EquationCloudVisuals {
                     long now = client.level.getGameTime();
                     CloudKey key = new CloudKey(sourceId, id);
                     CloudState state = ACTIVE.computeIfAbsent(key, ignored -> new CloudState());
-                    state.applyUpdate(dimensionId, origin, config, animationPreset, animationSpeed, resolvedFollowEntityId, resolvedFollowOffset, now);
+                    state.applyUpdate(dimensionId, origin, config, animationPreset, animationSpeed, durationTicks, resolvedFollowEntityId, resolvedFollowOffset, now);
                 });
             }
         );
@@ -84,7 +87,7 @@ public final class EquationCloudVisuals {
         }
 
         long now = mc.level.getGameTime();
-        ACTIVE.entrySet().removeIf(entry -> now - entry.getValue().lastUpdateTick > CLOUD_TTL_TICKS);
+    ACTIVE.entrySet().removeIf(entry -> now - entry.getValue().lastUpdateTick > entry.getValue().durationTicks);
     }
 
     private static void render(Minecraft mc, PoseStack poseStack) {
@@ -134,7 +137,7 @@ public final class EquationCloudVisuals {
                 int step = computeSampleStep(points.size(), dist);
                 int phase = Math.floorMod(state.sampleSeed, step);
                 float baseSize = computePointHalfSize(dist);
-                float alpha = computeAlpha(dist);
+                float alpha = computeAlpha(dist) * computeFadeInAlpha(state, animTime) * computeFadeOutAlpha(state, animTime);
                 String animationPreset = state.animationPreset;
                 float animationSpeed = (float) Math.max(0.1, state.animationSpeed);
                 float scaledTime = animTime * animationSpeed;
@@ -262,6 +265,17 @@ public final class EquationCloudVisuals {
         return 0.58f;
     }
 
+    private static float computeFadeInAlpha(CloudState state, float animTime) {
+        float ageTicks = animTime - state.spawnTick;
+        return Mth.clamp(ageTicks / FADE_IN_TICKS, 0.0f, 1.0f);
+    }
+
+    private static float computeFadeOutAlpha(CloudState state, float animTime) {
+        float ageSinceRefresh = animTime - state.lastUpdateTick;
+        float remainingTicks = state.durationTicks - ageSinceRefresh;
+        return Mth.clamp(remainingTicks / FADE_OUT_TICKS, 0.0f, 1.0f);
+    }
+
     private static void addBillboardQuad(
         VertexConsumer vc,
         Matrix4f mat,
@@ -338,6 +352,8 @@ public final class EquationCloudVisuals {
         int sampleSeed;
         String animationPreset = "rotate";
         double animationSpeed = 1.0;
+        int durationTicks = DEFAULT_DURATION_TICKS;
+        long spawnTick;
 
         long lastUpdateTick;
         boolean initialized;
@@ -348,6 +364,7 @@ public final class EquationCloudVisuals {
             EquationParticleConfig newConfig,
             String animationPreset,
             double animationSpeed,
+            int durationTicks,
             Integer followEntityId,
             Vec3 followOffset,
             long now
@@ -367,6 +384,7 @@ public final class EquationCloudVisuals {
             this.followOffset = resolvedFollowOffset;
             this.animationPreset = normalizedAnimationPreset;
             this.animationSpeed = normalizedAnimationSpeed;
+            this.durationTicks = normalizeDurationTicks(durationTicks);
             this.timeDependent = newTimeDependent;
 
             if (!initialized || !Objects.equals(this.dimensionId, dimensionId)) {
@@ -376,6 +394,7 @@ public final class EquationCloudVisuals {
                 this.moveStartTick = now;
                 this.moveTicks = MOVE_TICKS;
                 this.sampleSeed = Objects.hash(dimensionId, fp, newOrigin.x, newOrigin.y, newOrigin.z);
+                this.spawnTick = now;
                 this.initialized = true;
             } else if (followEntityId != null && sameShape && sameFollowBinding) {
                 // Follow-bound clouds should stay entity-anchored, not packet-snapshot-anchored.
@@ -405,6 +424,7 @@ public final class EquationCloudVisuals {
                 this.moveStartTick = now;
                 this.moveTicks = 1;
                 this.sampleSeed = Objects.hash(dimensionId, fp, newOrigin.x, newOrigin.y, newOrigin.z, now);
+                this.spawnTick = now;
             }
 
             if (!sameShape) {
@@ -418,6 +438,7 @@ public final class EquationCloudVisuals {
                 } catch (IllegalArgumentException ex) {
                     this.points = List.of();
                 }
+                this.spawnTick = now;
             }
 
             this.config = newConfig;
@@ -507,6 +528,10 @@ public final class EquationCloudVisuals {
                 return 1.0;
             }
             return Math.max(0.1, Math.min(4.0, raw));
+        }
+
+        private static int normalizeDurationTicks(int raw) {
+            return Math.max(20, Math.min(20 * 60, raw));
         }
     }
 

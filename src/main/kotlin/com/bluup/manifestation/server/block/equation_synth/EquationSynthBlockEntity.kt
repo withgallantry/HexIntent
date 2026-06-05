@@ -25,6 +25,7 @@ class EquationSynthBlockEntity(
     private var animationPreset: String = ANIM_ROTATE
     private var animationSpeed: Double = DEFAULT_ANIMATION_SPEED
     private var renderDensity: Double = DEFAULT_RENDER_DENSITY
+    private var cloudDurationTicks: Int = DEFAULT_DURATION_TICKS
     private var refreshTicker = 0
 
     fun hasFocus(): Boolean = !focus.isEmpty
@@ -38,6 +39,8 @@ class EquationSynthBlockEntity(
     fun getAnimationSpeed(): Double = animationSpeed
 
     fun getRenderDensity(): Double = renderDensity
+
+    fun getCloudDurationTicks(): Int = cloudDurationTicks
 
     fun getFocusCopy(): ItemStack = if (focus.isEmpty) ItemStack.EMPTY else focus.copy()
 
@@ -95,10 +98,20 @@ class EquationSynthBlockEntity(
         markUpdated()
     }
 
+    fun setCloudDurationTicks(value: Int) {
+        val normalized = normalizeDurationTicks(value)
+        if (cloudDurationTicks == normalized) {
+            return
+        }
+        cloudDurationTicks = normalized
+        markUpdated()
+    }
+
     fun writeEquation(
         config: EquationParticleConfig,
         animationPreset: String = this.animationPreset,
-        animationSpeed: Double = this.animationSpeed
+        animationSpeed: Double = this.animationSpeed,
+        durationTicks: Int = this.cloudDurationTicks
     ): String? {
         if (focus.isEmpty) {
             return "No focus inserted."
@@ -110,6 +123,7 @@ class EquationSynthBlockEntity(
         val normalized = config.normalized()
         val normalizedAnimationPreset = normalizeAnimationPreset(animationPreset)
         val normalizedAnimationSpeed = normalizeAnimationSpeed(animationSpeed)
+        val normalizedDurationTicks = normalizeDurationTicks(durationTicks)
         val iota = EquationParticleIota(
             normalized.xExpr(),
             normalized.yExpr(),
@@ -133,8 +147,9 @@ class EquationSynthBlockEntity(
             normalized.colorExprR(),
             normalized.colorExprG(),
             normalized.colorExprB(),
-            normalizedAnimationPreset
-            ,normalizedAnimationSpeed
+            normalizedAnimationPreset,
+            normalizedAnimationSpeed,
+            normalizedDurationTicks
         )
 
         if (!holder.writeIota(iota, true)) {
@@ -144,6 +159,7 @@ class EquationSynthBlockEntity(
         holder.writeIota(iota, false)
         this.animationPreset = normalizedAnimationPreset
         this.animationSpeed = normalizedAnimationSpeed
+        this.cloudDurationTicks = normalizedDurationTicks
         previewEquation = normalized
         syncVisualState()
         markUpdated()
@@ -181,6 +197,11 @@ class EquationSynthBlockEntity(
         } else {
             DEFAULT_RENDER_DENSITY
         }
+        cloudDurationTicks = if (KotlinNbtCompat.contains(tag, TAG_CLOUD_DURATION_TICKS, CompoundTag.TAG_INT.toInt())) {
+            normalizeDurationTicks(KotlinNbtCompat.getInt(tag, TAG_CLOUD_DURATION_TICKS))
+        } else {
+            DEFAULT_DURATION_TICKS
+        }
     }
 
     override fun saveAdditional(tag: CompoundTag) {
@@ -195,6 +216,7 @@ class EquationSynthBlockEntity(
         KotlinNbtCompat.putString(tag, TAG_ANIMATION_PRESET, animationPreset)
         KotlinNbtCompat.putDouble(tag, TAG_ANIMATION_SPEED, animationSpeed)
         KotlinNbtCompat.putDouble(tag, TAG_RENDER_DENSITY, renderDensity)
+        KotlinNbtCompat.putInt(tag, TAG_CLOUD_DURATION_TICKS, cloudDurationTicks)
     }
 
     override fun getUpdateTag(): CompoundTag {
@@ -260,6 +282,7 @@ class EquationSynthBlockEntity(
         val iota = holder.readIota(serverLevel) as? EquationParticleIota ?: return null
         animationPreset = normalizeAnimationPreset(iota.animationPreset)
         animationSpeed = normalizeAnimationSpeed(iota.animationSpeed)
+        cloudDurationTicks = normalizeDurationTicks(iota.durationTicks)
         return EquationParticleConfig(
             iota.xExpr,
             iota.yExpr,
@@ -346,9 +369,11 @@ class EquationSynthBlockEntity(
         private const val TAG_ANIMATION_PRESET = "AnimationPreset"
         private const val TAG_ANIMATION_SPEED = "AnimationSpeed"
         private const val TAG_RENDER_DENSITY = "RenderDensity"
+        private const val TAG_CLOUD_DURATION_TICKS = "CloudDurationTicks"
 
         private const val DEFAULT_RENDER_DENSITY = 0.6
         private const val DEFAULT_ANIMATION_SPEED = 1.0
+        private const val DEFAULT_DURATION_TICKS = 100
 
         private const val ANIM_STATIC = "static"
         private const val ANIM_ROTATE = "rotate"
@@ -380,6 +405,10 @@ class EquationSynthBlockEntity(
                 return DEFAULT_ANIMATION_SPEED
             }
             return value.coerceIn(0.1, 4.0)
+        }
+
+        private fun normalizeDurationTicks(value: Int): Int {
+            return value.coerceIn(20, 20 * 60)
         }
     }
 }

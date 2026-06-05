@@ -334,6 +334,7 @@ object ManifestationServer : ModInitializer {
             val animationPreset = buf.readUtf(32)
             val animationSpeed = buf.readDouble()
             val renderDensity = buf.readDouble()
+            val durationTicks = buf.readVarInt()
 
             server.execute {
                 val level = player.serverLevel()
@@ -375,7 +376,7 @@ object ManifestationServer : ModInitializer {
                     return@execute
                 }
 
-                val writeError = be.writeEquation(normalized, animationPreset, animationSpeed)
+                val writeError = be.writeEquation(normalized, animationPreset, animationSpeed, durationTicks)
                 if (writeError != null) {
                     player.displayClientMessage(Component.literal("Equation write failed: $writeError"), false)
                     return@execute
@@ -384,6 +385,7 @@ object ManifestationServer : ModInitializer {
                 be.setAnimationPreset(animationPreset)
                 be.setAnimationSpeed(animationSpeed)
                 be.setRenderDensity(renderDensity)
+                be.setCloudDurationTicks(durationTicks)
 
                 player.displayClientMessage(
                     Component.literal("Equation write complete: ${normalized.pointCount()} points (${if (normalized.useU()) "surface" else "curve"} mode)."),
@@ -549,6 +551,7 @@ object ManifestationServer : ModInitializer {
             buf.writeNbt(config.serializeToNbt())
             buf.writeUtf(equation.animationPreset, 32)
             buf.writeDouble(equation.animationSpeed)
+            buf.writeVarInt(equation.durationTicks)
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
         }

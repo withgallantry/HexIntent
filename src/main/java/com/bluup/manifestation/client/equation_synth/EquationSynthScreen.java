@@ -96,6 +96,7 @@ public final class EquationSynthScreen extends Screen {
     private Button animationPresetButton;
     private AnimationSpeedSlider animationSpeedSlider;
     private DensitySlider densitySlider;
+    private DurationSlider durationSlider;
     private Button writeButton;
     private Button closeButton;
 
@@ -167,6 +168,38 @@ public final class EquationSynthScreen extends Screen {
         private static double normalize(double raw) {
             double clamped = Math.max(0.1, Math.min(1.0, raw));
             return (clamped - 0.1) / 0.9;
+        }
+    }
+
+    private static final class DurationSlider extends AbstractSliderButton {
+        DurationSlider(int x, int y, int width, int height, int initialTicks) {
+            super(x, y, width, height, Component.empty(), normalize(initialTicks));
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            this.setMessage(Component.literal(String.format(java.util.Locale.ROOT, "Duration: %.1fs", getDurationTicks() / 20.0)));
+        }
+
+        @Override
+        protected void applyValue() {
+            updateMessage();
+        }
+
+        int getDurationTicks() {
+            int clampedSeconds = 1 + (int) Math.round(this.value * 59.0);
+            return clampedSeconds * 20;
+        }
+
+        void setDurationTicks(int ticks) {
+            this.value = normalize(ticks);
+            updateMessage();
+        }
+
+        private static double normalize(int rawTicks) {
+            int seconds = Math.max(1, Math.min(60, (int) Math.round(rawTicks / 20.0)));
+            return (seconds - 1.0) / 59.0;
         }
     }
 
@@ -326,6 +359,8 @@ public final class EquationSynthScreen extends Screen {
 
         this.densitySlider = this.addRenderableWidget(new DensitySlider(this.leftPanelX + 8, 0, this.inputWidth, 20, 0.6));
 
+        this.durationSlider = this.addRenderableWidget(new DurationSlider(this.leftPanelX + 8, 0, this.inputWidth, 20, 100));
+
         this.colorA_R = addNumBox(this.leftPanelX + 8, 0, 42, "0.96");
         this.colorA_G = addNumBox(this.leftPanelX + 52, 0, 42, "0.56");
         this.colorA_B = addNumBox(this.leftPanelX + 96, 0, 42, "0.64");
@@ -462,6 +497,7 @@ public final class EquationSynthScreen extends Screen {
             graphics.drawString(this.font, "Animation Preset", this.animationPresetButton.getX(), this.animationPresetButton.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
             graphics.drawString(this.font, "Animation Speed", this.animationSpeedSlider.getX(), this.animationSpeedSlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
             graphics.drawString(this.font, "Render Density", this.densitySlider.getX(), this.densitySlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
+            graphics.drawString(this.font, "Cloud Duration", this.durationSlider.getX(), this.durationSlider.getY() - LABEL_OFFSET_Y, 0x9FB2C6, false);
         }
 
         graphics.drawString(this.font, "Preview", previewX + 8, previewY + 8, 0xDDE7FF, false);
@@ -656,6 +692,7 @@ public final class EquationSynthScreen extends Screen {
         setWidgetVisible(this.animationPresetButton, animationVisible);
         setWidgetVisible(this.animationSpeedSlider, animationVisible);
         setWidgetVisible(this.densitySlider, animationVisible);
+        setWidgetVisible(this.durationSlider, animationVisible);
         if (animationVisible) {
             y += PANEL_CONTENT_TOP_PADDING;
             this.animationPresetButton.setY(y);
@@ -663,6 +700,8 @@ public final class EquationSynthScreen extends Screen {
             this.animationSpeedSlider.setY(y);
             y += 36;
             this.densitySlider.setY(y);
+            y += 36;
+            this.durationSlider.setY(y);
             y += 36;
         }
 
@@ -706,6 +745,7 @@ public final class EquationSynthScreen extends Screen {
         syncAnimationPresetButton();
         this.animationSpeedSlider.setSpeed(synth.getAnimationSpeed());
         this.densitySlider.setDensity(synth.getRenderDensity());
+        this.durationSlider.setDurationTicks(synth.getCloudDurationTicks());
     }
 
     private void applyRememberedPanelState() {
@@ -783,6 +823,7 @@ public final class EquationSynthScreen extends Screen {
         buf.writeUtf(animationPreset, 32);
         buf.writeDouble(this.animationSpeedSlider.getSpeed());
         buf.writeDouble(this.densitySlider.getDensity());
+        buf.writeVarInt(this.durationSlider.getDurationTicks());
         ClientPlayNetworking.send(ManifestationNetworking.WRITE_EQUATION_PARTICLE_C2S, buf);
 
         status = "Sent to synthesizer for write.";
