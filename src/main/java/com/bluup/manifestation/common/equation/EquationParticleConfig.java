@@ -1,5 +1,7 @@
 package com.bluup.manifestation.common.equation;
 
+import net.minecraft.nbt.CompoundTag;
+
 public record EquationParticleConfig(
     String xExpr,
     String yExpr,
@@ -131,6 +133,60 @@ public record EquationParticleConfig(
                 throw new IllegalArgumentException("color_expression_too_long");
             }
         }
+    }
+
+    public CompoundTag serializeToNbt() {
+        CompoundTag out = new CompoundTag();
+        out.putString("x", xExpr);
+        out.putString("y", yExpr);
+        out.putString("z", zExpr);
+        out.putDouble("t_min", tMin);
+        out.putDouble("t_max", tMax);
+        out.putDouble("u_min", uMin);
+        out.putDouble("u_max", uMax);
+        out.putBoolean("use_u", useU);
+        out.putInt("point_count", pointCount);
+        out.putString("color_mode", colorMode);
+        out.putDouble("fixed_r", fixedR);
+        out.putDouble("fixed_g", fixedG);
+        out.putDouble("fixed_b", fixedB);
+        out.putDouble("grad_start_r", gradientStartR);
+        out.putDouble("grad_start_g", gradientStartG);
+        out.putDouble("grad_start_b", gradientStartB);
+        out.putDouble("grad_end_r", gradientEndR);
+        out.putDouble("grad_end_g", gradientEndG);
+        out.putDouble("grad_end_b", gradientEndB);
+        out.putString("color_expr_r", colorExprR);
+        out.putString("color_expr_g", colorExprG);
+        out.putString("color_expr_b", colorExprB);
+        return out;
+    }
+
+    public static EquationParticleConfig fromNbt(CompoundTag tag) {
+        return new EquationParticleConfig(
+            tag.getString("x"),
+            tag.getString("y"),
+            tag.getString("z"),
+            tag.getDouble("t_min"),
+            tag.getDouble("t_max"),
+            tag.getDouble("u_min"),
+            tag.getDouble("u_max"),
+            tag.getBoolean("use_u"),
+            tag.getInt("point_count"),
+            tag.getString("color_mode"),
+            tag.getDouble("fixed_r"),
+            tag.getDouble("fixed_g"),
+            tag.getDouble("fixed_b"),
+            tag.getDouble("grad_start_r"),
+            tag.getDouble("grad_start_g"),
+            tag.getDouble("grad_start_b"),
+            tag.getDouble("grad_end_r"),
+            tag.getDouble("grad_end_g"),
+            tag.getDouble("grad_end_b"),
+            tag.getString("color_expr_r"),
+            tag.getString("color_expr_g"),
+            tag.getString("color_expr_b")
+        );
     }
 
     private static String normalizeExpr(String in, String fallback) {

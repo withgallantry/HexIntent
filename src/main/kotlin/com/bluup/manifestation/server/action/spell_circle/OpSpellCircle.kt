@@ -104,12 +104,11 @@ object OpSpellCircle : VarargConstMediaAction {
             throw MishapInvalidIota.ofType(args[0], 3, "list with at most $MAX_PATTERNS patterns")
         }
 
-        val patterns = ArrayList<Pair<String, at.petrak.hexcasting.api.casting.math.HexDir>>(patternEntries.size)
+        val patterns = ArrayList<at.petrak.hexcasting.api.casting.math.HexPattern>(patternEntries.size)
         for (entry in patternEntries) {
             val patternIota = entry as? PatternIota
                 ?: throw MishapInvalidIota.ofType(entry, 3, "list of patterns")
-            val pattern = patternIota.pattern
-            patterns.add(pattern.anglesSignature() to pattern.startDir)
+            patterns.add(patternIota.pattern)
         }
 
         val level: ServerLevel = env.world

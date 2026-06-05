@@ -2,11 +2,11 @@
   "variants": {
     "axis=z": {
       "model": "manifestation:block/permanent_threshold/frame_bottom_left_block",
-      "y": 90
+      "y": 270
     },
     "axis=x": {
       "model": "manifestation:block/permanent_threshold/frame_bottom_left_block",
-      "y": 180
+      "y": 0
     }
   }
 }

@@ -201,6 +201,8 @@ class CorridorPortalBlockEntity(
 
     fun isPermanentFrameMode(): Boolean = permanentFrameMode
 
+    fun getCachedPermanentFrameAnchorPos(): BlockPos? = localPermanentFrame?.anchorPos()
+
     fun isReplacementCollapseMode(): Boolean = replacementCollapseMode
 
     fun getPortalBackdropColor(): Int = portalBackdropColor
@@ -385,13 +387,24 @@ class CorridorPortalBlockEntity(
 
         val targetNormal = normalFromYaw(targetPortal.renderYawDegrees)
         val targetCenter = Vec3.atCenterOf(target)
-        val relativeY = (entity.y - worldPosition.y).coerceIn(0.05, 1.75)
+        val sourceApertureBaseY = if (permanentFrameMode) {
+            resolveLocalPermanentFrame(level)?.minY?.plus(1) ?: worldPosition.y
+        } else {
+            worldPosition.y
+        }
+        val targetApertureBaseY = if (permanentFrameMode) {
+            targetPortal.resolveLocalPermanentFrame(targetLevel)?.minY?.plus(1) ?: target.y
+        } else {
+            target.y
+        }
+        val maxRelativeY = if (permanentFrameMode) 2.95 else 1.75
+        val relativeY = (entity.y - sourceApertureBaseY).coerceIn(0.05, maxRelativeY)
         val scaledExitOffset = EXIT_OFFSET * targetPortal.getRenderScale().coerceIn(0.1f, 3.0f)
         val exitFacing = targetNormal.scale(side)
         val exitYaw = ((Mth.atan2(exitFacing.z, exitFacing.x) * (180.0 / Math.PI)) - 90.0).toFloat()
         val exitPos = targetCenter
             .add(targetNormal.scale(side * scaledExitOffset.toDouble()))
-            .add(0.0, relativeY - 0.5, 0.0)
+            .add(0.0, targetApertureBaseY - target.y + relativeY - 0.5, 0.0)
 
         val newCooldown = now + TELEPORT_COOLDOWN_TICKS
         cooldownUntilByEntity[uuid] = newCooldown
@@ -998,11 +1011,26 @@ class CorridorPortalBlockEntity(
     }
 
     private fun playCollapseEffects(level: ServerLevel, pos: BlockPos) {
-        val center = Vec3.atCenterOf(pos)
+        val portal = level.getBlockEntity(pos) as? CorridorPortalBlockEntity
+        val center = portal?.collapseEffectCenter(level) ?: Vec3.atCenterOf(pos)
         level.sendParticles(ParticleTypes.REVERSE_PORTAL, center.x, center.y, center.z, 28, 0.32, 0.36, 0.32, 0.04)
         level.sendParticles(ParticleTypes.DRAGON_BREATH, center.x, center.y, center.z, 18, 0.24, 0.26, 0.24, 0.01)
         level.playSound(null, pos, SoundEvents.ENDER_EYE_DEATH, SoundSource.BLOCKS, 0.9f, 0.72f)
         level.playSound(null, pos, SoundEvents.BEACON_DEACTIVATE, SoundSource.BLOCKS, 0.45f, 0.75f)
+    }
+
+    private fun collapseEffectCenter(level: ServerLevel): Vec3 {
+        if (!permanentFrameMode) {
+            return Vec3.atCenterOf(worldPosition)
+        }
+
+        val frame = resolveLocalPermanentFrame(level) ?: return Vec3.atCenterOf(worldPosition)
+        val anchorCenter = Vec3.atCenterOf(frame.anchorPos())
+        return if (frame.axis == Direction.Axis.Z) {
+            anchorCenter.add(0.5, 0.0, 0.0)
+        } else {
+            anchorCenter.add(0.0, 0.0, 0.5)
+        }
     }
 
     private fun spawnLinkedFlowParticles(level: ServerLevel) {

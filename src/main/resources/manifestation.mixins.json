@@ -11,6 +11,9 @@
     "HexicalServerCharmedUseReceiverMixin",
     "OpBrainsweepMixin"
   ],
+  "client": [
+    "GuiSpellcastingOpenWithoutStaffMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

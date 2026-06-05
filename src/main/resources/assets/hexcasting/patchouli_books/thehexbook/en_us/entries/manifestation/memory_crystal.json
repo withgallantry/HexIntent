@@ -2,7 +2,7 @@
   "name": "hexcasting.entry.manifestation_memory_crystal",
   "icon": "manifestation:memory_crystal",
   "category": "hexcasting:items",
-  "sortnum": 12,
+  "sortnum": 912,
   "advancement": "hexcasting:root",
   "pages": [
     {

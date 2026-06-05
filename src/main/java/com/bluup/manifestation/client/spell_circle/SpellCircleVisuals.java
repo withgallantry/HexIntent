@@ -1,6 +1,5 @@
 package com.bluup.manifestation.client;
 
-import at.petrak.hexcasting.api.casting.math.HexDir;
 import at.petrak.hexcasting.api.casting.math.HexPattern;
 import at.petrak.hexcasting.api.pigment.FrozenPigment;
 import at.petrak.hexcasting.client.ClientTickCounter;
@@ -69,16 +68,14 @@ public final class SpellCircleVisuals {
                 int count = Mth.clamp(buf.readVarInt(), 0, MAX_PATTERNS);
 
                 List<HexPattern> patterns = new ArrayList<>(count);
-                HexDir[] dirs = HexDir.values();
                 for (int i = 0; i < count; i++) {
-                    String signature = buf.readUtf(128);
-                    int startDirOrdinal = buf.readVarInt();
-                    if (startDirOrdinal < 0 || startDirOrdinal >= dirs.length) {
+                    var patternTag = buf.readNbt();
+                    if (patternTag == null) {
                         continue;
                     }
 
                     try {
-                        patterns.add(HexPattern.fromAngles(signature, dirs[startDirOrdinal]));
+                        patterns.add(HexPattern.fromNBT(patternTag));
                     } catch (IllegalArgumentException | IllegalStateException ignored) {
                     }
                 }

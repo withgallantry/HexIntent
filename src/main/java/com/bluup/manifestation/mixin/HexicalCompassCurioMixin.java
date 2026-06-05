@@ -14,13 +14,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 /**
- * Curio specific minix to allow sound override
+ * Compass has it's own charm cast sound logic, needs it's own mixin to override it.
  */
 @Mixin(value = CompassCurio.class, remap = false)
 public abstract class HexicalCompassCurioMixin {
     @Inject(
         method = "postCharmCast",
         at = @At("HEAD"),
+        require = 0,
         remap = false
     )
     private void manifestation$handleCompassCastSound(

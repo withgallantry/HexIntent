@@ -1,7 +1,7 @@
 {
   "name": "hexcasting.entry.manifestation_manifest_portals",
   "category": "hexcasting:patterns/spells",
-  "icon": "manifestation:corridor_portal",
+  "icon": "minecraft:end_portal",
   "sortnum": 901,
   "read_by_default": true,
   "pages": [

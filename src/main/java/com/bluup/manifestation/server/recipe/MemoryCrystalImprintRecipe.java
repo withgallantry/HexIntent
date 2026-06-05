@@ -3,7 +3,7 @@ package com.bluup.manifestation.server.recipe;
 import at.petrak.hexcasting.api.item.HexHolderItem;
 import at.petrak.hexcasting.api.mod.HexTags;
 import at.petrak.hexcasting.xplat.IXplatAbstractions;
-import com.bluup.manifestation.server.CharmCastSoundOverrides;
+import com.bluup.manifestation.server.CharmItemInterop;
 import com.bluup.manifestation.server.item.ManifestationItems;
 import com.bluup.manifestation.server.item.MemoryCrystalData;
 import net.minecraft.core.RegistryAccess;
@@ -110,7 +110,7 @@ public class MemoryCrystalImprintRecipe extends CustomRecipe {
             return true;
         }
 
-        if (CharmCastSoundOverrides.INSTANCE.isHexicalCharmedStack(stack)) {
+        if (CharmItemInterop.isCharmedStack(stack)) {
             return true;
         }
 

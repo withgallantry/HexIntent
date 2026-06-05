@@ -7,7 +7,6 @@ import at.petrak.hexcasting.api.mod.HexTags
 import at.petrak.hexcasting.common.msgs.MsgOpenSpellGuiS2C
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
-import com.bluup.manifestation.server.mishap.MishapRequiresStaffInHand
 import com.bluup.manifestation.server.splinter.SplinterCastEnv
 import net.fabricmc.fabric.api.entity.FakePlayer
 import net.minecraft.server.level.ServerPlayer
@@ -27,7 +26,7 @@ object OpOpenCastingScreen : ConstMediaAction {
             throw MishapRequiresCasterWill()
         }
 
-        val hand = resolveStaffHand(caster, env.castingHand) ?: throw MishapRequiresStaffInHand()
+        val hand = resolveStaffHand(caster, env.castingHand) ?: env.castingHand
         val vm = IXplatAbstractions.INSTANCE.getStaffcastVM(caster, hand)
         val patterns = IXplatAbstractions.INSTANCE.getPatternsSavedInUi(caster)
         val descs = vm.generateDescs()

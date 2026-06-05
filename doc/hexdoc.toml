@@ -22,7 +22,7 @@ path = "{$_common.src}/main/kotlin/com/bluup/manifestation/server/ManifestationS
 regex = "{^_pattern_regex}"
 
 [template]
-icon = "../docs/assets/ExampleTeleportMenu.png"
+icon = "icon.png"
 include = [
     "manifestation",
     "hexcasting",

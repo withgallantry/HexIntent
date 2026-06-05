@@ -89,17 +89,11 @@ public final class MenuActionSender {
             } else if (input.kind() == InputKind.DOUBLE) {
                 buf.writeDouble(input.doubleValue());
             } else {
-                buf.writeVarInt(input.iotaValues().size());
-                for (StoredIota stored : input.iotaValues()) {
-                    stored.write(buf);
-                }
+                buf.writeCollection(input.iotaValues(), (packetBuf, stored) -> stored.write(packetBuf));
             }
         }
-        buf.writeVarInt(actions.size());
-        for (StoredIota stored : actions) {
-            // StoredIota.write puts a single CompoundTag on the wire.
-            stored.write(buf);
-        }
+        // StoredIota.write puts a single CompoundTag on the wire.
+        buf.writeCollection(actions, (packetBuf, stored) -> stored.write(packetBuf));
 
         ClientPlayNetworking.send(
                 ManifestationNetworking.DISPATCH_ACTION_C2S,

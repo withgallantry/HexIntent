@@ -31,7 +31,7 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
         require = 0
     )
     private static void manifestation$redirectCurioPostCast(
-        Object curioItem,
+        CurioItem curioItem,
         ServerPlayer user,
         ItemStack item,
         InteractionHand hand,
@@ -44,7 +44,7 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
 
         @SuppressWarnings("unchecked")
         List<? extends Iota> castStack = (List<? extends Iota>) stack;
-        invokePostCharmCast(curioItem, user, item, hand, world, castStack);
+        curioItem.postCharmCast(user, item, hand, world, castStack);
     }
 
     @Inject(
@@ -65,16 +65,5 @@ public abstract class HexicalServerCharmedUseReceiverMixin {
         }
 
         CharmCastSoundOverrides.INSTANCE.handlePostCastSound(user, user.serverLevel(), item);
-    }
-
-    private static void invokePostCharmCast(
-        Object curioItem,
-        ServerPlayer user,
-        ItemStack item,
-        InteractionHand hand,
-        ServerLevel world,
-        List<? extends Iota> stack
-    ) {
-        ((CurioItem) curioItem).postCharmCast(user, item, hand, world, stack);
     }
 }

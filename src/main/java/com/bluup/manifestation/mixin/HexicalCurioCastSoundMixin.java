@@ -34,6 +34,7 @@ public abstract class HexicalCurioCastSoundMixin {
         method = "postCharmCast",
         at = @At("HEAD"),
         cancellable = true,
+        require = 0,
         remap = false
     )
     private void manifestation$overrideCurioCastSound(

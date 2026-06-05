@@ -116,6 +116,7 @@ public final class ManifestationClient implements ClientModInitializer {
                     client.execute(() -> client.setScreen(new EquationSynthScreen(pos)));
                 }
         );
+
     }
 
     private static void openMenu(Minecraft mc, MenuPayload payload) {

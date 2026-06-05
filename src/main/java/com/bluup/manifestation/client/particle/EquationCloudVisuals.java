@@ -53,54 +53,11 @@ public final class EquationCloudVisuals {
                 final Integer resolvedFollowEntityId = followEntityId;
                 final Vec3 resolvedFollowOffset = followOffset;
 
-                String x = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-                String y = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-                String z = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-                double tMin = buf.readDouble();
-                double tMax = buf.readDouble();
-                double uMin = buf.readDouble();
-                double uMax = buf.readDouble();
-                boolean useU = buf.readBoolean();
-                int pointCount = buf.readVarInt();
-
-                String colorMode = buf.readUtf(32);
-                double fixedR = buf.readDouble();
-                double fixedG = buf.readDouble();
-                double fixedB = buf.readDouble();
-                double gradStartR = buf.readDouble();
-                double gradStartG = buf.readDouble();
-                double gradStartB = buf.readDouble();
-                double gradEndR = buf.readDouble();
-                double gradEndG = buf.readDouble();
-                double gradEndB = buf.readDouble();
-                String colorExprR = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-                String colorExprG = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-                String colorExprB = buf.readUtf(EquationParticleConfig.MAX_EXPR_CHARS);
-
-                EquationParticleConfig config = new EquationParticleConfig(
-                    x,
-                    y,
-                    z,
-                    tMin,
-                    tMax,
-                    uMin,
-                    uMax,
-                    useU,
-                    pointCount,
-                    colorMode,
-                    fixedR,
-                    fixedG,
-                    fixedB,
-                    gradStartR,
-                    gradStartG,
-                    gradStartB,
-                    gradEndR,
-                    gradEndG,
-                    gradEndB,
-                    colorExprR,
-                    colorExprG,
-                    colorExprB
-                ).normalized();
+                var configTag = buf.readNbt();
+                if (configTag == null) {
+                    return;
+                }
+                EquationParticleConfig config = EquationParticleConfig.fromNbt(configTag).normalized();
 
                 client.execute(() -> {
                     if (client.level == null) {

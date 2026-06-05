@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -205,6 +206,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
             state.getValue(CorridorPortalBlock.AXIS)
         );
         if (frame == null) {
+            BlockPos anchorPos = blockEntity.getCachedPermanentFrameAnchorPos();
+            if (anchorPos != null) {
+                return anchorPos.equals(blockEntity.getBlockPos());
+            }
             return true;
         }
 
@@ -307,13 +312,9 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         float previousHalfWidth = resolvePermanentOpeningHalfWidth(previousAge);
         float currentPatchProgress = resolvePermanentPatchProgress(activationAge);
         float previousPatchProgress = resolvePermanentPatchProgress(previousAge);
-        float transientRimReveal = replacementClosing
-            ? easeOutCubic(Mth.clamp(
-                (activationAge - PERMANENT_SEAM_START_TICKS) / (PERMANENT_OPEN_STAGE_TICKS - PERMANENT_SEAM_START_TICKS),
-                0.0f,
-                1.0f
-            ))
-            : 0.0f;
+        // Keep replacement close fully mask-driven; avoid a full-frame transient rim that can
+        // appear from certain viewing angles when closing around a broken/partially occluding frame.
+        float transientRimReveal = 0.0f;
 
         drawPermanentOpeningCorridorPortal(
             poseStack,

@@ -20,6 +20,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// Can't think of a better way yet, this recreates a lot of the logic in the Hexical MouseMixin.
+// But this is needed as it's difficult to surgically target only the sound playing aspect.
+
 @Mixin(value = MouseHandler.class, priority = 1100)
 public abstract class HexicalMouseCastSoundMixin {
     @Shadow @Final private Minecraft minecraft;

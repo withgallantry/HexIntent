@@ -23,10 +23,11 @@ object CharmCastSoundOverrides {
         return KotlinNbtCompat.getString(stack, TAG_CAST_SOUND_ID).isNotBlank()
     }
 
-    fun isHexicalCharmedStack(stack: ItemStack): Boolean {
-        // Mirror Hexical charm marker contract without direct API linkage.
-        return KotlinNbtCompat.contains(stack, "charmed")
-    }
+    @JvmStatic
+    fun isCharmedStack(stack: ItemStack): Boolean = CharmItemInterop.isCharmedStack(stack)
+
+    @JvmStatic
+    fun isHexicalCharmedStack(stack: ItemStack): Boolean = isCharmedStack(stack)
 
     fun setMuted(stack: ItemStack, muted: Boolean) {
         KotlinNbtCompat.putBoolean(stack, TAG_MUTE_CAST_SOUND, muted)

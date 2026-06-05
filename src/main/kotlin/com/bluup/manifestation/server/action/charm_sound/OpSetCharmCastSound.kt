@@ -15,6 +15,7 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
+import com.bluup.manifestation.server.CharmItemInterop
 import com.bluup.manifestation.server.CharmCastSoundOverrides
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.core.registries.BuiltInRegistries
@@ -35,7 +36,7 @@ import net.minecraft.world.entity.item.ItemEntity
  *
  * Target selection:
  * - If an item entity iota is present under the sound argument, that item is updated.
- * - Otherwise, updates a charmed item in casting hand, falling back to offhand.
+ * - Otherwise, updates a charmed item in offhand.
  */
 object OpSetCharmCastSound : Action {
     override fun operate(
@@ -51,8 +52,8 @@ object OpSetCharmCastSound : Action {
 
         val arg = stack.removeAt(stack.lastIndex)
         val explicitTarget = resolveExplicitTarget(env, stack)
-        val target = explicitTarget ?: resolveHeldTarget(caster, env.castingHand)
-            ?: throw MishapInvalidIota.ofType(arg, 0, "string/text/null with a charmed item in casting or off hand")
+        val target = explicitTarget ?: resolveHeldTarget(caster)
+            ?: throw MishapInvalidIota.ofType(arg, 0, "string/text/null with a charmed item in offhand")
 
         val soundResult: Pair<List<OperatorSideEffect>, EvalSound> = when (arg) {
             is NullIota -> {
@@ -89,7 +90,7 @@ object OpSetCharmCastSound : Action {
             val itemEntity = entity as? ItemEntity
                 ?: throw MishapInvalidIota.ofType(entityIota, 1, "item entity")
             val item = itemEntity.item
-            if (item.isEmpty || !CharmCastSoundOverrides.isHexicalCharmedStack(item)) {
+            if (item.isEmpty || !CharmItemInterop.isCharmedStack(item)) {
                 throw MishapInvalidIota.ofType(entityIota, 1, "item entity containing a Hexical charmed item")
             }
 
@@ -97,14 +98,11 @@ object OpSetCharmCastSound : Action {
             item
         }
 
-    private fun resolveHeldTarget(caster: ServerPlayer, preferred: InteractionHand) =
-        pickHeldCharmed(caster, preferred) ?: pickHeldCharmed(
-            caster,
-            if (preferred == InteractionHand.MAIN_HAND) InteractionHand.OFF_HAND else InteractionHand.MAIN_HAND
-        )
+    private fun resolveHeldTarget(caster: ServerPlayer) =
+        pickHeldCharmed(caster, InteractionHand.OFF_HAND)
 
     private fun pickHeldCharmed(caster: ServerPlayer, hand: InteractionHand) =
-        caster.getItemInHand(hand).takeIf { !it.isEmpty && CharmCastSoundOverrides.isHexicalCharmedStack(it) }
+        caster.getItemInHand(hand).takeIf { !it.isEmpty && CharmItemInterop.isCharmedStack(it) }
 
     private fun extractStringLikeValue(iota: Iota): String? {
         val methodNames = listOf("getString", "string", "getText", "text", "getValue", "value")

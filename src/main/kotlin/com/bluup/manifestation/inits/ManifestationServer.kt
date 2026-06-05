@@ -81,7 +81,6 @@ object ManifestationServer : ModInitializer {
     private const val MAX_ACTION_IOTAS = 1024
     private const val MAX_INPUT_LIST_ITEMS = 128
     private const val MAX_INPUT_STRING_CHARS = 500
-    private const val MAX_EQUATION_CHARS = EquationParticleConfig.MAX_EXPR_CHARS
 
     const val MAX_EQUATION_EVAL_BUDGET_SERVER: Int = 36_000
 
@@ -168,9 +167,9 @@ object ManifestationServer : ModInitializer {
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
         registerAction("set_charm_cast_sound", "wedwwdwee", HexDir.EAST, OpSetCharmCastSound)
-        registerAction("memory_reflection", "qwawqwaqw", HexDir.EAST, OpMemoryReflection)
-        registerAction("replay_memory", "qwawqwaa", HexDir.EAST, OpReplayMemory)
-        registerAction("store_memory", "qwawqwaqa", HexDir.EAST, OpStoreMemory)
+        registerAction("memory_reflection", "qwawqwaqw", HexDir.SOUTH_EAST, OpMemoryReflection)
+        registerAction("replay_memory", "qwawqwaa", HexDir.SOUTH_EAST, OpReplayMemory)
+        registerAction("store_memory", "qwawqwaqa", HexDir.SOUTH_EAST, OpStoreMemory)
         registerAction("mind_vault_counts", "qqawddad", HexDir.SOUTH_EAST, OpMindVaultCounts)
         registerAction("exit_if_interacting", "qaqqqqe", HexDir.EAST, OpExitIfInteracting)
         registerAction("open_casting_screen", "aqaeawqqwqwqqw", HexDir.SOUTH_WEST, OpOpenCastingScreen)
@@ -236,20 +235,22 @@ object ManifestationServer : ModInitializer {
                     }
 
                     MenuActionSender.InputKind.IOTA_LIST -> {
-                        val selectedCount = buf.readVarInt()
-                        if (selectedCount < 0 || selectedCount > MAX_INPUT_LIST_ITEMS) {
+                        val selected = buf.readCollection(
+                            { mutableListOf<net.minecraft.nbt.CompoundTag?>() },
+                            { packetBuf -> packetBuf.readNbt() }
+                        )
+                        if (selected.size > MAX_INPUT_LIST_ITEMS) {
                             Manifestation.LOGGER.warn(
                                 "Manifestation dispatch: rejecting packet from {} due to invalid selectedCount {} (max {})",
                                 player.name.string,
-                                selectedCount,
+                                selected.size,
                                 MAX_INPUT_LIST_ITEMS
                             )
                             return@registerGlobalReceiver
                         }
 
                         val tags = mutableListOf<net.minecraft.nbt.CompoundTag>()
-                        repeat(selectedCount) {
-                            val tag = buf.readNbt()
+                        for (tag in selected) {
                             if (tag == null) {
                                 Manifestation.LOGGER.warn(
                                     "Manifestation dispatch: rejecting packet from {} due to null selected iota tag",
@@ -272,18 +273,20 @@ object ManifestationServer : ModInitializer {
                 }
             }
 
-            val count = buf.readVarInt()
-            if (count < 0 || count > MAX_ACTION_IOTAS) {
+            val tags = buf.readCollection(
+                { mutableListOf<net.minecraft.nbt.CompoundTag?>() },
+                { packetBuf -> packetBuf.readNbt() }
+            )
+            if (tags.size > MAX_ACTION_IOTAS) {
                 Manifestation.LOGGER.warn(
                     "Manifestation dispatch: rejecting packet from {} due to invalid iota count {} (max {})",
                     player.name.string,
-                    count,
+                    tags.size,
                     MAX_ACTION_IOTAS
                 )
                 return@registerGlobalReceiver
             }
 
-            val tags = (0 until count).map { buf.readNbt() }
             // Cast execution and session writes must run on the server thread.
             server.execute {
                 val resolved = MenuSessionRegistry.resolveAndConsume(player, sessionToken)
@@ -324,28 +327,10 @@ object ManifestationServer : ModInitializer {
             ManifestationNetworking.WRITE_EQUATION_PARTICLE_C2S
         ) { server, player, _, buf, _ ->
             val pos = buf.readBlockPos()
-            val xExpr = buf.readUtf(MAX_EQUATION_CHARS)
-            val yExpr = buf.readUtf(MAX_EQUATION_CHARS)
-            val zExpr = buf.readUtf(MAX_EQUATION_CHARS)
-            val tMin = buf.readDouble()
-            val tMax = buf.readDouble()
-            val uMin = buf.readDouble()
-            val uMax = buf.readDouble()
-            val useU = buf.readBoolean()
-            val pointCount = buf.readVarInt()
-            val colorMode = buf.readUtf(EquationParticleConfig.MAX_COLOR_MODE_CHARS)
-            val fixedR = buf.readDouble()
-            val fixedG = buf.readDouble()
-            val fixedB = buf.readDouble()
-            val gradientStartR = buf.readDouble()
-            val gradientStartG = buf.readDouble()
-            val gradientStartB = buf.readDouble()
-            val gradientEndR = buf.readDouble()
-            val gradientEndG = buf.readDouble()
-            val gradientEndB = buf.readDouble()
-            val colorExprR = buf.readUtf(MAX_EQUATION_CHARS)
-            val colorExprG = buf.readUtf(MAX_EQUATION_CHARS)
-            val colorExprB = buf.readUtf(MAX_EQUATION_CHARS)
+            val configTag = buf.readNbt()
+            if (configTag == null) {
+                return@registerGlobalReceiver
+            }
             val animationPreset = buf.readUtf(32)
             val renderDensity = buf.readDouble()
 
@@ -366,30 +351,7 @@ object ManifestationServer : ModInitializer {
                     return@execute
                 }
 
-                val config = EquationParticleConfig(
-                    xExpr,
-                    yExpr,
-                    zExpr,
-                    tMin,
-                    tMax,
-                    uMin,
-                    uMax,
-                    useU,
-                    pointCount,
-                    colorMode,
-                    fixedR,
-                    fixedG,
-                    fixedB,
-                    gradientStartR,
-                    gradientStartG,
-                    gradientStartB,
-                    gradientEndR,
-                    gradientEndG,
-                    gradientEndB,
-                    colorExprR,
-                    colorExprG,
-                    colorExprB
-                )
+                val config = EquationParticleConfig.fromNbt(configTag)
 
                 val normalized = try {
                     config.validateStrict()
@@ -558,29 +520,31 @@ object ManifestationServer : ModInitializer {
                 buf.writeDouble(offset.z)
             }
 
-            buf.writeUtf(equation.xExpr, EquationParticleConfig.MAX_EXPR_CHARS)
-            buf.writeUtf(equation.yExpr, EquationParticleConfig.MAX_EXPR_CHARS)
-            buf.writeUtf(equation.zExpr, EquationParticleConfig.MAX_EXPR_CHARS)
-            buf.writeDouble(equation.tMin)
-            buf.writeDouble(equation.tMax)
-            buf.writeDouble(equation.uMin)
-            buf.writeDouble(equation.uMax)
-            buf.writeBoolean(equation.isUseU)
-            buf.writeVarInt(equation.pointCount)
-
-            buf.writeUtf(equation.colorMode, EquationParticleConfig.MAX_COLOR_MODE_CHARS)
-            buf.writeDouble(equation.fixedR)
-            buf.writeDouble(equation.fixedG)
-            buf.writeDouble(equation.fixedB)
-            buf.writeDouble(equation.gradientStartR)
-            buf.writeDouble(equation.gradientStartG)
-            buf.writeDouble(equation.gradientStartB)
-            buf.writeDouble(equation.gradientEndR)
-            buf.writeDouble(equation.gradientEndG)
-            buf.writeDouble(equation.gradientEndB)
-            buf.writeUtf(equation.colorExprR, EquationParticleConfig.MAX_EXPR_CHARS)
-            buf.writeUtf(equation.colorExprG, EquationParticleConfig.MAX_EXPR_CHARS)
-            buf.writeUtf(equation.colorExprB, EquationParticleConfig.MAX_EXPR_CHARS)
+            val config = EquationParticleConfig(
+                equation.xExpr,
+                equation.yExpr,
+                equation.zExpr,
+                equation.tMin,
+                equation.tMax,
+                equation.uMin,
+                equation.uMax,
+                equation.isUseU,
+                equation.pointCount,
+                equation.colorMode,
+                equation.fixedR,
+                equation.fixedG,
+                equation.fixedB,
+                equation.gradientStartR,
+                equation.gradientStartG,
+                equation.gradientStartB,
+                equation.gradientEndR,
+                equation.gradientEndG,
+                equation.gradientEndB,
+                equation.colorExprR,
+                equation.colorExprG,
+                equation.colorExprB
+            )
+            buf.writeNbt(config.serializeToNbt())
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
         }
@@ -594,7 +558,7 @@ object ManifestationServer : ModInitializer {
         openingAngle: net.minecraft.world.phys.Vec3,
         lifetimeTicks: Int,
         sizeTier: Int,
-        patterns: List<Pair<String, HexDir>>,
+        patterns: List<HexPattern>,
         colorizer: FrozenPigment
     ) {
         if (patterns.isEmpty()) {
@@ -628,9 +592,8 @@ object ManifestationServer : ModInitializer {
             buf.writeVarInt(clampedTier)
             buf.writeNbt(colorizer.serializeToNBT())
             buf.writeVarInt(limitedPatterns.size)
-            for ((signature, startDir) in limitedPatterns) {
-                buf.writeUtf(signature, 128)
-                buf.writeVarInt(startDir.ordinal)
+            for (pattern in limitedPatterns) {
+                buf.writeNbt(pattern.serializeToNBT())
             }
             ServerPlayNetworking.send(other, ManifestationNetworking.SPELL_CIRCLE_S2C, buf)
         }
