@@ -58,6 +58,7 @@ public final class EquationCloudVisuals {
                     return;
                 }
                 EquationParticleConfig config = EquationParticleConfig.fromNbt(configTag).normalized();
+                String animationPreset = buf.readableBytes() > 0 ? buf.readUtf(32) : "rotate";
 
                 client.execute(() -> {
                     if (client.level == null) {
@@ -66,7 +67,7 @@ public final class EquationCloudVisuals {
                     long now = client.level.getGameTime();
                     CloudKey key = new CloudKey(sourceId, id);
                     CloudState state = ACTIVE.computeIfAbsent(key, ignored -> new CloudState());
-                    state.applyUpdate(dimensionId, origin, config, resolvedFollowEntityId, resolvedFollowOffset, now);
+                    state.applyUpdate(dimensionId, origin, config, animationPreset, resolvedFollowEntityId, resolvedFollowOffset, now);
                 });
             }
         );
@@ -118,13 +119,59 @@ public final class EquationCloudVisuals {
                 int phase = Math.floorMod(state.sampleSeed, step);
                 float baseSize = computePointHalfSize(dist);
                 float alpha = computeAlpha(dist);
+                String animationPreset = state.animationPreset;
+                float bobOffset = Mth.sin(animTime * 0.09f) * 0.08f;
+                float pulseScale = 1.0f + (0.18f * Mth.sin(animTime * 0.12f));
+                float orbitTranslateX = Mth.cos(animTime * 0.05f) * 0.08f;
+                float orbitTranslateZ = Mth.sin(animTime * 0.05f) * 0.08f;
+                float rotateAngle = (float) Math.toRadians(animTime * 1.9f);
+                float rotateCos = Mth.cos(rotateAngle);
+                float rotateSin = Mth.sin(rotateAngle);
+                float orbitAngle = (float) Math.toRadians(animTime * 1.4f);
+                float orbitCos = Mth.cos(orbitAngle);
+                float orbitSin = Mth.sin(orbitAngle);
 
                 for (int i = 0; i < state.points.size(); i++) {
                     if ((i + phase) % step != 0) {
                         continue;
                     }
                     EquationParticleGenerator.GeneratedPoint point = state.points.get(i);
-                    Vec3 p = origin.add(point.offset());
+                    Vec3 pointOffset = point.offset();
+                    float ox = (float) pointOffset.x;
+                    float oy = (float) pointOffset.y;
+                    float oz = (float) pointOffset.z;
+
+                    float animatedOx = ox;
+                    float animatedOy = oy;
+                    float animatedOz = oz;
+
+                    switch (animationPreset) {
+                        case "static" -> {
+                        }
+                        case "bob" -> animatedOy += bobOffset;
+                        case "pulse" -> {
+                            animatedOx *= pulseScale;
+                            animatedOy *= pulseScale;
+                            animatedOz *= pulseScale;
+                        }
+                        case "orbit" -> {
+                            float translatedX = ox + orbitTranslateX;
+                            float translatedZ = oz + orbitTranslateZ;
+                            animatedOx = (translatedX * orbitCos) - (translatedZ * orbitSin);
+                            animatedOz = (translatedX * orbitSin) + (translatedZ * orbitCos);
+                        }
+                        case "spin_bob" -> {
+                            animatedOx = (ox * rotateCos) - (oz * rotateSin);
+                            animatedOz = (ox * rotateSin) + (oz * rotateCos);
+                            animatedOy += bobOffset;
+                        }
+                        default -> {
+                            animatedOx = (ox * rotateCos) - (oz * rotateSin);
+                            animatedOz = (ox * rotateSin) + (oz * rotateCos);
+                        }
+                    }
+
+                    Vec3 p = origin.add(animatedOx, animatedOy, animatedOz);
                     Vec3 c = point.color();
 
                     float x = (float) p.x;
@@ -138,16 +185,13 @@ public final class EquationCloudVisuals {
                     float shimmer = 0.65f + (0.35f * Mth.sin((animTime * 0.23f) + (i * 0.81f)));
                     float twinkle = 0.55f + (0.45f * Mth.sin((animTime * 0.34f) + (i * 1.57f)));
 
-                    float ox = (float) point.offset().x;
-                    float oy = (float) point.offset().y;
-                    float oz = (float) point.offset().z;
-                    float lenSq = (ox * ox) + (oy * oy) + (oz * oz);
+                    float lenSq = (animatedOx * animatedOx) + (animatedOy * animatedOy) + (animatedOz * animatedOz);
                     if (lenSq > 1.0e-6f) {
                         float invLen = Mth.invSqrt(lenSq);
                         float drift = DRIFT_RADIUS * (0.45f + (0.55f * Mth.sin(t + (i * 0.29f))));
-                        x += ox * invLen * drift;
-                        y += oy * invLen * drift;
-                        z += oz * invLen * drift;
+                        x += animatedOx * invLen * drift;
+                        y += animatedOy * invLen * drift;
+                        z += animatedOz * invLen * drift;
                     }
 
                     x += Mth.sin((animTime * 0.11f) + (i * 0.26f)) * 0.005f;
@@ -272,6 +316,7 @@ public final class EquationCloudVisuals {
         Integer followEntityId;
         Vec3 followOffset = Vec3.ZERO;
         int sampleSeed;
+        String animationPreset = "rotate";
 
         long lastUpdateTick;
         boolean initialized;
@@ -280,12 +325,14 @@ public final class EquationCloudVisuals {
             String dimensionId,
             Vec3 newOrigin,
             EquationParticleConfig newConfig,
+            String animationPreset,
             Integer followEntityId,
             Vec3 followOffset,
             long now
         ) {
             Vec3 resolvedFollowOffset = followOffset == null ? Vec3.ZERO : followOffset;
             long fp = fingerprint(newConfig);
+            String normalizedAnimationPreset = normalizeAnimationPreset(animationPreset);
             boolean sameShape = initialized
                 && Objects.equals(this.dimensionId, dimensionId)
                 && this.configFingerprint == fp;
@@ -294,6 +341,7 @@ public final class EquationCloudVisuals {
 
             this.followEntityId = followEntityId;
             this.followOffset = resolvedFollowOffset;
+            this.animationPreset = normalizedAnimationPreset;
 
             if (!initialized || !Objects.equals(this.dimensionId, dimensionId)) {
                 this.fromOrigin = newOrigin;
@@ -410,6 +458,21 @@ public final class EquationCloudVisuals {
                 config.colorExprG(),
                 config.colorExprB()
             );
+        }
+
+        private static String normalizeAnimationPreset(String raw) {
+            if (raw == null) {
+                return "rotate";
+            }
+
+            return switch (raw.toLowerCase()) {
+                case "static" -> "static";
+                case "bob" -> "bob";
+                case "pulse" -> "pulse";
+                case "orbit" -> "orbit";
+                case "spin_bob" -> "spin_bob";
+                default -> "rotate";
+            };
         }
     }
 

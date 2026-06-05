@@ -373,6 +373,7 @@ public final class ManifestationUiIotaTypes {
             String colorExprR = NBTHelper.hasString(ctag, "color_expr_r") ? NBTHelper.getString(ctag, "color_expr_r") : "1";
             String colorExprG = NBTHelper.hasString(ctag, "color_expr_g") ? NBTHelper.getString(ctag, "color_expr_g") : "1";
             String colorExprB = NBTHelper.hasString(ctag, "color_expr_b") ? NBTHelper.getString(ctag, "color_expr_b") : "1";
+            String animPreset = NBTHelper.hasString(ctag, "anim_preset") ? NBTHelper.getString(ctag, "anim_preset") : "rotate";
 
             return new EquationParticleIota(
                 x,
@@ -396,7 +397,8 @@ public final class ManifestationUiIotaTypes {
                 gradEndB,
                 colorExprR,
                 colorExprG,
-                colorExprB
+                colorExprB,
+                animPreset
             );
         }
 
@@ -406,9 +408,10 @@ public final class ManifestationUiIotaTypes {
             int points = NBTHelper.getInt(ctag, "points");
             boolean useU = NBTHelper.getBoolean(ctag, "use_u");
             String mode = NBTHelper.hasString(ctag, "color_mode") ? NBTHelper.getString(ctag, "color_mode") : "gradient";
+            String animPreset = NBTHelper.hasString(ctag, "anim_preset") ? NBTHelper.getString(ctag, "anim_preset") : "rotate";
             String x = NBTHelper.getString(ctag, "x");
             return Component.literal("EquationParticle(")
-                .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", x=" + x).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("points=" + points + ", mode=" + (useU ? "surface" : "curve") + ", color=" + mode + ", anim=" + animPreset + ", x=" + x).withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(")").withStyle(ChatFormatting.LIGHT_PURPLE))
                 .withStyle(ChatFormatting.LIGHT_PURPLE);
         }

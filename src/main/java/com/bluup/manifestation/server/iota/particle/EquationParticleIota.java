@@ -11,6 +11,13 @@ import java.util.List;
 import java.util.Objects;
 
 public final class EquationParticleIota extends Iota {
+    private static final String ANIM_STATIC = "static";
+    private static final String ANIM_ROTATE = "rotate";
+    private static final String ANIM_BOB = "bob";
+    private static final String ANIM_PULSE = "pulse";
+    private static final String ANIM_ORBIT = "orbit";
+    private static final String ANIM_SPIN_BOB = "spin_bob";
+
     private final String xExpr;
     private final String yExpr;
     private final String zExpr;
@@ -33,6 +40,7 @@ public final class EquationParticleIota extends Iota {
     private final String colorExprR;
     private final String colorExprG;
     private final String colorExprB;
+    private final String animationPreset;
 
     public EquationParticleIota(
         String xExpr,
@@ -56,7 +64,8 @@ public final class EquationParticleIota extends Iota {
         double gradientEndB,
         String colorExprR,
         String colorExprG,
-        String colorExprB
+        String colorExprB,
+        String animationPreset
     ) {
         super(ManifestationUiIotaTypes.EQUATION_PARTICLE, List.of(pointCount));
         this.xExpr = Objects.requireNonNull(xExpr, "xExpr");
@@ -81,6 +90,7 @@ public final class EquationParticleIota extends Iota {
         this.colorExprR = Objects.requireNonNull(colorExprR, "colorExprR");
         this.colorExprG = Objects.requireNonNull(colorExprG, "colorExprG");
         this.colorExprB = Objects.requireNonNull(colorExprB, "colorExprB");
+        this.animationPreset = normalizeAnimationPreset(animationPreset);
     }
 
     public EquationParticleIota(
@@ -116,7 +126,8 @@ public final class EquationParticleIota extends Iota {
             0.96,
             "1",
             "1",
-            "1"
+            "1",
+            ANIM_ROTATE
         );
     }
 
@@ -208,6 +219,10 @@ public final class EquationParticleIota extends Iota {
         return colorExprB;
     }
 
+    public String getAnimationPreset() {
+        return animationPreset;
+    }
+
     @Override
     public boolean isTruthy() {
         return true;
@@ -239,7 +254,8 @@ public final class EquationParticleIota extends Iota {
                 && Math.abs(gradientEndB - other.gradientEndB) <= 1.0e-9
                 && colorExprR.equals(other.colorExprR)
                 && colorExprG.equals(other.colorExprG)
-                && colorExprB.equals(other.colorExprB);
+                && colorExprB.equals(other.colorExprB)
+                && animationPreset.equals(other.animationPreset);
     }
 
     @Override
@@ -267,6 +283,7 @@ public final class EquationParticleIota extends Iota {
         NBTHelper.putString(out, "color_expr_r", colorExprR);
         NBTHelper.putString(out, "color_expr_g", colorExprG);
         NBTHelper.putString(out, "color_expr_b", colorExprB);
+        NBTHelper.putString(out, "anim_preset", animationPreset);
         return out;
     }
 
@@ -293,8 +310,24 @@ public final class EquationParticleIota extends Iota {
             gradientEndB,
             colorExprR,
             colorExprG,
-            colorExprB
+            colorExprB,
+            animationPreset
         );
+    }
+
+    private static String normalizeAnimationPreset(String raw) {
+        if (raw == null) {
+            return ANIM_ROTATE;
+        }
+
+        return switch (raw.toLowerCase()) {
+            case ANIM_STATIC -> ANIM_STATIC;
+            case ANIM_BOB -> ANIM_BOB;
+            case ANIM_PULSE -> ANIM_PULSE;
+            case ANIM_ORBIT -> ANIM_ORBIT;
+            case ANIM_SPIN_BOB -> ANIM_SPIN_BOB;
+            default -> ANIM_ROTATE;
+        };
     }
 
     @Override

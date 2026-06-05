@@ -374,7 +374,7 @@ object ManifestationServer : ModInitializer {
                     return@execute
                 }
 
-                val writeError = be.writeEquation(normalized)
+                val writeError = be.writeEquation(normalized, animationPreset)
                 if (writeError != null) {
                     player.displayClientMessage(Component.literal("Equation write failed: $writeError"), false)
                     return@execute
@@ -545,6 +545,7 @@ object ManifestationServer : ModInitializer {
                 equation.colorExprB
             )
             buf.writeNbt(config.serializeToNbt())
+            buf.writeUtf(equation.animationPreset, 32)
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
         }

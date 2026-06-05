@@ -83,7 +83,7 @@ class EquationSynthBlockEntity(
         markUpdated()
     }
 
-    fun writeEquation(config: EquationParticleConfig): String? {
+    fun writeEquation(config: EquationParticleConfig, animationPreset: String = this.animationPreset): String? {
         if (focus.isEmpty) {
             return "No focus inserted."
         }
@@ -92,6 +92,7 @@ class EquationSynthBlockEntity(
             ?: return "Inserted item is not a writable focus."
 
         val normalized = config.normalized()
+        val normalizedAnimationPreset = normalizeAnimationPreset(animationPreset)
         val iota = EquationParticleIota(
             normalized.xExpr(),
             normalized.yExpr(),
@@ -114,7 +115,8 @@ class EquationSynthBlockEntity(
             normalized.gradientEndB(),
             normalized.colorExprR(),
             normalized.colorExprG(),
-            normalized.colorExprB()
+            normalized.colorExprB(),
+            normalizedAnimationPreset
         )
 
         if (!holder.writeIota(iota, true)) {
@@ -122,6 +124,7 @@ class EquationSynthBlockEntity(
         }
 
         holder.writeIota(iota, false)
+        this.animationPreset = normalizedAnimationPreset
         previewEquation = normalized
         syncVisualState()
         markUpdated()
@@ -230,6 +233,7 @@ class EquationSynthBlockEntity(
 
         val holder = IXplatAbstractions.INSTANCE.findDataHolder(focus) ?: return null
         val iota = holder.readIota(serverLevel) as? EquationParticleIota ?: return null
+        animationPreset = normalizeAnimationPreset(iota.animationPreset)
         return EquationParticleConfig(
             iota.xExpr,
             iota.yExpr,
