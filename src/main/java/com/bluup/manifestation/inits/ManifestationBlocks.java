@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server.block;
 
 import com.bluup.manifestation.Manifestation;
+import com.bluup.manifestation.server.item.ItemMindVault;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
@@ -80,6 +81,27 @@ public final class ManifestationBlocks {
             .requiresCorrectToolForDrops()
     );
 
+    public static final Block PERMANENT_THRESHOLD_FRAME_TOP_RIGHT_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_FRAME_BOTTOM_LEFT_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
+    public static final Block PERMANENT_THRESHOLD_FRAME_BOTTOM_RIGHT_BLOCK = new PermanentThresholdFrameBlock(
+        FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
+            .strength(3.0f, 6.0f)
+            .noLootTable()
+            .requiresCorrectToolForDrops()
+    );
+
     public static final Block PERMANENT_THRESHOLD_PLINTH_BLOCK = new PermanentThresholdFrameBlock(
         FabricBlockSettings.copyOf(Blocks.COBBLED_DEEPSLATE)
             .strength(3.0f, 6.0f)
@@ -118,7 +140,7 @@ public final class ManifestationBlocks {
         new Item.Properties()
     );
 
-    public static final Item MIND_VAULT_ITEM = new BlockItem(
+    public static final Item MIND_VAULT_ITEM = new ItemMindVault(
         MIND_VAULT_BLOCK,
         new Item.Properties()
     );
@@ -144,6 +166,9 @@ public final class ManifestationBlocks {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("mind_vault"), MIND_VAULT_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("equation_synth"), EQUATION_SYNTH_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_frame"), PERMANENT_THRESHOLD_FRAME_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_frame_top_right"), PERMANENT_THRESHOLD_FRAME_TOP_RIGHT_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_frame_bottom_left"), PERMANENT_THRESHOLD_FRAME_BOTTOM_LEFT_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_frame_bottom_right"), PERMANENT_THRESHOLD_FRAME_BOTTOM_RIGHT_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_plinth"), PERMANENT_THRESHOLD_PLINTH_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_side_pillar"), PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("permanent_threshold_capstone"), PERMANENT_THRESHOLD_CAPSTONE_BLOCK);

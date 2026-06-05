@@ -37,6 +37,7 @@ import com.bluup.manifestation.server.action.OpSpellCircle
 import com.bluup.manifestation.server.action.OpMemoryReflection
 import com.bluup.manifestation.server.action.OpReplayMemory
 import com.bluup.manifestation.server.action.OpStoreMemory
+import com.bluup.manifestation.server.action.OpMindVaultCounts
 import com.bluup.manifestation.server.action.OpUiButton
 import com.bluup.manifestation.server.action.OpUiCheckbox
 import com.bluup.manifestation.server.action.OpUiDropdown
@@ -170,6 +171,7 @@ object ManifestationServer : ModInitializer {
         registerAction("memory_reflection", "qwawqwaqw", HexDir.EAST, OpMemoryReflection)
         registerAction("replay_memory", "qwawqwaa", HexDir.EAST, OpReplayMemory)
         registerAction("store_memory", "qwawqwaqa", HexDir.EAST, OpStoreMemory)
+        registerAction("mind_vault_counts", "qqawddad", HexDir.SOUTH_EAST, OpMindVaultCounts)
         registerAction("exit_if_interacting", "qaqqqqe", HexDir.EAST, OpExitIfInteracting)
         registerAction("open_casting_screen", "aqaeawqqwqwqqw", HexDir.SOUTH_WEST, OpOpenCastingScreen)
         registerAction("clear_stack", "aqaeawqqwa", HexDir.SOUTH_WEST, OpClearStack)

@@ -202,12 +202,15 @@ object PermanentThresholdFrames {
                 }
 
                 val desiredBlock = styledRingBlockFor(horizontal, vertical)
-                if (currentBlock == desiredBlock) {
+                val desiredState = desiredBlock.defaultBlockState()
+                    .setValue(PermanentThresholdFrameBlock.AXIS, frame.axis)
+
+                if (currentState == desiredState) {
                     continue
                 }
 
                 replacedStates.add(pos.immutable() to currentState)
-                level.setBlock(pos, desiredBlock.defaultBlockState(), Block.UPDATE_ALL)
+                level.setBlock(pos, desiredState, Block.UPDATE_ALL)
             }
         }
 
@@ -235,6 +238,9 @@ object PermanentThresholdFrames {
     private fun isValidFrameBlock(block: Block): Boolean = when (block) {
         Blocks.DEEPSLATE,
         ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_TOP_RIGHT_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BOTTOM_LEFT_BLOCK,
+        ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BOTTOM_RIGHT_BLOCK,
         ManifestationBlocks.PERMANENT_THRESHOLD_PLINTH_BLOCK,
         ManifestationBlocks.PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK,
         ManifestationBlocks.PERMANENT_THRESHOLD_CAPSTONE_BLOCK,
@@ -245,14 +251,26 @@ object PermanentThresholdFrames {
     private fun styledRingBlockFor(horizontal: Int, vertical: Int): Block {
         val corner = (horizontal == 0 || horizontal == 3) && (vertical == 0 || vertical == 4)
         if (corner) {
-            return ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK
+            return when {
+                horizontal == 0 && vertical == 4 -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK
+                horizontal == 3 && vertical == 4 -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_TOP_RIGHT_BLOCK
+                horizontal == 0 && vertical == 0 -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BOTTOM_LEFT_BLOCK
+                else -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BOTTOM_RIGHT_BLOCK
+            }
+        }
+
+        if (horizontal == 0 || horizontal == 3) {
+            return if (horizontal == 0) {
+                ManifestationBlocks.PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK
+            } else {
+                ManifestationBlocks.PERMANENT_THRESHOLD_INNER_EDGE_BLOCK
+            }
         }
 
         return when {
             vertical == 0 -> ManifestationBlocks.PERMANENT_THRESHOLD_PLINTH_BLOCK
             vertical == 4 -> ManifestationBlocks.PERMANENT_THRESHOLD_CAPSTONE_BLOCK
-            vertical == 2 -> ManifestationBlocks.PERMANENT_THRESHOLD_INNER_EDGE_BLOCK
-            else -> ManifestationBlocks.PERMANENT_THRESHOLD_SIDE_PILLAR_BLOCK
+            else -> ManifestationBlocks.PERMANENT_THRESHOLD_FRAME_BLOCK
         }
     }
 }

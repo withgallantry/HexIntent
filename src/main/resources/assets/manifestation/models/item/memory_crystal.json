@@ -1,3 +1,6 @@
 {
-  "parent": "hexcasting:item/charged_amethyst"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "manifestation:item/memory_crystal"
+  }
 }

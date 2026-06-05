@@ -14,6 +14,14 @@
     {
       "type": "patchouli:text",
       "text": "hexcasting.page.manifestation.intents.store_mind_vault"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:mind_vault_counts",
+      "anchor": "manifestation:mind_vault_counts",
+      "input": "vec",
+      "output": "[num, num]",
+      "text": "hexcasting.page.manifestation.intents.mind_vault_counts"
     }
   ]
 }

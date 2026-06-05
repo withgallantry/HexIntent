@@ -484,6 +484,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
             float y0 = Mth.lerp(t0, -halfH, halfH);
             float y1 = Mth.lerp(t1, -halfH, halfH);
+            y0 = Mth.clamp(y0, -halfH + cornerTopInset, halfH - cornerTopInset);
+            y1 = Mth.clamp(y1, -halfH + cornerTopInset, halfH - cornerTopInset);
+            if (y1 <= y0) {
+                continue;
+            }
             float yRatio0 = Mth.lerp(t0, -1.0f, 1.0f);
             float yRatio1 = Mth.lerp(t1, -1.0f, 1.0f);
             float leftInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_SIDE_WIDTH * scale, yRatio0, time, revealProgress, 0.0f);
@@ -527,6 +532,11 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
             float x0 = Mth.lerp(t0, -halfW, halfW);
             float x1 = Mth.lerp(t1, -halfW, halfW);
+            x0 = Mth.clamp(x0, -halfW + cornerSideInset, halfW - cornerSideInset);
+            x1 = Mth.clamp(x1, -halfW + cornerSideInset, halfW - cornerSideInset);
+            if (x1 <= x0) {
+                continue;
+            }
             float xRatio0 = Mth.lerp(t0, -1.0f, 1.0f);
             float xRatio1 = Mth.lerp(t1, -1.0f, 1.0f);
             float topInset0 = resolvePermanentSquareRimInset(PERMANENT_RIM_TOP_WIDTH * scale, xRatio0, time, revealProgress, 3.1f);

@@ -7,19 +7,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.intro"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.intro.2"
-    },
-    {
-      "type": "patchouli:text",
       "text": "hexcasting.page.manifestation.intents_intro"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "hexcasting.page.manifestation.intents_intro.2"
     },
     {
       "type": "hexcasting:pattern",
@@ -108,38 +96,6 @@
       "input": "list, text",
       "output": "intent",
       "text": "hexcasting.page.manifestation.intents.intent_dropdown"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:memory_reflection",
-      "anchor": "manifestation:memory_reflection",
-      "input": "none",
-      "output": "memory",
-      "text": "hexcasting.page.manifestation.menus.memory_reflection"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:replay_memory",
-      "anchor": "manifestation:replay_memory",
-      "input": "memory",
-      "output": "[pattern] | null",
-      "text": "hexcasting.page.manifestation.menus.replay_memory"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:store_memory",
-      "anchor": "manifestation:store_memory",
-      "input": "memory, iota",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.menus.store_memory"
-    },
-    {
-      "type": "hexcasting:pattern",
-      "op_id": "manifestation:link_intent_relay",
-      "anchor": "manifestation:link_intent_relay",
-      "input": "vec, vec, vec, num?",
-      "output": "none",
-      "text": "hexcasting.page.manifestation.intents.link_intent_relay"
     },
     {
       "type": "hexcasting:pattern",

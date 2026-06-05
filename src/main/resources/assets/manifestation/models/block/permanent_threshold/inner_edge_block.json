@@ -1,6 +1,12 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube",
   "textures": {
-    "all": "manifestation:block/permanent_threshold/cobbled_deepslate_inner_edge"
+    "north": "manifestation:block/permanent_threshold/portal_frame_right",
+    "south": "manifestation:block/permanent_threshold/portal_frame_left",
+    "east": "manifestation:block/permanent_threshold/portal_frame_neutral_side",
+    "west": "manifestation:block/permanent_threshold/portal_frame_neutral_side",
+    "up": "manifestation:block/permanent_threshold/portal_frame_neutral_side",
+    "down": "manifestation:block/permanent_threshold/portal_frame_neutral_side",
+    "particle": "manifestation:block/permanent_threshold/portal_frame_neutral_side"
   }
 }

@@ -1,7 +1,11 @@
 {
   "variants": {
-    "": {
+    "axis=z": {
       "model": "manifestation:block/permanent_threshold/capstone_block"
+    },
+    "axis=x": {
+      "model": "manifestation:block/permanent_threshold/capstone_block",
+      "y": 90
     }
   }
 }
