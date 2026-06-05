@@ -94,7 +94,7 @@ public final class EquationCloudVisuals {
 
         String currentDimension = mc.level.dimension().location().toString();
         long now = mc.level.getGameTime();
-        float animTime = now;
+        float animTime = now + mc.getFrameTime();
 
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
         Camera mainCamera = mc.gameRenderer.getMainCamera();

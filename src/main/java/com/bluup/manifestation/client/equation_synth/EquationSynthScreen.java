@@ -75,6 +75,8 @@ public final class EquationSynthScreen extends Screen {
     private int previewH;
 
     private final List<Dot> previewDots = new ArrayList<>();
+    private EquationParticleConfig previewConfig;
+    private boolean previewUsesTime;
     private boolean showShapeModal = false;
     private int shapeScroll = 0;
     private boolean formulaPanelCollapsed = false;
@@ -468,6 +470,15 @@ public final class EquationSynthScreen extends Screen {
             ? this.minecraft.level.getGameTime() + partialTick
             : (System.currentTimeMillis() * 0.02);
 
+        if (this.previewUsesTime && this.previewConfig != null) {
+            try {
+                previewDots.clear();
+                sampleIntoPreview(this.previewConfig, animTime);
+            } catch (IllegalArgumentException ignored) {
+                // Keep the last valid preview shown while the current expression is invalid.
+            }
+        }
+
         final double yaw = Math.toRadians(38.0);
         final double pitch = Math.toRadians(26.0);
         double cy = Math.cos(yaw);
@@ -783,12 +794,19 @@ public final class EquationSynthScreen extends Screen {
         try {
             config = readConfig(false).normalized();
             previewDots.clear();
-            sampleIntoPreview(config);
+            double previewTime = (this.minecraft != null && this.minecraft.level != null)
+                ? this.minecraft.level.getGameTime()
+                : 0.0;
+            sampleIntoPreview(config, previewTime);
+            this.previewConfig = config;
+            this.previewUsesTime = EquationParticleGenerator.usesTime(config);
 
             status = "Preview ready. " + previewDots.size() + " points.";
             statusColor = 0x9CC7FF;
         } catch (IllegalArgumentException ex) {
             previewDots.clear();
+            this.previewConfig = null;
+            this.previewUsesTime = false;
             status = "Preview failed: " + friendlyError(ex.getMessage());
             statusColor = 0xFF6666;
         }
@@ -848,11 +866,12 @@ public final class EquationSynthScreen extends Screen {
         return cfg;
     }
 
-    private void sampleIntoPreview(EquationParticleConfig config) {
+    private void sampleIntoPreview(EquationParticleConfig config, double time) {
         List<EquationParticleGenerator.GeneratedPoint> generated = EquationParticleGenerator.generate(
             config,
             ManifestationClientLimits.MAX_EQUATION_POINTS_RENDER,
-            ManifestationClientLimits.MAX_EQUATION_EVAL_BUDGET_RENDER
+            ManifestationClientLimits.MAX_EQUATION_EVAL_BUDGET_RENDER,
+            time
         );
         if (generated.isEmpty()) {
             throw new IllegalArgumentException("no_valid_points");

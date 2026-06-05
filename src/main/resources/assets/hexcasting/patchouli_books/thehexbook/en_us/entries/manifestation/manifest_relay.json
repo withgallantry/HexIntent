@@ -18,6 +18,14 @@
       "text": "hexcasting.page.manifestation.manifest_relay.link_intent_relay.2"
     },
     {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:destroy_manifestation",
+      "anchor": "manifestation:destroy_manifestation",
+      "input": "vec, num",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.portals.destroy_manifestation"
+    },
+    {
       "type": "patchouli:text",
       "text": "hexcasting.page.manifestation.portals.destroy_manifestation"
     }

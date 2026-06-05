@@ -1168,6 +1168,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         int packedLight,
         float scale
     ) {
+        if (blockEntity.isPermanentFrameMode()) {
+            return;
+        }
+
         String label = blockEntity.getPortalLabel();
         if (label == null || label.isBlank()) {
             return;
