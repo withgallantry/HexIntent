@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+      <title>HexIntent Book</title>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="description" content="The HexIntent Hex Casting addon documentation." />
+      <meta name="author" content="withgallantry" />
+        <link rel="None" type="image/ico" href="favicon.ico" />
+        <link rel="icon" type="image/png" href="favicon-16x16.png" />
+        <link rel="icon" type="image/png" href="favicon-32x32.png" />
+        <link rel="icon" type="image/png" href="favicon-64x64.png" />
+        <link rel="icon" type="image/png" href="favicon-96x96.png" />
+        <link rel="icon" type="image/png" href="favicon-180x180.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-57x57.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-60x60.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-72x72.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-76x76.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-114x114.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-120x120.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-144x144.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-152x152.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-167x167.png" />
+        <link rel="apple-touch-icon" type="image/png" href="apple-touch-icon-180x180.png" />
+        <link rel="None" type="image/png" href="mstile-70x70.png" />
+        <link rel="None" type="image/png" href="mstile-270x270.png" />
+        <link rel="None" type="image/png" href="mstile-310x310.png" />
+        <link rel="None" type="image/png" href="mstile-310x150.png" />
+        <link rel="shortcut icon" type="image/png" href="favicon-196x196.png" />
+      <link rel="mask-icon" href="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/main/media/safari-pinned-tab.svg" color="#332233">
+<meta property="og:type" content="website" />
+<meta property="og:title" content="HexIntent Book" />
+<meta property="og:image" content="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/en_us/icon.png" />
+<meta property="og:url" content="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/en_us" />
+<meta property="og:description" content="The HexIntent Hex Casting addon documentation." />
+<meta property="og:site_name" content="HexIntent (2.1.7)" />
+      <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+      integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
+        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+      <link rel="stylesheet" href="index.css">
+      <link rel="stylesheet" href="textures.css">
+      <noscript>
+        <style>
+          /* for accessibility */
+          .spoilered {
+            filter: none !important;
+          }
+        </style>
+      </noscript>
+        <script type="module" src="index.js"></script>
+  <script type="module" src="hexcasting.js"></script>
+  <script type="module" src="hexcasting_render.js"></script>
+  </head>
+  <body>
+<nav class="navbar navbar-default navbar-static-top">
+  <div class="container">
+    <div class="navbar-header">
+      <button
+        type="button"
+        class="navbar-toggle collapsed"
+        data-toggle="collapse"
+        data-target="#navbar-collapse"
+        aria-expanded="false"
+      >
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="../../../..">HexIntent Book</a>
+    </div>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="nav navbar-nav navbar-right">
+            <li>
+    <a
+      href="https://github.com/withgallantry/HexIntent/tree/10fa8fc98661bb72cd18c9f0556e009241ce9f1c"
+        target="_blank"
+      class="navbar-link"
+      role="button"
+      aria-haspopup="true"
+      aria-expanded="false"
+    >GitHub <i class="bi bi-box-arrow-up-right external-link-icon"></i></a>
+  </li>
+        <li class="dropdown">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >2.1.7 <span class="caret"></span></a>
+          <ul class="dropdown-menu" id="version-dropdown"></ul>
+        </li>
+        <li class="dropdown">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >English (United States) <span class="caret"></span></a>
+          <ul class="dropdown-menu dropdown-menu-left" id="lang-dropdown"></ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container" style="margin-top: 3em;">
+  <blockquote>
+      <h1><p>This is the online version of the HexIntent documentation.</p></h1>
+      <p><strong>Entries which are blurred are spoilers</strong>. Click to reveal them, but be aware that they may spoil endgame progression. Alternatively, click <a href="?nospoiler">here</a> to get a version with all spoilers showing.</p>
+      <span id="old-version-notice" class="hidden">
+        <br />
+        <p><i>The past is a foreign country; they do things differently there.</i></p>
+      </span>
+  </blockquote>
+</div>
+<div class="container">
+    <header class="jumbotron">
+      <h1 class="book-title">Hex Notebook</h1>
+      <p>I seem to have discovered a new method of magical arts, in which one draws patterns strange and wild onto a hexagonal grid. It fascinates me. I&#39;ve decided to start a journal of my thoughts and findings.</p><p><a href="https://forum.petra-k.at/index.php" target="_blank">Forum Link</a></p>
+    </header>
+<div id="table-of-contents"></div>
+<nav class="toc-container">
+  <h2 class="page-header">
+    Table of <span class="nobr">Contents<a
+      href="javascript:void(0)"
+      class="permalink toggle-link small"
+      data-target="toc-category"
+      title="Toggle all"
+    ><i class="bi bi-list-nested"></i></a><a
+    href="#table-of-contents"
+    class="permalink small toc-permalink"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></span>
+  </h2>
+    <details class="toc-category">
+      <summary><a href="#items" class="toc-elem "><img
+      title="Focus"
+      alt="Focus"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/cad/0_focus_empty.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Items</a></summary>
+      <ul>
+          <li><a href="#manifestation/mind_vault" class="toc-elem "><img
+      title="Mind Vault"
+      alt="Mind Vault"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/mind_vault.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Mind Vault</a></li>
+          <li><a href="#manifestation/hex_box" class="toc-elem "><img
+      title="Hex Reliquary"
+      alt="Hex Reliquary"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/hex_box/hex_1.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Hex Reliquary</a></li>
+          <li><a href="#manifestation/contained_splinter" class="toc-elem "><img
+      title="Splinter Caster"
+      alt="Splinter Caster"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/splinter_caster.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Contained Splinter</a></li>
+          <li><a href="#manifestation/equation_synth" class="toc-elem "><img
+      title="Equation Synthesizer"
+      alt="Equation Synthesizer"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/equation_synth.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Equation Synthesizer</a></li>
+          <li><a href="#manifestation/memory_crystal" class="toc-elem "><img
+      title="Memory Crystal"
+      alt="Memory Crystal"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/item/memory_crystal.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Memory Crystal</a></li>
+      </ul>
+    </details>
+    <details class="toc-category">
+      <summary><a href="#patterns/spells" class="toc-elem "><img
+      title="Enchanted Book"
+      alt="Enchanted Book"
+      src="https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/a14c64362abe4a12c2dfd87f8d1673af9d1b09f4/data/1.20.2/items/enchanted_book.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Spells</a></summary>
+      <ul>
+          <li><a href="#manifestation/manifest_portals" class="toc-elem "><img
+      title="End Portal Frame"
+      alt="End Portal Frame"
+      src="https://hexdoc-dev.github.io/hexdoc-minecraft/v/1.20.1/1.0.dev1/assets/minecraft/textures/block/end_portal_frame.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Manifest Threshold</a></li>
+          <li><a href="#manifestation/manifest_relay" class="toc-elem "><img
+      title="block.manifestation.intent_circle/intent_circle"
+      alt="block.manifestation.intent_circle/intent_circle"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/block/intent_circle/intent_circle.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Manifest Relay</a></li>
+          <li><a href="#manifestation/visual_manifestation" class="toc-elem "><img
+      title="Equation Synthesizer"
+      alt="Equation Synthesizer"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/equation_synth.png"
+      loading="lazy"
+      class="item-texture  texture "
+    > Visual Manifestation</a></li>
+          <li><a href="#manifestation/splinters" class="toc-elem "><img
+      title="Amethyst Dust"
+      alt="Amethyst Dust"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/amethyst_dust.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Splinters</a></li>
+          <li><a href="#manifestation/charm_audio" class="toc-elem "><img
+      title="Cypher"
+      alt="Cypher"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/cad/0_cypher.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    > Charming Intent</a></li>
+      </ul>
+    </details>
+</nav>
+  <main class="book-body">
+<section id="items">
+    <h2 class="category-title page-header">
+    <img
+      title="Focus"
+      alt="Focus"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/cad/0_focus_empty.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Items<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#items"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h2>
+    <p>I devote this section to the magical and mysterious items I might encounter in my studies.</p>
+<div id="manifestation/mind_vault" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Mind Vault"
+      alt="Mind Vault"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/mind_vault.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Mind Vault<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/mind_vault"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <h4 class="spotlight-title page-header">Mind Vault</h4>
+  <div class="spotlight">
+    <img
+      alt="Spotlight inventory slot"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
+    >
+    <img
+      title="Mind Vault"
+      alt="Mind Vault"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/mind_vault.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >
+  </div>
+      <p>The Mind Vault lets you flay villagers body and mind into the vault, storing it for later use. The true innovation is that by consuming the essence of the villager, it allows you to reuse their mind over and over, with a cooldown between uses. The downside is that one vault can only store one type of villager mind, at that level.</p>
+<br />
+    <p>It&#39;s set by the first villager you store, so choose wisely.</p><p>Takes a villager entity and a vector location of the mind vault. Flaying the villager into the vault stores their mind and locks the vault to that type and level of villager.</p>
+<br />
+  <div id="manifestation/mind_vault@manifestation:mind_vault_counts" class="">
+<h4 class="pattern-title">Mind Vault Counts (vec → [num, num])<a
+    href="#manifestation/mind_vault@manifestation:mind_vault_counts"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qqawddad"
+        data-start="south_east"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qqawddad</canvas>
+  </details>
+      <p>Takes a vector of a mind vault location and returns [ready, total], where ready is the number of stored minds not on cooldown and total is the number of stored minds in the vault.</p>
+  </div>
+<br />
+</div>
+<div id="manifestation/hex_box" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Hex Reliquary"
+      alt="Hex Reliquary"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/hex_box/hex_1.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Hex Reliquary<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/hex_box"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <h4 class="spotlight-title page-header">Hex Reliquary</h4>
+  <div class="spotlight">
+    <img
+      alt="Spotlight inventory slot"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
+    >
+    <img
+      title="Hex Reliquary"
+      alt="Hex Reliquary"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/hex_box/hex_1.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >
+  </div>
+      <p>The Hex Reliquary copies the contents of a focus into itself, in one of five slots, it&#39;ll also copy the contents back to an empty focus. It&#39;ll use the focus&#39;s name as a slot label.</p>
+<br />
+    <p>Right click the reliquary with a focus to copy to it, and with an empty to copy from it. An empty hand will rotate the slots. Use a scrying lens to see what slot is selected and the name.</p>
+<br />
+</div>
+<div id="manifestation/contained_splinter" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Splinter Caster"
+      alt="Splinter Caster"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/splinter_caster.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Contained Splinter<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/contained_splinter"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <h4 class="spotlight-title page-header">Contained Splinter</h4>
+  <div class="spotlight">
+    <img
+      alt="Spotlight inventory slot"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
+    >
+    <img
+      title="Splinter Caster"
+      alt="Splinter Caster"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/splinter_caster.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >
+  </div>
+      <p>A contained splinter is a fragile sliver of will anchored to a physical box. It can hold a focus and will cast this focus through the contained splinter.</p>
+<br />
+    <p>Place the Splinter Caster in a spell circle and provide a focus by right clicking it with a focus in hand. It will  Will capture the spell circle wave until execution has finished. A redstone pulse to the caster will forcibly release the circle wave.</p>
+<br />
+</div>
+<div id="manifestation/equation_synth" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Equation Synthesizer"
+      alt="Equation Synthesizer"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/equation_synth.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Equation Synthesizer<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/equation_synth"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <h4 class="spotlight-title page-header">Equation Synthesizer</h4>
+  <div class="spotlight">
+    <img
+      alt="Spotlight inventory slot"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
+    >
+    <img
+      title="Equation Synthesizer"
+      alt="Equation Synthesizer"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/equation_synth.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >
+  </div>
+      <p>The Equation Synthesizer writes an Equation Particle iota directly into a held focus. Use it when you want large particle effects.</p>
+<br />
+    <p>Insert a focus, open the synthesizer UI, and define x/y/z expressions with ranges and point count. Configure color mode (fixed, gradient, or expression), then click write to write the equation into the focus. You must right click the synthesizer first with a focus to insert, then with a non-empty hand to open the UI. Click with an empty hand to remove the focus.</p>
+<br />
+    <p>Use that stored iota with Equation Hex Cloud to render the particles.</p><p>Reusing the same cloud id updates the existing channel for smoother continuous animation during loops and quines.</p><p>You can also use the optional <strong>time</strong> variable in your equations to make the shape itself animate over time.</p>
+<br />
+</div>
+<div id="manifestation/memory_crystal" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Memory Crystal"
+      alt="Memory Crystal"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/item/memory_crystal.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Memory Crystal<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/memory_crystal"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <h4 class="spotlight-title page-header">Memory Crystal</h4>
+  <div class="spotlight">
+    <img
+      alt="Spotlight inventory slot"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/hexdoc/textures/gui/spotlight.png"
+    >
+    <img
+      title="Memory Crystal"
+      alt="Memory Crystal"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/item/memory_crystal.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >
+  </div>
+      <p>Memory Crystals are funny little things. They have their own unique identifier and can store patterns within them.</p><p>I&#39;ve found that you can jam these things into other magical items, keeping their properties. Although jamming two into one item often cracks the first.</p>
+<br />
+    <p>I&#39;ve found that you can jam these things into other magical items adding a form of persistent memory to them. Although jamming two into one item often cracks the first.</p>
+<br />
+  <details class="details-collapsible recipe-details">
+      <summary class="collapse-details">
+    <span class="collapse-recipe-show">Click to show recipes</span>
+    <span class="collapse-recipe-hide">Click to hide recipes</span>
+  </summary>
+    <div class="crafting-tables">
+<div>
+    <h5>Memory Crystal</h5>
+    <div class="crafting-table">
+        <img
+      title="Crafting Table"
+      alt="Crafting Table"
+      src="https://raw.githubusercontent.com/hexdoc-dev/hexdoc/673338b4b11cddd0547d11af0b98914200c58f96/src/hexdoc/_export/resources/assets/minecraft/textures/gui/hexdoc/crafting_table.png"
+      class="texture pixelated"
+    >
+  <div class="crafting-table-grid">
+        <div></div>        <div class="texture item-texture multi-textures cycle-textures">
+                <img
+      title="Charged Amethyst"
+      alt="Charged Amethyst"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/charged_amethyst.png"
+      loading="lazy"
+      class="item-texture multi-texture-active texture pixelated"
+    >
+        </div>
+        <div></div>        <div class="texture item-texture multi-textures cycle-textures">
+                <img
+      title="Charged Amethyst"
+      alt="Charged Amethyst"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/charged_amethyst.png"
+      loading="lazy"
+      class="item-texture multi-texture-active texture pixelated"
+    >
+        </div>
+        <div class="texture item-texture multi-textures cycle-textures">
+                <img
+      title="Focus"
+      alt="Focus"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/cad/0_focus_empty.png"
+      loading="lazy"
+      class="item-texture multi-texture-active texture pixelated"
+    >
+        </div>
+        <div class="texture item-texture multi-textures cycle-textures">
+                <img
+      title="Charged Amethyst"
+      alt="Charged Amethyst"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/charged_amethyst.png"
+      loading="lazy"
+      class="item-texture multi-texture-active texture pixelated"
+    >
+        </div>
+        <div></div>        <div class="texture item-texture multi-textures cycle-textures">
+                <img
+      title="Charged Amethyst"
+      alt="Charged Amethyst"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/charged_amethyst.png"
+      loading="lazy"
+      class="item-texture multi-texture-active texture pixelated"
+    >
+        </div>
+        <div></div>  </div>
+  <div class="crafting-table-result recipe-item-slot">
+    <img
+      title="Memory Crystal"
+      alt="Memory Crystal"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/item/memory_crystal.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >
+  </div>
+    </div>
+</div>    </div>
+  </details>
+      <p>Forged from a focus and charged crystals. Makes sense given their properties.</p>
+<br />
+  <div id="manifestation/memory_crystal@manifestation:memory_reflection" class="">
+<h4 class="pattern-title">Memory Reflection (none → memory)<a
+    href="#manifestation/memory_crystal@manifestation:memory_reflection"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qwawqwaqw"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qwawqwaqw</canvas>
+  </details>
+      <p>Returns the held or embedded Memory Crystal&#39;s unique memory identifier. Favours the off-hand first.</p>
+  </div>
+<br />
+  <div id="manifestation/memory_crystal@manifestation:replay_memory" class="">
+<h4 class="pattern-title">Replay Memory (memory → [pattern] | null)<a
+    href="#manifestation/memory_crystal@manifestation:replay_memory"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qwawqwaa"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qwawqwaa</canvas>
+  </details>
+      <p>Returns the stored memory pattern (or null if none) from a held or embedded Memory Crystal. Takes a Memory Iota from Memory Reflection. Favours the off-hand first.</p>
+  </div>
+<br />
+  <div id="manifestation/memory_crystal@manifestation:store_memory" class="">
+<h4 class="pattern-title">Store Memory (memory, any → none)<a
+    href="#manifestation/memory_crystal@manifestation:store_memory"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qwawqwaqa"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qwawqwaqa</canvas>
+  </details>
+      <p>Stores the top of the stack in a held or embedded Memory Crystal&#39;s memory. Takes a Memory Iota from Memory Reflection. Favours the off-hand first.</p>
+  </div>
+<br />
+</div>
+</section>
+<section id="patterns/spells">
+    <h2 class="category-title page-header">
+    <img
+      title="Enchanted Book"
+      alt="Enchanted Book"
+      src="https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/a14c64362abe4a12c2dfd87f8d1673af9d1b09f4/data/1.20.2/items/enchanted_book.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Spells<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#patterns/spells"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h2>
+    <p>Patterns and actions that perform a magical effect on the world.</p>
+<div id="manifestation/manifest_portals" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="End Portal Frame"
+      alt="End Portal Frame"
+      src="https://hexdoc-dev.github.io/hexdoc-minecraft/v/1.20.1/1.0.dev1/assets/minecraft/textures/block/end_portal_frame.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Manifest Threshold<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/manifest_portals"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+    <p>Thresholds are about anchoring one location with the intent to be at another. Creating a threshold between the two places. With a strong enough intent, I can even bridge across dimensions. I wonder if I can create a frame that permanently holds a threshold in place indefinitely? I&#39;m inspired by Nether Portals and my Deepslate.</p>
+<br />
+  <div id="manifestation/manifest_portals@manifestation:open_corridor_portal" class="">
+<h4 class="pattern-title">Manifest Threshold (vec, presence, num, text?, pigment? → none)<a
+    href="#manifestation/manifest_portals@manifestation:open_corridor_portal"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edqqdeew"
+        data-start="north_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edqqdeew</canvas>
+  </details>
+      <p><br />Takes a vector, a Prescence intent, media allocation and an optional string label and pigment. Opens a portal bridging two locations together.<strong>Cost: 2 dust per second. 35 Charged Crystal on frame.</strong></p>
+  </div>
+<br />
+  <div id="manifestation/manifest_portals@manifestation:presence_intent" class="">
+<h4 class="pattern-title">Presence Intent (vec, vec → presenceIntent)<a
+    href="#manifestation/manifest_portals@manifestation:presence_intent"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edewqaqdeeeweee"
+        data-start="north_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edewqaqdeeeweee</canvas>
+  </details>
+      <p>Takes a location and a directional vector and creates an intent. Used with manifest threshold.<strong>Cost: 35 amethyst.</strong></p>
+  </div>
+<br />
+  <div id="manifestation/manifest_portals@manifestation:destroy_manifestation" class="">
+<h4 class="pattern-title">Raze Manifestation (vec, num → none)<a
+    href="#manifestation/manifest_portals@manifestation:destroy_manifestation"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edeeedwwaq"
+        data-start="north_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edeeedwwaq</canvas>
+  </details>
+      <p>Takes an origin vector and a radius, destroys manifestations (portals and relays) in that area. Based on permissions.</p>
+  </div>
+<br />
+</div>
+<div id="manifestation/manifest_relay" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="block.manifestation.intent_circle/intent_circle"
+      alt="block.manifestation.intent_circle/intent_circle"
+      src="https://raw.githubusercontent.com/withgallantry/HexIntent/10fa8fc98661bb72cd18c9f0556e009241ce9f1c/src/main/resources/assets/manifestation/textures/block/intent_circle/intent_circle.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Manifest Relay<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/manifest_relay"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <div id="manifestation/manifest_relay@manifestation:link_intent_relay" class="">
+<h4 class="pattern-title">Manifest Relay (vec, vec, vec, num? → none)<a
+    href="#manifestation/manifest_relay@manifestation:link_intent_relay"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edeweqaq"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edeweqaq</canvas>
+  </details>
+      <p>Takes a destination vector for where the relay will go, then a face vector to choose which side to manifest it on, and then a target vector for the thing to link the relay to.</p>
+  </div>
+<br />
+    <p>Optionally you can specify a power up to 15 as the final argument to emit a redstone signal when the relay is activated.<br />Activating that relay will proxy the caster&#39;s interaction to the target as if they were interacting with it themselves.</p><p>Be aware that some things require the presence of a person to work fully, so the dream of opening chests from across the world will have to stay a dream.</p>
+<br />
+  <div id="manifestation/manifest_relay@manifestation:destroy_manifestation" class="">
+<h4 class="pattern-title">Raze Manifestation (vec, num → none)<a
+    href="#manifestation/manifest_relay@manifestation:destroy_manifestation"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="edeeedwwaq"
+        data-start="north_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: edeeedwwaq</canvas>
+  </details>
+      <p>Takes an origin vector and a radius, destroys manifestations (portals and relays) in that area. Based on permissions.</p>
+  </div>
+<br />
+    <p>Takes an origin vector and a radius, destroys manifestations (portals and relays) in that area. Based on permissions.</p>
+<br />
+</div>
+<div id="manifestation/visual_manifestation" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Equation Synthesizer"
+      alt="Equation Synthesizer"
+      src="https://withgallantry.github.io/HexIntent/v/2.1.7/1.0.0/assets/manifestation/textures/block/equation_synth.png"
+      loading="lazy"
+      class="item-texture  texture "
+    >Visual Manifestation<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/visual_manifestation"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+  <div id="manifestation/visual_manifestation@manifestation:equation_hex_cloud" class="">
+<h4 class="pattern-title">Equation Hex Cloud (vec|entity, equation, num → none)<a
+    href="#manifestation/visual_manifestation@manifestation:equation_hex_cloud"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qaqeaddwe"
+        data-start="north_east"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qaqeaddwe</canvas>
+  </details>
+      <p>Creates large particle effects from an Equation Particle iota to avoid large vector lists. The Iota can be created using an Equation Synthesizer block. Uses an ID to keep positional state like Hex Trail.</p>
+  </div>
+<br />
+    <p>Inputs:<br />target: vector where the point cloud is created, <br />OR<br />anchor: entity center to follow,<br />OR<br />anchor + offset: entity center plus offset vector. <br />equation: Equation Particle iota that defines point layout and colour behavior.<br />id: numeric cloud id.</p>
+<br />
+    <p>Using the same id smoothly moves the cloud between positions.</p>
+<br />
+  <div id="manifestation/visual_manifestation@manifestation:hex_trail" class="">
+<h4 class="pattern-title">Hex Trail (vec, vec, vec, num, num, num? → none)<a
+    href="#manifestation/visual_manifestation@manifestation:hex_trail"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qaqead"
+        data-start="north_east"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qaqead</canvas>
+  </details>
+      <p><br />Hex Trail creates a particle trail as it moves. By using the same ID across casts you can create a continuous trail that moves smoothy between positions.</p>
+  </div>
+<br />
+    <p>The positions have to be within 10 blocks of each other for the trail to smoothy move between them, otherwise it will snap to the new position. You also specify two colours for the trail to cycle between and a duration in ticks for the colour transition. There are a variety of particle types to choose from, some new and some from vanilla Minecraft. Not all particles can be tinted. The ID allows you to have multiple trails active and make sure they all animate independently.</p>
+<br />
+    <p>Inputs:<br />position: vector for the particle to appear at or move to.<br />color from: RGB vector (0..1) at the start of the color cycle.<br />color to: RGB vector (0..1) at the end of the color cycle.<br />duration: time in ticks it takes for the colour to transition<br />id: trail identifier. This is what&#39;s used to look up the last position and animate between the position. <br />type?: optional particle style as a number (default 0).</p><p></p>
+<br />
+    <p>Types:<br />0 dust ribbon<br />1 sparks<br />2 trail<br />3 pulse beads<br />4 end rod<br />5 witch plume<br />6 enchant flecks<br />7 soul flame beadss<br />8 solid beams<br />9 ring lattices<br />10 lightning arcs<br />11 hex conjure ribbons<br />12 hex conjure sparkss<br />13 hex conjure trails<br />14 dual-helix.</p>
+<br />
+  <div id="manifestation/visual_manifestation@manifestation:spell_circle" class="">
+<h4 class="pattern-title">Manifest Spell Circle ([pattern], vec, vec, num, num?, vec? → none)<a
+    href="#manifestation/visual_manifestation@manifestation:spell_circle"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qqqqqeawqwqwqwqwqw"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qqqqqeawqwqwqwqwqw</canvas>
+  </details>
+      <p><br />Projects a solid spell circle into the world displaying a pattern for a duration before disintegrating.<strong>Cost: 1/500 dust.</strong></p>
+  </div>
+<br />
+    <p><br />Inputs:<br />patterns: non-empty list of patterns to embed around the ring (max 48).<br />origin: vector for circle center.<br />facing: vector used as the circle plane.</p><p>duration: lifetime in ticks (1..1200).</p><p>size?: optional number 1..6 (default 3).</p>
+<br />
+</div>
+<div id="manifestation/splinters" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Amethyst Dust"
+      alt="Amethyst Dust"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/amethyst_dust.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Splinters<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/splinters"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+    <p>In trying to recreate Greater Sentinel, I first hypothosised that strong intent was the key. Instead I split away unstable slivers of my own will that whilst a shadow of myself, could indeptendently cast, whilst taking the cost from myself. Fascinating. They would often collapse after one cast but I did observe some splinters renewing themselves perpetually, fascinating.</p>
+<br />
+    <p>A splinter only has 16 ambit around itself. If it mishaps, it simply collapses rather than rebounding on to myself.</p>
+<br />
+  <div id="manifestation/splinters@manifestation:manifest_splinter" class="">
+<h4 class="pattern-title">Manifest Splinter (vec, num, list → none)<a
+    href="#manifestation/splinters@manifestation:manifest_splinter"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="dedade"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: dedade</canvas>
+  </details>
+      <p>Creates a splinter at a position, with a delay and a list of patterns to cast. The splinter casts the payload as if it were the caster, then collapses. The splinter&#39;s location is only visible to its creator.</p>
+  </div>
+<br />
+    <p><br />Position: vector to summon at.<br />delay: time in ticks before cast.<br />list of patterns: list of patterns to be cast.</p><p><strong>Cost: 5 dust x (active splinters + 1).</strong></p>
+<br />
+  <div id="manifestation/splinters@manifestation:renew_splinter" class="">
+<h4 class="pattern-title">Renew Splinter (vec, num → none)<a
+    href="#manifestation/splinters@manifestation:renew_splinter"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="dedaded"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: dedaded</canvas>
+  </details>
+      <p>Only castable by a splinter. Renews the current splinter, with the same pattern. Preserves the Ravenmind between splinters.</p>
+  </div>
+<br />
+    <p>Inputs:<br />position: vector to summon at.<br />delay: time in ticks before cast.</p><p><strong>Cost: replacing at the same position is free but moving to a new position costs 0.5 dust.</strong></p>
+<br />
+  <div id="manifestation/splinters@manifestation:get_splinter_location" class="">
+<h4 class="pattern-title">Get Splinter Location (→ vec)<a
+    href="#manifestation/splinters@manifestation:get_splinter_location"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="dedadeeweewewewee"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: dedadeeweewewewee</canvas>
+  </details>
+      <p>Only castable by a splinter. Returns the current vector of the splinter. Useful for self-renewal.</p>
+  </div>
+<br />
+  <div id="manifestation/splinters@manifestation:destroy_splinters" class="">
+<h4 class="pattern-title">Destroy Splinters (→ none)<a
+    href="#manifestation/splinters@manifestation:destroy_splinters"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="dedadeaqaww"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: dedadeaqaww</canvas>
+  </details>
+      <p>Dismisses all splinters you have active.</p>
+  </div>
+<br />
+</div>
+<div id="manifestation/charm_audio" class="entry">
+    <h3 class="entry-title page-header">
+    <img
+      title="Cypher"
+      alt="Cypher"
+      src="https://raw.githubusercontent.com/FallingColors/HexMod/eefaf2d411b6360519c9f56fbfe6b0dfba047425/Common/src/main/resources/assets/hexcasting/textures/item/cad/0_cypher.png"
+      loading="lazy"
+      class="item-texture  texture pixelated"
+    >Charming Intent<a
+    href="#table-of-contents"
+    class="permalink small"
+    title="Jump to top"
+  ><i class="bi bi-box-arrow-up"></i></a><a
+    href="#manifestation/charm_audio"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h3>
+    <p>Sometimes I just want to add a little flair to my charmed items, and with this, I finally can. I can now set the sound a charmed item makes when it casts!</p>
+<br />
+  <div id="manifestation/charm_audio@manifestation:set_charm_cast_sound" class="">
+<h4 class="pattern-title">Set Charm Cast Sound (string | text | null, item entity? → none)<a
+    href="#manifestation/charm_audio@manifestation:set_charm_cast_sound"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="wedwwdwee"
+        data-start="east"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: wedwwdwee</canvas>
+  </details>
+      <p><br />Changes the sound a charmed item makes when casting.</p><p>Top of stack is string, text, or null.<strong>Cost: 10 dust.</strong></p>
+  </div>
+<br />
+    <p>Use string sound id (namespace:path) to change the charm in the offhand to that sound, or null to mute.</p><p>Optionally you can pass a charmed item entity at the top of the stack to change that instead.</p>
+<br />
+  <div id="manifestation/charm_audio@manifestation:exit_if_interacting" class="">
+<h4 class="pattern-title">Exit If Interacting (none → none)<a
+    href="#manifestation/charm_audio@manifestation:exit_if_interacting"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="qaqqqqe"
+        data-start="east"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: qaqqqqe</canvas>
+  </details>
+      <p>Exits a hex if caster uses something interactable. Useful for charmed items that use righ-click.</p>
+  </div>
+<br />
+  <div id="manifestation/charm_audio@manifestation:open_casting_screen" class="">
+<h4 class="pattern-title">Open Casting Screen (none → none)<a
+    href="#manifestation/charm_audio@manifestation:open_casting_screen"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="aqaeawqqwqwqqw"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: aqaeawqqwqwqqw</canvas>
+  </details>
+      <p>Opens the spell grid and must be cast by a person.</p>
+  </div>
+<br />
+  <div id="manifestation/charm_audio@manifestation:clear_stack" class="">
+<h4 class="pattern-title">Clear Stack (none → none)<a
+    href="#manifestation/charm_audio@manifestation:clear_stack"
+    class="permalink small"
+    title="Permalink"
+  ><i class="bi bi-link-45deg"></i></a></h4>
+  <details class="details-collapsible">
+    <summary class="collapse-details collapse-spell"></summary>
+    <div class="dropdown spell-settings-dropdown">
+      <span
+        href=""
+        class="dropdown-toggle spell-settings-toggle"
+        data-toggle="dropdown"
+        role="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-gear-fill"></i>
+      </span>
+      <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Renders</a>
+          <ul class="dropdown-menu dropdown-menu-left render-dropdowns"></ul>
+        </li>
+        <li class="dropdown-submenu">
+          <a
+            href=""
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >Palettes</a>
+          <ul class="dropdown-menu dropdown-menu-left palette-dropdowns"></ul>
+        </li>
+      </ul>
+    </div>
+      <canvas
+        class="spell-viz"
+        width="216"
+        height="216"
+        data-string="aqaeawqqwa"
+        data-start="south_west"
+        data-per-world="False"
+      >Your browser does not support visualizing patterns. Pattern code: aqaeawqqwa</canvas>
+  </details>
+      <p>Clears the caster&#39;s persisted staff stack (the shift, right-click stack). Must be cast by a person.</p>
+  </div>
+<br />
+</div>
+</section>
+  </main>
+</div>
+      <footer class="footer">
+        <div class="container text-muted">
+          <p>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p><p>Minecraft content and materials are the intellectual property of their respective owners.</p><p>Made with ❤️ using <a href="https://pypi.org/project/hexdoc/" target="_blank">hexdoc</a>.</p>
+        </div>
+      </footer>
+  </body>
+</html>
