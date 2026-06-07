@@ -5,6 +5,14 @@
     "manifestation:splinter_caster",
     "manifestation:hex_box",
     "manifestation:mind_vault",
-    "manifestation:equation_synth"
+    "manifestation:equation_synth",
+    "manifestation:permanent_threshold_frame",
+    "manifestation:permanent_threshold_frame_top_right",
+    "manifestation:permanent_threshold_frame_bottom_left",
+    "manifestation:permanent_threshold_frame_bottom_right",
+    "manifestation:permanent_threshold_plinth",
+    "manifestation:permanent_threshold_side_pillar",
+    "manifestation:permanent_threshold_capstone",
+    "manifestation:permanent_threshold_inner_edge"
   ]
 }
