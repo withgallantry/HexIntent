@@ -4,6 +4,7 @@ import at.petrak.hexcasting.api.casting.castables.ConstMediaAction
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
+import at.petrak.hexcasting.api.casting.mishaps.MishapOthersName
 import com.bluup.manifestation.server.iota.MemoryIota
 import com.bluup.manifestation.server.item.MemoryCrystalData
 import com.bluup.manifestation.server.mishap.MishapMemoryIdNotOnCrystal
@@ -34,6 +35,11 @@ object OpStoreMemory : ConstMediaAction {
                 throw MishapMemoryIdNotOnCrystal()
             }
             throw MishapRequiresMemoryCrystalInHand()
+        }
+
+        val trueName = MishapOthersName.getTrueNameFromDatum(storedIota, caster)
+        if (trueName != null) {
+            throw MishapOthersName(trueName)
         }
 
         MemoryCrystalData.writeStoredIota(carrier.stack, storedIota)
