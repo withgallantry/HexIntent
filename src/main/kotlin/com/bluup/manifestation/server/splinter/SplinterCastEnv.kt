@@ -17,13 +17,13 @@ open class SplinterCastEnv(
     caster: ServerPlayer,
     private val hand: InteractionHand,
     val splinterOrigin: Vec3,
-    val sourceSplinterId: UUID
+    val sourceSplinterId: UUID,
+    private val ambitRadius: Double = SPLINTER_AMBIT_RADIUS
 ) : PlayerBasedCastEnv(caster, hand) {
 
     override fun getMishapEnvironment(): MishapEnvironment = NoopMishapEnvironment(world, caster)
 
-    override fun sendMishapMsgToPlayer(mishap: at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect.DoMishap) {
-        // Keep player feedback for splinter mishaps, but suppress punitive effects via NoopMishapEnvironment.
+    override fun sendMishapMsgToPlayer(mishap: OperatorSideEffect.DoMishap) {
         super.sendMishapMsgToPlayer(mishap)
     }
 
@@ -38,9 +38,8 @@ open class SplinterCastEnv(
 
     override fun getPigment(): FrozenPigment = IXplatAbstractions.INSTANCE.getPigment(caster)
 
-    override fun isVecInRangeEnvironment(vec: Vec3): Boolean {
-        return vec.distanceToSqr(splinterOrigin) <= SPLINTER_AMBIT_RADIUS_SQ + RANGE_EPSILON
-    }
+    override fun isVecInRangeEnvironment(vec: Vec3): Boolean =
+        vec.distanceToSqr(splinterOrigin) <= (ambitRadius * ambitRadius) + RANGE_EPSILON
 
     override fun mishapSprayPos(): Vec3 = splinterOrigin
 
@@ -70,8 +69,9 @@ class CircleSplinterCastEnv(
     hand: InteractionHand,
     splinterOrigin: Vec3,
     sourceSplinterId: UUID,
-    private val impetusPos: BlockPos
-) : SplinterCastEnv(caster, hand, splinterOrigin, sourceSplinterId) {
+    private val impetusPos: BlockPos,
+    ambitRadius: Double = SPLINTER_AMBIT_RADIUS
+) : SplinterCastEnv(caster, hand, splinterOrigin, sourceSplinterId, ambitRadius) {
     override fun sendMishapMsgToPlayer(mishap: OperatorSideEffect.DoMishap) {
         val msg = mishap.mishap.errorMessageWithName(this, mishap.errorCtx) ?: return
         val center = Vec3.atCenterOf(impetusPos)
@@ -88,9 +88,9 @@ class CircleSplinterCastEnv(
             return true
         }
 
-        val impetus = world.getBlockEntity(impetusPos) as? BlockEntityAbstractImpetus ?: return false
-        val state = impetus.executionState ?: return false
-        return state.bounds.contains(vec)
+        val impetus = world.getBlockEntity(impetusPos) as? BlockEntityAbstractImpetus
+        val state = impetus?.executionState
+        return state?.bounds?.contains(vec) == true
     }
 
     override fun extractMediaEnvironment(cost: Long, simulate: Boolean): Long {

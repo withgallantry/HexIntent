@@ -27,6 +27,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class CorridorPortalBlockEntityRenderer implements BlockEntityRenderer<CorridorPortalBlockEntity> {
     private static final int STRIPS = 40;
@@ -80,6 +82,10 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
     private static final ResourceLocation PERMANENT_PORTAL_EDGE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_rect_edge_glow.png");
     private static final ResourceLocation PERMANENT_PATCH_REVEAL_MASK = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_patch_reveal_mask.png");
     private static final ResourceLocation PERMANENT_PORTAL_RIPPLE = new ResourceLocation("manifestation", "textures/block/permanent_threshold/portal_ripple_lines.png");
+    private static final double TICKS_PER_NANO = 20.0 / 1_000_000_000.0;
+    private static final double MAX_CLIENT_TICK_LEAD = 8.0;
+    private static final double SERVER_RESYNC_THRESHOLD = 2.5;
+    private static final Map<String, AnimationClockState> ANIMATION_CLOCKS = new ConcurrentHashMap<>();
     private static AlphaMask permanentPatchRevealMask;
 
     public CorridorPortalBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
@@ -103,7 +109,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         poseStack.translate(0.5, 0.5, 0.5);
         poseStack.mulPose(Axis.YP.rotationDegrees(-blockEntity.getRenderYawDegrees()));
 
-        float envelope = blockEntity.renderEnvelope(partialTick);
+        double worldTicks = resolveAnimationTicks(blockEntity, partialTick);
+        float envelope = blockEntity.renderEnvelopeAt(worldTicks);
         if (envelope <= 0.01f) {
             poseStack.popPose();
             return;
@@ -112,9 +119,8 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         VertexConsumer portalVc = buffer.getBuffer(RenderType.endPortal());
         VertexConsumer fxVc = buffer.getBuffer(RenderType.translucent());
         VertexConsumer energyVc = buffer.getBuffer(RenderType.lightning());
-        double worldTicks = resolveAnimationTicks(blockEntity, partialTick);
         float time = (float) ((worldTicks % 24000.0) * 0.042);
-        float collapseProgress = blockEntity.collapseProgress(partialTick);
+        float collapseProgress = blockEntity.collapseProgressAt(worldTicks);
         float scale = Mth.clamp(blockEntity.getRenderScale(), 0.1f, 3.0f);
         int stableBasePortalColour = blockEntity.getPortalBackdropColor();
         int midColor = blockEntity.getPortalMidColor();
@@ -1146,7 +1152,27 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
 
     private static double resolveAnimationTicks(CorridorPortalBlockEntity blockEntity, float partialTick) {
         if (blockEntity.getLevel() != null) {
-            return blockEntity.getLevel().getGameTime() + (double) partialTick;
+            double serverTicks = blockEntity.getLevel().getGameTime() + (double) partialTick;
+            String key = blockEntity.getLevel().dimension().location() + ":" + blockEntity.getBlockPos().asLong();
+            long nowNanos = System.nanoTime();
+            AnimationClockState state = ANIMATION_CLOCKS.computeIfAbsent(key, ignored -> new AnimationClockState(serverTicks, nowNanos));
+
+            if (state.needsResync(serverTicks)) {
+                state.resync(serverTicks, nowNanos);
+                return serverTicks;
+            }
+
+            double predictedTicks = state.predictedTicks(nowNanos);
+            double clampedLeadTicks = Math.min(predictedTicks, serverTicks + MAX_CLIENT_TICK_LEAD);
+            double resolvedTicks = Math.max(clampedLeadTicks, state.lastResolvedTicks);
+            if (serverTicks > resolvedTicks + SERVER_RESYNC_THRESHOLD) {
+                resolvedTicks = serverTicks;
+                state.resync(serverTicks, nowNanos);
+            }
+
+            state.lastSeenServerTicks = serverTicks;
+            state.lastResolvedTicks = resolvedTicks;
+            return resolvedTicks;
         }
 
         Minecraft mc = Minecraft.getInstance();
@@ -1159,6 +1185,36 @@ public final class CorridorPortalBlockEntityRenderer implements BlockEntityRende
         }
 
         return 0.0;
+    }
+
+    private static final class AnimationClockState {
+        private double anchorServerTicks;
+        private long anchorNanos;
+        private double lastSeenServerTicks;
+        private double lastResolvedTicks;
+
+        private AnimationClockState(double serverTicks, long nowNanos) {
+            this.anchorServerTicks = serverTicks;
+            this.anchorNanos = nowNanos;
+            this.lastSeenServerTicks = serverTicks;
+            this.lastResolvedTicks = serverTicks;
+        }
+
+        private boolean needsResync(double serverTicks) {
+            return serverTicks + 1.0 < lastSeenServerTicks;
+        }
+
+        private void resync(double serverTicks, long nowNanos) {
+            this.anchorServerTicks = serverTicks;
+            this.anchorNanos = nowNanos;
+            this.lastSeenServerTicks = serverTicks;
+            this.lastResolvedTicks = serverTicks;
+        }
+
+        private double predictedTicks(long nowNanos) {
+            double elapsedTicks = Math.max(0.0, (nowNanos - anchorNanos) * TICKS_PER_NANO);
+            return anchorServerTicks + elapsedTicks;
+        }
     }
 
     private void renderPortalLabel(

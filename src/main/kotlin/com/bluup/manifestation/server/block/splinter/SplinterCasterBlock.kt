@@ -10,6 +10,7 @@ import at.petrak.hexcasting.api.casting.mishaps.Mishap
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.server.ManifestationConfig
+import com.bluup.manifestation.Manifestation
 import com.bluup.manifestation.server.mishap.MishapSplinterCasterNeedsFocus
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import com.mojang.datafixers.util.Pair

@@ -877,6 +877,12 @@ public final class MenuScreen extends Screen {
     }
 
     @Override
+    public void removed() {
+        ActiveMenuState.get().clear();
+        super.removed();
+    }
+
+    @Override
     public boolean isPauseScreen() {
         return false;
     }

@@ -12,11 +12,16 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.mishap.MishapRequiresSplinterWill
+import com.bluup.manifestation.server.mishap.MishapSplinterRenewDisabled
 import com.bluup.manifestation.server.splinter.SplinterCastEnv
 import com.bluup.manifestation.server.splinter.SplinterRuntime
+import com.bluup.manifestation.server.splinter.SplinterStateStore
 import net.minecraft.server.level.ServerPlayer
 
 /**
+ * Splinter renew requests the next run after this splinter finishes.
+ * It does not immediately replace/remove the active splinter.
+ *
  * Stack shape on entry (top -> bottom):
  *   delay ticks
  *   summon position
@@ -60,8 +65,14 @@ object OpRenewSplinter : Action {
         }
 
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresSplinterWill()
-        val summonResult = try {
-            SplinterRuntime.prepareRenew(splinterEnv, caster, summonPos, delayTicks, image)
+        val sourceRecord = SplinterStateStore.get(caster.server).get(caster.uuid, splinterEnv.sourceSplinterId)
+            ?: throw MishapRequiresSplinterWill()
+        if (!sourceRecord.allowRenew) {
+            throw MishapSplinterRenewDisabled()
+        }
+
+        val mediaCost = try {
+            SplinterRuntime.requestPostCompletionRenew(splinterEnv, caster, summonPos, delayTicks, image)
         } catch (e: IllegalStateException) {
             if (e.message == "anchored_relocation") {
                 throw MishapInvalidIota.ofType(posIota, 1, "vector equal to splinter anchor")
@@ -69,15 +80,13 @@ object OpRenewSplinter : Action {
             throw e
         }
 
-        if (summonResult.mediaCost > 0L && env.extractMedia(summonResult.mediaCost, true) > 0) {
-            throw MishapNotEnoughMedia(summonResult.mediaCost)
+        if (mediaCost > 0L && env.extractMedia(mediaCost, true) > 0) {
+            throw MishapNotEnoughMedia(mediaCost)
         }
 
-        SplinterRuntime.commitSummon(caster.server, summonResult)
-
         val image2 = image.withUsedOp().copy(stack = stack)
-        val sideEffects = if (summonResult.mediaCost > 0L) {
-            listOf(OperatorSideEffect.ConsumeMedia(summonResult.mediaCost))
+        val sideEffects = if (mediaCost > 0L) {
+            listOf(OperatorSideEffect.ConsumeMedia(mediaCost))
         } else {
             listOf()
         }

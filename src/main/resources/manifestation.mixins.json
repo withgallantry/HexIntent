@@ -12,7 +12,8 @@
     "OpBrainsweepMixin"
   ],
   "client": [
-    "GuiSpellcastingOpenWithoutStaffMixin"
+    "GuiSpellcastingOpenWithoutStaffMixin",
+    "ItemInHandRendererStaffRechargeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -80,6 +80,13 @@ dependencies {
     // I've made hexical local as I couldn't find a published artifact
     modCompileOnly "miyucomics.hexical:hexical:${project.hexical_maven_local_version}"
     modLocalRuntime "miyucomics.hexical:hexical:${project.hexical_maven_local_version}"
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 processResources {

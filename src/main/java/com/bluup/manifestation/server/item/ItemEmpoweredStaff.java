@@ -27,13 +27,6 @@ public class ItemEmpoweredStaff extends ItemManifestationStaff {
         AttributeModifier.Operation.ADDITION
     );
 
-    private static final AttributeModifier MEDIA_COST_REDUCTION = new AttributeModifier(
-        UUID.fromString("54fa889d-ac03-4e44-a3ee-2068efa1f44d"),
-        "Manifestation Empowered Staff Media Reduction",
-        -0.2,
-        AttributeModifier.Operation.MULTIPLY_TOTAL
-    );
-
     public ItemEmpoweredStaff(Properties properties) {
         super(properties);
     }
@@ -43,7 +36,6 @@ public class ItemEmpoweredStaff extends ItemManifestationStaff {
         var out = HashMultimap.create(super.getDefaultAttributeModifiers(slot));
         if (slot == EquipmentSlot.MAINHAND || slot == EquipmentSlot.OFFHAND) {
             out.put(HexAttributes.AMBIT_RADIUS, AMBIT_BONUS);
-            out.put(HexAttributes.MEDIA_CONSUMPTION_MODIFIER, MEDIA_COST_REDUCTION);
         }
         return out;
     }
@@ -52,6 +44,5 @@ public class ItemEmpoweredStaff extends ItemManifestationStaff {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.manifestation.staff.empowered_ambit").withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.translatable("tooltip.manifestation.staff.empowered_media").withStyle(ChatFormatting.GREEN));
     }
 }

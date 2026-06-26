@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = GuiSpellcasting.class, remap = false)
+@Mixin(value = GuiSpellcasting.class, remap = true)
 public abstract class GuiSpellcastingOpenWithoutStaffMixin {
     @Shadow @Final private InteractionHand handOpenedWith;
 

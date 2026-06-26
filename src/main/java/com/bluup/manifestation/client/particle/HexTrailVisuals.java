@@ -2,6 +2,7 @@ package com.bluup.manifestation.client;
 
 import at.petrak.hexcasting.common.particles.ConjureParticleOptions;
 import com.bluup.manifestation.common.ManifestationNetworking;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -259,7 +260,7 @@ public final class HexTrailVisuals {
         long now = mc.level.getGameTime();
         String currentDimension = mc.level.dimension().location().toString();
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
-        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(4096));
         VertexConsumer lineBuffer = buffers.getBuffer(RenderType.lines());
 
         poseStack.pushPose();

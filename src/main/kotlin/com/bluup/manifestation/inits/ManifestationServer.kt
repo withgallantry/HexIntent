@@ -21,12 +21,14 @@ import com.bluup.manifestation.server.action.OpCreateGridMenu
 import com.bluup.manifestation.server.action.OpCreateListMenu
 import com.bluup.manifestation.server.action.OpCreateRadialMenu
 import com.bluup.manifestation.server.action.OpDestroyManifestation
+import com.bluup.manifestation.server.action.OpDestroyCurrentSplinter
 import com.bluup.manifestation.server.action.OpDestroySplinters
 import com.bluup.manifestation.server.action.OpEquationHexCloud
 import com.bluup.manifestation.server.action.OpGetSplinterLocation
 import com.bluup.manifestation.server.action.OpHexTrail
 import com.bluup.manifestation.server.action.OpManifestSplinter
 import com.bluup.manifestation.server.action.OpRenewSplinter
+import com.bluup.manifestation.server.action.OpSaturnsGambit
 import com.bluup.manifestation.server.action.OpOpenCorridorPortal
 import com.bluup.manifestation.server.action.OpOpenCastingScreen
 import com.bluup.manifestation.server.action.OpPresenceIntent
@@ -51,9 +53,11 @@ import com.bluup.manifestation.server.action.MenuOpenLoopGuard
 import com.bluup.manifestation.server.block.EquationSynthBlockEntity
 import com.bluup.manifestation.server.block.ManifestationBlocks
 import com.bluup.manifestation.server.item.ManifestationItems
+import com.bluup.manifestation.server.item.ManifestationMenus
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.iota.ManifestationUiIotaTypes
 import com.bluup.manifestation.server.recipe.ManifestationRecipes
+import com.bluup.manifestation.server.splinter.ManifestationContinuationFrames
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
@@ -67,7 +71,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.InteractionHand
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
 
@@ -92,8 +95,10 @@ object ManifestationServer : ModInitializer {
         ManifestationItems.register()
         ManifestationBlocks.register()
         ManifestationRecipes.register()
+        ManifestationMenus.register()
 
         registerIotaTypes()
+        ManifestationContinuationFrames.register()
         registerActions()
         registerC2SReceivers()
         registerLifecycleCleanup()
@@ -160,9 +165,11 @@ object ManifestationServer : ModInitializer {
         registerAction("destroy_manifestation", "edeeedwwaq", HexDir.NORTH_WEST, OpDestroyManifestation)
 
         registerAction("manifest_splinter", "dedade", HexDir.SOUTH_WEST, OpManifestSplinter)
+        registerAction("destroy_current_splinter", "dedadedq", HexDir.EAST, OpDestroyCurrentSplinter)
         registerAction("destroy_splinters", "dedadeaqaww", HexDir.SOUTH_WEST, OpDestroySplinters)
         registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
+        registerAction("saturns_gambit", "deaqqqded", HexDir.SOUTH_EAST, OpSaturnsGambit)
         registerAction("hex_trail", "qaqead", HexDir.NORTH_EAST, OpHexTrail)
         registerAction("equation_hex_cloud", "qaqeaddwe", HexDir.NORTH_EAST, OpEquationHexCloud)
         registerAction("spell_circle", "qqqqqeawqwqwqwqwqw", HexDir.SOUTH_WEST, OpSpellCircle)
@@ -393,6 +400,7 @@ object ManifestationServer : ModInitializer {
                 )
             }
         }
+
     }
 
     @JvmStatic
@@ -503,6 +511,7 @@ object ManifestationServer : ModInitializer {
     ) {
         val level = player.serverLevel()
         val radius = 128.0
+        var recipients = 0
         for (other in level.server.playerList.players) {
             if (other.serverLevel() != level || other.position().distanceTo(origin) > radius) {
                 continue
@@ -554,6 +563,34 @@ object ManifestationServer : ModInitializer {
             buf.writeVarInt(equation.durationTicks)
 
             ServerPlayNetworking.send(other, ManifestationNetworking.EQUATION_CLOUD_S2C, buf)
+            recipients++
+        }
+
+        if (ManifestationConfig.splinterDebugSliceTelemetry()) {
+            if (recipients == 0) {
+                Manifestation.LOGGER.warn(
+                    "Equation cloud send had no recipients: sourcePlayer={}, dim={}, id={}, origin=({}, {}, {}), radius={}",
+                    player.name.string,
+                    level.dimension().location(),
+                    cloudId,
+                    origin.x,
+                    origin.y,
+                    origin.z,
+                    radius
+                )
+            } else {
+                Manifestation.LOGGER.warn(
+                    "Equation cloud sent: sourcePlayer={}, dim={}, id={}, recipients={}, points={}, anim={}, speed={}, duration={}",
+                    player.name.string,
+                    level.dimension().location(),
+                    cloudId,
+                    recipients,
+                    equation.pointCount,
+                    equation.animationPreset,
+                    equation.animationSpeed,
+                    equation.durationTicks
+                )
+            }
         }
     }
 

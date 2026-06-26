@@ -156,7 +156,6 @@ public final class ManifestationBlocks {
     public static BlockEntityType<HexReliquaryBlockEntity> HEX_RELIQUARY_BLOCK_ENTITY;
     public static BlockEntityType<MindVaultBlockEntity> MIND_VAULT_BLOCK_ENTITY;
     public static BlockEntityType<EquationSynthBlockEntity> EQUATION_SYNTH_BLOCK_ENTITY;
-
     public static void register() {
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("corridor_portal"), CORRIDOR_PORTAL_BLOCK);
         Registry.register(BuiltInRegistries.BLOCK, Manifestation.id("intent_relay"), INTENT_RELAY_BLOCK);
@@ -222,6 +221,7 @@ public final class ManifestationBlocks {
             Manifestation.id("equation_synth"),
             FabricBlockEntityTypeBuilder.create(EquationSynthBlockEntity::new, EQUATION_SYNTH_BLOCK).build()
         );
+
     }
 
     private ManifestationBlocks() {

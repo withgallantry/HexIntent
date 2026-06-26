@@ -35,7 +35,7 @@ object OpDestroyManifestation : ConstMediaAction {
             throw MishapInvalidIota.ofType(radiusIota, 0, "non-negative number")
         }
 
-        env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
+        val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
         val world = env.world
         val centerPos = BlockPos.containing(center)
         val maxOffset = kotlin.math.ceil(radius).toInt()

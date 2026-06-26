@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "../hexwright"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.gradle": true,
+      "**/.kotlin": true,
+      "**/build": true
+    }
+  }
+}
