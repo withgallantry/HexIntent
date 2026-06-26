@@ -165,7 +165,7 @@ object ManifestationServer : ModInitializer {
         registerAction("destroy_manifestation", "edeeedwwaq", HexDir.NORTH_WEST, OpDestroyManifestation)
 
         registerAction("manifest_splinter", "dedade", HexDir.SOUTH_WEST, OpManifestSplinter)
-        registerAction("destroy_current_splinter", "dedadedq", HexDir.EAST, OpDestroyCurrentSplinter)
+        registerAction("destroy_current_splinter", "dedadedq", HexDir.SOUTH_WEST, OpDestroyCurrentSplinter)
         registerAction("destroy_splinters", "dedadeaqaww", HexDir.SOUTH_WEST, OpDestroySplinters)
         registerAction("get_splinter_location", "dedadeeweewewewee", HexDir.SOUTH_WEST, OpGetSplinterLocation)
         registerAction("renew_splinter", "dedaded", HexDir.SOUTH_WEST, OpRenewSplinter)
