@@ -36,12 +36,17 @@ import java.util.UUID;
 public final class MenuActionSender {
 
     public enum InputKind {
+        NULL,
         STRING,
         DOUBLE,
         IOTA_LIST
     }
 
     public record InputDatum(int order, InputKind kind, String stringValue, double doubleValue, List<StoredIota> iotaValues) {
+        public static InputDatum nullValue(int order) {
+            return new InputDatum(order, InputKind.NULL, "", 0.0, List.of());
+        }
+
         public static InputDatum string(int order, String value) {
             return new InputDatum(order, InputKind.STRING, value, 0.0, List.of());
         }

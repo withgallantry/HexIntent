@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.iota.ListIota
+import at.petrak.hexcasting.api.casting.iota.NullIota
 import ram.talia.moreiotas.api.casting.iota.StringIota
 import at.petrak.hexcasting.xplat.IXplatAbstractions
 import com.bluup.manifestation.Manifestation
@@ -36,12 +37,17 @@ object MenuActionDispatcher {
         val iotaTags: List<CompoundTag>
     ) {
         enum class Kind {
+            NULL,
             STRING,
             DOUBLE,
             IOTA_LIST
         }
 
         companion object {
+            fun nullValue(order: Int): InputDatum {
+                return InputDatum(order, Kind.NULL, "", 0.0, listOf())
+            }
+
             fun string(order: Int, value: String): InputDatum {
                 return InputDatum(order, Kind.STRING, value, 0.0, listOf())
             }
@@ -236,10 +242,12 @@ object MenuActionDispatcher {
         for (input in rawInputs.sortedBy { it.order }) {
             try {
                 when (input.kind) {
+                    InputDatum.Kind.NULL -> {
+                        out.add(NullIota())
+                    }
+
                     InputDatum.Kind.STRING -> {
-                        if (input.stringValue.isNotEmpty()) {
-                            out.add(createStringIota(input.stringValue))
-                        }
+                        out.add(createStringIota(input.stringValue))
                     }
 
                     InputDatum.Kind.DOUBLE -> {

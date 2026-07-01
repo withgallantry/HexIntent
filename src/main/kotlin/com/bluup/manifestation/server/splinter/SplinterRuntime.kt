@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.circles.BlockEntityAbstractImpetus
 import at.petrak.hexcasting.api.casting.circles.ICircleComponent
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.eval.CastResult
+import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.eval.vm.ContinuationFrame
@@ -338,11 +339,7 @@ object SplinterRuntime {
             if (serialized is CompoundTag) serialized.copy() else null
         }.toMutableList()
 
-        val inheritedRavenmind = if (sourceSplinterId != null) {
-            extractRavenmind(sourceImage)
-        } else {
-            null
-        }
+        val inheritedRavenmind = extractRavenmind(sourceImage)
         validateRavenmindForPersistence(inheritedRavenmind, caster)
 
         val record = SplinterStateStore.SplinterRecord(
@@ -510,7 +507,6 @@ object SplinterRuntime {
                 } catch (mishap: Mishap) {
                     if (record.circleImpetusPos != null) {
                         showCircleMishapAtImpetus(server, record)
-                        showCircleMishapReason(server, record, mishap)
                     }
                     result = SliceResult(
                         status = SliceStatus.REMOVE,
@@ -883,7 +879,12 @@ object SplinterRuntime {
             val castResult = ManifestationSplinterFrameContext.withContext(frameContext) {
                 notDone.frame.evaluate(notDone.next, level, vm)
             }
+            val emittedMishap = castResult.sideEffects
+                .firstOrNull { it is OperatorSideEffect.DoMishap } as? OperatorSideEffect.DoMishap
             continuation = applyCastResultToVm(vm, env, castResult)
+            if (emittedMishap != null) {
+                throw emittedMishap.mishap
+            }
             steps++
         }
 
@@ -891,6 +892,10 @@ object SplinterRuntime {
         val afterOps = finalImage.opsConsumed
         val opsDelta = (afterOps - beforeOps).coerceAtLeast(0L)
         val completed = continuation !is SpellContinuation.NotDone
+
+        val persistedRavenmind = extractRavenmind(finalImage)
+        validateRavenmindForPersistence(persistedRavenmind, owner)
+        record.ravenmindTag = persistedRavenmind?.copy()
 
         val nextImageTag = if (completed) null else serializeImage(finalImage)
         val nextContinuationTags = if (continuation is SpellContinuation.NotDone) {
@@ -1539,37 +1544,6 @@ object SplinterRuntime {
         val bs = level.getBlockState(impetusPos)
         val impetus = level.getBlockEntity(impetusPos) as? BlockEntityAbstractImpetus
         ICircleComponent.sfx(impetusPos, bs, level, impetus, false)
-    }
-
-    private fun showCircleMishapReason(server: MinecraftServer, record: SplinterStateStore.SplinterRecord, mishap: Mishap) {
-        val impetusVec = record.circleImpetusPos ?: return
-        val level = levelForRecord(server, record) ?: return
-        val envOwner = circleCasterFor(level, record.owner)
-        val env = CircleSplinterCastEnv(
-            envOwner,
-            record.castingHand,
-            record.position,
-            record.id,
-            BlockPos.containing(impetusVec.x, impetusVec.y, impetusVec.z),
-            record.ambitRadius
-        )
-        val sourceName = if (record.allowRenew) {
-            Component.translatable("block.manifestation.splinter_caster")
-        } else {
-            Component.literal("Saturn's Gambit")
-        }
-        val msg = mishap.errorMessageWithName(
-            env,
-            Mishap.Context(null, sourceName)
-        ) ?: return
-
-        val center = Vec3.atCenterOf(BlockPos.containing(impetusVec.x, impetusVec.y, impetusVec.z))
-        val maxDistSq = 32.0 * 32.0
-        for (player in level.players()) {
-            if (player.position().distanceToSqr(center) <= maxDistSq) {
-                player.displayClientMessage(msg, false)
-            }
-        }
     }
 
     private fun markOwnerDirty(owner: UUID) {

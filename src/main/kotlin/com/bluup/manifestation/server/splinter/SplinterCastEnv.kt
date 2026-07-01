@@ -1,6 +1,7 @@
 package com.bluup.manifestation.server.splinter
 
 import at.petrak.hexcasting.api.casting.eval.MishapEnvironment
+import at.petrak.hexcasting.api.casting.eval.CastResult
 import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.env.PlayerBasedCastEnv
 import at.petrak.hexcasting.api.casting.circles.BlockEntityAbstractImpetus
@@ -79,6 +80,18 @@ class CircleSplinterCastEnv(
         for (player in world.players()) {
             if (player.position().distanceToSqr(center) <= maxDistSq) {
                 player.sendSystemMessage(msg)
+            }
+        }
+    }
+
+    override fun postExecution(result: CastResult) {
+        super.postExecution(result)
+
+        val impetus = world.getBlockEntity(impetusPos) as? BlockEntityAbstractImpetus ?: return
+        for (sideEffect in result.sideEffects) {
+            if (sideEffect is OperatorSideEffect.DoMishap) {
+                val msg = sideEffect.mishap.errorMessageWithName(this, sideEffect.errorCtx) ?: continue
+                impetus.postMishap(msg)
             }
         }
     }

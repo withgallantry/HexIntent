@@ -761,6 +761,8 @@ public final class MenuScreen extends Screen {
                 String value = entry.getValue().getValue();
                 if (value != null && !value.isEmpty()) {
                     values.add(MenuActionSender.InputDatum.string(entry.getKey(), value));
+                } else {
+                    values.add(MenuActionSender.InputDatum.nullValue(entry.getKey()));
                 }
             });
 
@@ -776,6 +778,8 @@ public final class MenuScreen extends Screen {
                 Double parsed = parseStrictDouble(entry.getValue().getValue());
                 if (parsed != null) {
                     values.add(MenuActionSender.InputDatum.number(entry.getKey(), parsed));
+                } else {
+                    values.add(MenuActionSender.InputDatum.nullValue(entry.getKey()));
                 }
             });
 
@@ -804,6 +808,8 @@ public final class MenuScreen extends Screen {
                 String value = entry.getValue().selectedValue();
                 if (!value.isEmpty()) {
                     values.add(MenuActionSender.InputDatum.string(entry.getKey(), value));
+                } else {
+                    values.add(MenuActionSender.InputDatum.nullValue(entry.getKey()));
                 }
             });
 

@@ -231,6 +231,10 @@ object ManifestationServer : ModInitializer {
             repeat(inputCount) {
                 val order = buf.readVarInt()
                 when (buf.readEnum(MenuActionSender.InputKind::class.java)) {
+                    MenuActionSender.InputKind.NULL -> {
+                        inputs.add(MenuActionDispatcher.InputDatum.nullValue(order))
+                    }
+
                     MenuActionSender.InputKind.STRING -> {
                         val value = buf.readUtf(MAX_INPUT_STRING_CHARS)
                         inputs.add(MenuActionDispatcher.InputDatum.string(order, value))
