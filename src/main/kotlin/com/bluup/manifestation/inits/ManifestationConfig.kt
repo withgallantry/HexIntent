@@ -2,6 +2,8 @@ package com.bluup.manifestation.server
 
 import com.bluup.manifestation.Manifestation
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -25,12 +27,16 @@ object ManifestationConfig {
     private const val DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS = 15_000L
     private const val DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS = 500L
     private const val DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS = 8_000L
-    private const val DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 25.0
-    private const val DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES = 5
+
     private const val DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
     private const val DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK = 24
-    private const val DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 512
     private const val DEFAULT_SPLINTER_CASTER_ENABLED = true
+    private const val DEFAULT_SPLINTER_MAX_LIFETIME_TICKS = 20L * 60L * 5L
+    private const val DEFAULT_SPLINTER_MAX_NO_PROGRESS_TICKS = 20L * 30L
+    private const val DEFAULT_SPLINTER_MAX_OVER_BUDGET_BREACHES = 3
+    private const val DEFAULT_SPLINTER_USE_EXTERNALIZED_FOREACH_FRAME = true
+    private const val EXTERNALIZED_FOREACH_INTERNAL_MAX_INNER_STEPS = 50_000_000
+    private const val DEFAULT_SPLINTER_WRITE_ADVANCED_CONFIG = false
 
     private const val MIN_MENU_LOOP_WINDOW_MS = 200L
     private const val MAX_MENU_LOOP_WINDOW_MS = 10_000L
@@ -56,16 +62,17 @@ object ManifestationConfig {
     private const val MAX_MENU_DISPATCH_BASE_COOLDOWN_MS = 5_000L
     private const val MIN_MENU_DISPATCH_MAX_COOLDOWN_MS = 250L
     private const val MAX_MENU_DISPATCH_MAX_COOLDOWN_MS = 60_000L
-    private const val MIN_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 5.0
-    private const val MAX_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS = 250.0
-    private const val MIN_SPLINTER_WATCHDOG_MAX_BREACHES = 1
-    private const val MAX_SPLINTER_WATCHDOG_MAX_BREACHES = 64
+
     private const val MIN_SPLINTER_MAX_ACTIVE_PER_OWNER = -1
     private const val MAX_SPLINTER_MAX_ACTIVE_PER_OWNER = 4096
     private const val MIN_SPLINTER_MAX_EXECUTIONS_PER_TICK = 1
     private const val MAX_SPLINTER_MAX_EXECUTIONS_PER_TICK = 256
-    private const val MIN_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 8
-    private const val MAX_SPLINTER_MAX_RECORD_SCANS_PER_TICK = 16_384
+    private const val MIN_SPLINTER_MAX_LIFETIME_TICKS = 20L
+    private const val MAX_SPLINTER_MAX_LIFETIME_TICKS = 20L * 60L * 60L
+    private const val MIN_SPLINTER_MAX_NO_PROGRESS_TICKS = 20L
+    private const val MAX_SPLINTER_MAX_NO_PROGRESS_TICKS = 20L * 60L * 30L
+    private const val MIN_SPLINTER_MAX_OVER_BUDGET_BREACHES = 1
+    private const val MAX_SPLINTER_MAX_OVER_BUDGET_BREACHES = 64
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val configPath = FabricLoader.getInstance().configDir.resolve("manifestation.json")
@@ -113,81 +120,106 @@ object ManifestationConfig {
     private var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS
 
     @Volatile
-    private var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS
-
-    @Volatile
-    private var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES
-
-    @Volatile
     private var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER
 
     @Volatile
     private var splinterMaxExecutionsPerTick: Int = DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK
 
     @Volatile
-    private var splinterMaxRecordScansPerTick: Int = DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK
+    private var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
 
     @Volatile
-    private var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
+    private var splinterMaxLifetimeTicks: Long = DEFAULT_SPLINTER_MAX_LIFETIME_TICKS
+
+    @Volatile
+    private var splinterMaxNoProgressTicks: Long = DEFAULT_SPLINTER_MAX_NO_PROGRESS_TICKS
+
+    @Volatile
+    private var splinterMaxOverBudgetBreaches: Int = DEFAULT_SPLINTER_MAX_OVER_BUDGET_BREACHES
+
+    @Volatile
+    private var splinterUseExternalizedForEachFrame: Boolean = DEFAULT_SPLINTER_USE_EXTERNALIZED_FOREACH_FRAME
+
+    @Volatile
+    private var splinterPerformancePreset: SplinterPerformancePreset = SplinterPerformancePreset.SAFE
+
+    @Volatile
+    private var splinterAdvanced: SplinterAdvancedConfig = SplinterPerformanceTuning.safeAdvancedDefaults()
+
+    @Volatile
+    private var splinterWriteAdvancedConfig: Boolean = DEFAULT_SPLINTER_WRITE_ADVANCED_CONFIG
+
+    @Volatile
+    private var resolvedSplinterTuning: SplinterResolvedTuning = SplinterPerformanceTuning.resolveTuning(
+        SplinterPerformancePreset.SAFE,
+        SplinterPerformanceTuning.safeAdvancedDefaults()
+    )
+
+    @Volatile
+    private var loggedResolvedTuning: Boolean = false
 
     fun load() {
         val loaded = readOrNull()
-        val effective = sanitize(loaded ?: RawConfig())
+        val effective = sanitize(loaded)
 
-        menuLoopWindowMs = effective.menuOpenLoopWindowMs
-        menuLoopTriggerCount = effective.menuOpenLoopTriggerCount
-        intentRelayMaxRangeBlocks = effective.intentRelayMaxRangeBlocks
-        intentRelayCooldownTicks = effective.intentRelayCooldownTicks
-        intentRelayStepTriggerEnabled = effective.intentRelayStepTriggerEnabled
-        portalLiveViewEnabled = effective.portalLiveViewEnabled
-        portalLiveViewCols = effective.portalLiveViewCols
-        portalLiveViewRows = effective.portalLiveViewRows
-        portalLiveViewDistanceBlocks = effective.portalLiveViewDistanceBlocks
-        menuDispatchRefillPerSecond = effective.menuDispatchRefillPerSecond
-        menuDispatchBurstTokens = effective.menuDispatchBurstTokens
-        menuDispatchViolationDecayMs = effective.menuDispatchViolationDecayMs
-        menuDispatchBaseCooldownMs = effective.menuDispatchBaseCooldownMs
-        menuDispatchMaxCooldownMs = effective.menuDispatchMaxCooldownMs
-        splinterWatchdogMaxAvgExecMs = effective.splinterWatchdogMaxAvgExecMs
-        splinterWatchdogMaxBreaches = effective.splinterWatchdogMaxBreaches
-        splinterMaxActivePerOwner = effective.splinterMaxActivePerOwner
-        splinterMaxExecutionsPerTick = effective.splinterMaxExecutionsPerTick
-        splinterMaxRecordScansPerTick = effective.splinterMaxRecordScansPerTick
-        splinterCasterEnabled = effective.splinterCasterEnabled
+        menuLoopWindowMs = effective.raw.menuOpenLoopWindowMs
+        menuLoopTriggerCount = effective.raw.menuOpenLoopTriggerCount
+        intentRelayMaxRangeBlocks = effective.raw.intentRelayMaxRangeBlocks
+        intentRelayCooldownTicks = effective.raw.intentRelayCooldownTicks
+        intentRelayStepTriggerEnabled = effective.raw.intentRelayStepTriggerEnabled
+        portalLiveViewEnabled = effective.raw.portalLiveViewEnabled
+        portalLiveViewCols = effective.raw.portalLiveViewCols
+        portalLiveViewRows = effective.raw.portalLiveViewRows
+        portalLiveViewDistanceBlocks = effective.raw.portalLiveViewDistanceBlocks
+        menuDispatchRefillPerSecond = effective.raw.menuDispatchRefillPerSecond
+        menuDispatchBurstTokens = effective.raw.menuDispatchBurstTokens
+        menuDispatchViolationDecayMs = effective.raw.menuDispatchViolationDecayMs
+        menuDispatchBaseCooldownMs = effective.raw.menuDispatchBaseCooldownMs
+        menuDispatchMaxCooldownMs = effective.raw.menuDispatchMaxCooldownMs
 
-        if (loaded == null || loaded != effective) {
+        splinterMaxActivePerOwner = effective.raw.splinterMaxActivePerOwner
+        splinterMaxExecutionsPerTick = effective.raw.splinterMaxExecutionsPerTick
+        splinterCasterEnabled = effective.raw.splinterCasterEnabled
+        splinterMaxLifetimeTicks = effective.raw.splinterMaxLifetimeTicks
+        splinterMaxNoProgressTicks = effective.raw.splinterMaxNoProgressTicks
+        splinterMaxOverBudgetBreaches = effective.raw.splinterMaxOverBudgetBreaches
+        splinterUseExternalizedForEachFrame = effective.raw.splinterUseExternalizedForEachFrame
+
+        splinterPerformancePreset = effective.preset
+        splinterAdvanced = effective.advanced
+        splinterWriteAdvancedConfig = effective.raw.splinterWriteAdvancedConfig
+        resolvedSplinterTuning = effective.resolvedTuning
+        loggedResolvedTuning = false
+
+        if (loaded == null || effective.shouldRewrite || loaded.raw != effective.raw) {
             write(effective)
         }
 
         Manifestation.LOGGER.info(
-            "Manifestation config loaded: menuOpenLoopWindowMs={}, menuOpenLoopTriggerCount={}, " +
-                "intentRelayMaxRangeBlocks={}, intentRelayCooldownTicks={}, intentRelayStepTriggerEnabled={}, " +
-                "portalLiveViewEnabled={}, portalLiveViewCols={}, portalLiveViewRows={}, portalLiveViewDistanceBlocks={}, " +
-                "menuDispatchRefillPerSecond={}, menuDispatchBurstTokens={}, menuDispatchViolationDecayMs={}, " +
-                "menuDispatchBaseCooldownMs={}, menuDispatchMaxCooldownMs={}, " +
-                "splinterWatchdogMaxAvgExecMs={}, splinterWatchdogMaxBreaches={}, " +
-                "splinterMaxActivePerOwner={}, splinterMaxExecutionsPerTick={}, splinterMaxRecordScansPerTick={}, " +
-                "splinterCasterEnabled={}",
-            menuLoopWindowMs,
-            menuLoopTriggerCount,
-            intentRelayMaxRangeBlocks,
-            intentRelayCooldownTicks,
-            intentRelayStepTriggerEnabled,
-            portalLiveViewEnabled,
-            portalLiveViewCols,
-            portalLiveViewRows,
-            portalLiveViewDistanceBlocks,
-            menuDispatchRefillPerSecond,
-            menuDispatchBurstTokens,
-            menuDispatchViolationDecayMs,
-            menuDispatchBaseCooldownMs,
-            menuDispatchMaxCooldownMs,
-            splinterWatchdogMaxAvgExecMs,
-            splinterWatchdogMaxBreaches,
-            splinterMaxActivePerOwner,
-            splinterMaxExecutionsPerTick,
-            splinterMaxRecordScansPerTick,
-            splinterCasterEnabled
+            "Manifestation config loaded: splinterPerformancePreset={}, splinterAdvancedEnabled={}, splinterWriteAdvancedConfig={}",
+            splinterPerformancePreset,
+            splinterAdvanced.enabled,
+            splinterWriteAdvancedConfig
+        )
+    }
+
+    fun maybeLogResolvedSplinterTuningOnce() {
+        if (loggedResolvedTuning) {
+            return
+        }
+        loggedResolvedTuning = true
+
+        val tuning = resolvedSplinterTuning
+        Manifestation.LOGGER.info(
+            "Manifestation splinter tuning: preset={}, globalBudgetMicrosPerTick={}, opsPerSlice={}, sliceBudgetMicros={}, maxSlicesPerTick={}, maxRecordScansPerTick={}, foreachChunk={}, safeInlineCap={}",
+            splinterPerformancePreset,
+            tuning.globalBudgetMicrosPerTick,
+            tuning.opsPerSlice,
+            tuning.sliceBudgetMicros,
+            tuning.maxSlicesPerTick,
+            tuning.maxRecordScansPerTick,
+            tuning.largeForeachChunkExecutionSize,
+            tuning.safeInlineForeachRemainingCap
         )
     }
 
@@ -219,34 +251,84 @@ object ManifestationConfig {
 
     fun menuDispatchMaxCooldownMs(): Long = menuDispatchMaxCooldownMs
 
-    fun splinterWatchdogMaxAvgExecMs(): Double = splinterWatchdogMaxAvgExecMs
-
-    fun splinterWatchdogMaxBreaches(): Int = splinterWatchdogMaxBreaches
-
     fun splinterMaxActivePerOwner(): Int = splinterMaxActivePerOwner
 
     fun splinterMaxExecutionsPerTick(): Int = splinterMaxExecutionsPerTick
 
-    fun splinterMaxRecordScansPerTick(): Int = splinterMaxRecordScansPerTick
+    fun splinterMaxRecordScansPerTick(): Int = resolvedSplinterTuning.maxRecordScansPerTick
 
     fun splinterCasterEnabled(): Boolean = splinterCasterEnabled
 
-    private fun readOrNull(): RawConfig? {
+    fun splinterPerformancePreset(): SplinterPerformancePreset = splinterPerformancePreset
+
+    fun resolvedSplinterTuning(): SplinterResolvedTuning = resolvedSplinterTuning
+
+    fun splinterGlobalBudgetMicrosPerTick(): Long = resolvedSplinterTuning.globalBudgetMicrosPerTick
+
+    fun splinterOpsPerSlice(): Int = resolvedSplinterTuning.opsPerSlice
+
+    fun splinterSliceBudgetMicros(): Long = resolvedSplinterTuning.sliceBudgetMicros
+
+    fun splinterMaxSlicesPerTick(): Int = resolvedSplinterTuning.maxSlicesPerTick
+
+    fun splinterEmergencySliceMillis(): Long = resolvedSplinterTuning.emergencySliceMillis
+
+    fun splinterMaxLifetimeTicks(): Long = splinterMaxLifetimeTicks
+
+    fun splinterMaxNoProgressTicks(): Long = splinterMaxNoProgressTicks
+
+    fun splinterMaxTotalWorkUnits(): Long = resolvedSplinterTuning.maxTotalWorkUnits
+
+    @Deprecated("Use splinterMaxTotalWorkUnits")
+    fun splinterMaxTotalOps(): Long = splinterMaxTotalWorkUnits()
+
+    fun splinterMaxOverBudgetBreaches(): Int = splinterMaxOverBudgetBreaches
+
+    fun splinterDebugSliceTelemetry(): Boolean = resolvedSplinterTuning.debugSliceTelemetry
+
+    fun splinterLargeListChunkSize(): Int = resolvedSplinterTuning.largeListChunkSize
+
+    fun splinterLargeForeachChunkExecutionSize(): Int = resolvedSplinterTuning.largeForeachChunkExecutionSize
+
+    fun splinterSafeInlineForeachRemainingCap(): Int = resolvedSplinterTuning.safeInlineForeachRemainingCap
+
+    fun splinterUseExternalizedForEachFrame(): Boolean = splinterUseExternalizedForEachFrame
+
+    @Deprecated("Externalized foreach chunks are atomic; this is an internal emergency guard only")
+    fun splinterExternalizedForEachFrameInnerStepsPerEvaluate(): Int {
+        return EXTERNALIZED_FOREACH_INTERNAL_MAX_INNER_STEPS
+    }
+
+    private fun readOrNull(): LoadedConfig? {
         if (!Files.exists(configPath)) {
             return null
         }
 
         return try {
-            Files.newBufferedReader(configPath, StandardCharsets.UTF_8).use { reader ->
-                gson.fromJson(reader, RawConfig::class.java)
+            val text = Files.readString(configPath, StandardCharsets.UTF_8)
+            val parsed = JsonParser.parseString(text)
+            if (!parsed.isJsonObject) {
+                Manifestation.LOGGER.warn(
+                    "Manifestation: config at {} is not a JSON object. Using defaults.",
+                    configPath
+                )
+                return null
             }
+
+            val root = parsed.asJsonObject
+            val raw = gson.fromJson(root, RawConfig::class.java)
+            LoadedConfig(raw, root.keySet())
         } catch (t: Throwable) {
-            Manifestation.LOGGER.warn("Manifestation: failed to read config at {}. Using defaults.", configPath, t)
+            Manifestation.LOGGER.warn(
+                "Manifestation: failed to read config at {}. Using defaults.",
+                configPath,
+                t
+            )
             null
         }
     }
 
-    private fun write(config: RawConfig) {
+    private fun write(config: SanitizedConfig) {
         try {
             Files.createDirectories(configPath.parent)
             Files.newBufferedWriter(
@@ -256,15 +338,61 @@ object ManifestationConfig {
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE
             ).use { writer ->
-                gson.toJson(config, writer)
+                gson.toJson(config.toWritableConfig(), writer)
             }
         } catch (t: Throwable) {
             Manifestation.LOGGER.warn("Manifestation: failed to write config at {}", configPath, t)
         }
     }
 
-    private fun sanitize(raw: RawConfig): RawConfig {
-        return RawConfig(
+    private fun sanitize(loaded: LoadedConfig?): SanitizedConfig {
+        val raw = loaded?.raw ?: RawConfig()
+        val presentKeys = loaded?.presentKeys ?: emptySet()
+
+        val presetProvided = "splinterPerformancePreset" in presentKeys
+        val legacyAdvancedTopLevelPresent =
+            SplinterPerformanceTuning.detectLegacyAdvancedTopLevelKeys(presentKeys)
+
+        val resolvedPreset = SplinterPerformanceTuning.resolvePreset(
+            presetRaw = raw.splinterPerformancePreset,
+            presetProvided = presetProvided,
+            hasLegacyTopLevelAdvancedKeys = legacyAdvancedTopLevelPresent,
+            defaultPreset = SplinterPerformancePreset.SAFE
+        )
+
+        val inferredCustomFromLegacy = !presetProvided && legacyAdvancedTopLevelPresent
+        val presetFallbackUsed = presetProvided && SplinterPerformancePreset.parseOrNull(raw.splinterPerformancePreset) == null
+
+        val legacyAdvanced = SplinterPerformanceTuning.fromLegacyTopLevel(
+            enabled = inferredCustomFromLegacy,
+            globalBudgetMicrosPerTick = raw.splinterGlobalBudgetMicrosPerTick.coerceAtLeast(1L),
+            opsPerSlice = raw.splinterOpsPerSlice.coerceAtLeast(1),
+            sliceBudgetMicros = raw.splinterSliceBudgetMicros.coerceAtLeast(1L),
+            maxSlicesPerTick = raw.splinterMaxSlicesPerTick.coerceAtLeast(1),
+            maxRecordScansPerTick = raw.splinterMaxRecordScansPerTick.coerceAtLeast(1),
+            emergencySliceMillis = raw.splinterEmergencySliceMillis.coerceAtLeast(1L),
+            maxTotalWorkUnits = (raw.splinterMaxTotalOps ?: raw.splinterMaxTotalWorkUnits).coerceAtLeast(1L),
+            largeListChunkSize = raw.splinterLargeListChunkSize.coerceAtLeast(1),
+            largeForeachChunkExecutionSize = raw.splinterLargeForeachChunkExecutionSize.coerceAtLeast(1),
+            safeInlineForeachRemainingCap = raw.splinterSafeInlineForeachRemainingCap.coerceAtLeast(1),
+            debugSliceTelemetry = raw.splinterDebugSliceTelemetry
+        )
+
+        val nestedAdvancedRaw = raw.splinterAdvanced
+            ?: if (inferredCustomFromLegacy) {
+                SplinterAdvancedRawConfig.from(legacyAdvanced)
+            } else {
+                SplinterAdvancedRawConfig.from(SplinterPerformanceTuning.safeAdvancedDefaults())
+            }
+        val nestedAdvanced = sanitizeAdvanced(nestedAdvancedRaw)
+        val effectiveAdvanced = if (inferredCustomFromLegacy && raw.splinterAdvanced == null) {
+            legacyAdvanced.copy(enabled = true)
+        } else {
+            nestedAdvanced
+        }
+        val resolvedTuning = SplinterPerformanceTuning.resolveTuning(resolvedPreset, effectiveAdvanced)
+
+        val sanitized = raw.copy(
             menuOpenLoopWindowMs = raw.menuOpenLoopWindowMs.coerceIn(
                 MIN_MENU_LOOP_WINDOW_MS,
                 MAX_MENU_LOOP_WINDOW_MS
@@ -281,8 +409,6 @@ object ManifestationConfig {
                 MIN_INTENT_RELAY_COOLDOWN_TICKS,
                 MAX_INTENT_RELAY_COOLDOWN_TICKS
             ),
-            intentRelayStepTriggerEnabled = raw.intentRelayStepTriggerEnabled,
-            portalLiveViewEnabled = raw.portalLiveViewEnabled,
             portalLiveViewCols = raw.portalLiveViewCols.coerceIn(
                 MIN_PORTAL_LIVE_VIEW_COLS,
                 MAX_PORTAL_LIVE_VIEW_COLS
@@ -315,14 +441,6 @@ object ManifestationConfig {
                 MIN_MENU_DISPATCH_MAX_COOLDOWN_MS,
                 MAX_MENU_DISPATCH_MAX_COOLDOWN_MS
             ),
-            splinterWatchdogMaxAvgExecMs = raw.splinterWatchdogMaxAvgExecMs.coerceIn(
-                MIN_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
-                MAX_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS
-            ),
-            splinterWatchdogMaxBreaches = raw.splinterWatchdogMaxBreaches.coerceIn(
-                MIN_SPLINTER_WATCHDOG_MAX_BREACHES,
-                MAX_SPLINTER_WATCHDOG_MAX_BREACHES
-            ),
             splinterMaxActivePerOwner = raw.splinterMaxActivePerOwner.coerceIn(
                 MIN_SPLINTER_MAX_ACTIVE_PER_OWNER,
                 MAX_SPLINTER_MAX_ACTIVE_PER_OWNER
@@ -331,19 +449,111 @@ object ManifestationConfig {
                 MIN_SPLINTER_MAX_EXECUTIONS_PER_TICK,
                 MAX_SPLINTER_MAX_EXECUTIONS_PER_TICK
             ),
-            splinterMaxRecordScansPerTick = raw.splinterMaxRecordScansPerTick.coerceIn(
-                MIN_SPLINTER_MAX_RECORD_SCANS_PER_TICK,
-                MAX_SPLINTER_MAX_RECORD_SCANS_PER_TICK
+            splinterMaxLifetimeTicks = raw.splinterMaxLifetimeTicks.coerceIn(
+                MIN_SPLINTER_MAX_LIFETIME_TICKS,
+                MAX_SPLINTER_MAX_LIFETIME_TICKS
             ),
-            splinterCasterEnabled = raw.splinterCasterEnabled
-        ).let { sanitized ->
-            if (sanitized.menuDispatchMaxCooldownMs < sanitized.menuDispatchBaseCooldownMs) {
-                sanitized.copy(menuDispatchMaxCooldownMs = sanitized.menuDispatchBaseCooldownMs)
+            splinterMaxNoProgressTicks = raw.splinterMaxNoProgressTicks.coerceIn(
+                MIN_SPLINTER_MAX_NO_PROGRESS_TICKS,
+                MAX_SPLINTER_MAX_NO_PROGRESS_TICKS
+            ),
+            splinterMaxOverBudgetBreaches = raw.splinterMaxOverBudgetBreaches.coerceIn(
+                MIN_SPLINTER_MAX_OVER_BUDGET_BREACHES,
+                MAX_SPLINTER_MAX_OVER_BUDGET_BREACHES
+            ),
+            splinterGlobalBudgetMicrosPerTick = effectiveAdvanced.globalBudgetMicrosPerTick,
+            splinterOpsPerSlice = effectiveAdvanced.opsPerSlice,
+            splinterSliceBudgetMicros = effectiveAdvanced.sliceBudgetMicros,
+            splinterMaxSlicesPerTick = effectiveAdvanced.maxSlicesPerTick,
+            splinterMaxRecordScansPerTick = effectiveAdvanced.maxRecordScansPerTick,
+            splinterEmergencySliceMillis = effectiveAdvanced.emergencySliceMillis,
+            splinterMaxTotalWorkUnits = effectiveAdvanced.maxTotalWorkUnits,
+            splinterMaxTotalOps = null,
+            splinterDebugSliceTelemetry = effectiveAdvanced.debugSliceTelemetry,
+            splinterLargeListChunkSize = effectiveAdvanced.largeListChunkSize,
+            splinterLargeForeachChunkExecutionSize = effectiveAdvanced.largeForeachChunkExecutionSize,
+            splinterSafeInlineForeachRemainingCap = effectiveAdvanced.safeInlineForeachRemainingCap,
+            splinterPerformancePreset = resolvedPreset.name.lowercase(),
+            splinterAdvanced = SplinterAdvancedRawConfig.from(effectiveAdvanced),
+            splinterWriteAdvancedConfig = raw.splinterWriteAdvancedConfig
+        ).let { cleaned ->
+            if (cleaned.menuDispatchMaxCooldownMs < cleaned.menuDispatchBaseCooldownMs) {
+                cleaned.copy(menuDispatchMaxCooldownMs = cleaned.menuDispatchBaseCooldownMs)
             } else {
-                sanitized
+                cleaned
             }
         }
+
+        return SanitizedConfig(
+            raw = sanitized,
+            preset = resolvedPreset,
+            advanced = effectiveAdvanced,
+            resolvedTuning = resolvedTuning,
+            shouldRewrite = inferredCustomFromLegacy || presetFallbackUsed || legacyAdvancedTopLevelPresent
+        )
     }
+
+    private fun sanitizeAdvanced(raw: SplinterAdvancedRawConfig): SplinterAdvancedConfig {
+        return SplinterAdvancedConfig(
+            enabled = raw.enabled,
+            globalBudgetMicrosPerTick = raw.globalBudgetMicrosPerTick.coerceAtLeast(1L),
+            opsPerSlice = raw.opsPerSlice.coerceAtLeast(1),
+            sliceBudgetMicros = raw.sliceBudgetMicros.coerceAtLeast(1L),
+            maxSlicesPerTick = raw.maxSlicesPerTick.coerceAtLeast(1),
+            maxRecordScansPerTick = raw.maxRecordScansPerTick.coerceAtLeast(1),
+            emergencySliceMillis = raw.emergencySliceMillis.coerceAtLeast(1L),
+            maxTotalWorkUnits = raw.maxTotalWorkUnits.coerceAtLeast(1L),
+            largeListChunkSize = raw.largeListChunkSize.coerceAtLeast(1),
+            largeForeachChunkExecutionSize = raw.largeForeachChunkExecutionSize.coerceAtLeast(1),
+            safeInlineForeachRemainingCap = raw.safeInlineForeachRemainingCap.coerceAtLeast(1),
+            debugSliceTelemetry = raw.debugSliceTelemetry
+        )
+    }
+
+    private fun SanitizedConfig.toWritableConfig(): WritableConfig {
+        val includeAdvancedValues = preset == SplinterPerformancePreset.CUSTOM || raw.splinterWriteAdvancedConfig
+        val advancedForWrite = if (includeAdvancedValues) {
+            WritableSplinterAdvancedConfig.from(advanced)
+        } else {
+            WritableSplinterAdvancedConfig(enabled = false)
+        }
+
+        return WritableConfig(
+            menuOpenLoopWindowMs = raw.menuOpenLoopWindowMs,
+            menuOpenLoopTriggerCount = raw.menuOpenLoopTriggerCount,
+            intentRelayMaxRangeBlocks = raw.intentRelayMaxRangeBlocks,
+            intentRelayCooldownTicks = raw.intentRelayCooldownTicks,
+            intentRelayStepTriggerEnabled = raw.intentRelayStepTriggerEnabled,
+            portalLiveViewEnabled = raw.portalLiveViewEnabled,
+            portalLiveViewCols = raw.portalLiveViewCols,
+            portalLiveViewRows = raw.portalLiveViewRows,
+            portalLiveViewDistanceBlocks = raw.portalLiveViewDistanceBlocks,
+            menuDispatchRefillPerSecond = raw.menuDispatchRefillPerSecond,
+            menuDispatchBurstTokens = raw.menuDispatchBurstTokens,
+            menuDispatchViolationDecayMs = raw.menuDispatchViolationDecayMs,
+            menuDispatchBaseCooldownMs = raw.menuDispatchBaseCooldownMs,
+            menuDispatchMaxCooldownMs = raw.menuDispatchMaxCooldownMs,
+            splinterCasterEnabled = raw.splinterCasterEnabled,
+            splinterMaxActivePerOwner = raw.splinterMaxActivePerOwner,
+            splinterPerformancePreset = preset.name.lowercase(),
+            splinterUseExternalizedForEachFrame = raw.splinterUseExternalizedForEachFrame,
+            splinterAdvanced = advancedForWrite,
+            splinterWriteAdvancedConfig = if (raw.splinterWriteAdvancedConfig) true else null
+        )
+    }
+
+    private data class LoadedConfig(
+        val raw: RawConfig,
+        val presentKeys: Set<String>
+    )
+
+    private data class SanitizedConfig(
+        val raw: RawConfig,
+        val preset: SplinterPerformancePreset,
+        val advanced: SplinterAdvancedConfig,
+        val resolvedTuning: SplinterResolvedTuning,
+        val shouldRewrite: Boolean
+    )
 
     private data class RawConfig(
         var menuOpenLoopWindowMs: Long = DEFAULT_MENU_LOOP_WINDOW_MS,
@@ -360,11 +570,120 @@ object ManifestationConfig {
         var menuDispatchViolationDecayMs: Long = DEFAULT_MENU_DISPATCH_VIOLATION_DECAY_MS,
         var menuDispatchBaseCooldownMs: Long = DEFAULT_MENU_DISPATCH_BASE_COOLDOWN_MS,
         var menuDispatchMaxCooldownMs: Long = DEFAULT_MENU_DISPATCH_MAX_COOLDOWN_MS,
-        var splinterWatchdogMaxAvgExecMs: Double = DEFAULT_SPLINTER_WATCHDOG_MAX_AVG_EXEC_MS,
-        var splinterWatchdogMaxBreaches: Int = DEFAULT_SPLINTER_WATCHDOG_MAX_BREACHES,
         var splinterMaxActivePerOwner: Int = DEFAULT_SPLINTER_MAX_ACTIVE_PER_OWNER,
         var splinterMaxExecutionsPerTick: Int = DEFAULT_SPLINTER_MAX_EXECUTIONS_PER_TICK,
-        var splinterMaxRecordScansPerTick: Int = DEFAULT_SPLINTER_MAX_RECORD_SCANS_PER_TICK,
-        var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED
+        var splinterCasterEnabled: Boolean = DEFAULT_SPLINTER_CASTER_ENABLED,
+        var splinterMaxLifetimeTicks: Long = DEFAULT_SPLINTER_MAX_LIFETIME_TICKS,
+        var splinterMaxNoProgressTicks: Long = DEFAULT_SPLINTER_MAX_NO_PROGRESS_TICKS,
+        var splinterMaxOverBudgetBreaches: Int = DEFAULT_SPLINTER_MAX_OVER_BUDGET_BREACHES,
+        var splinterUseExternalizedForEachFrame: Boolean = DEFAULT_SPLINTER_USE_EXTERNALIZED_FOREACH_FRAME,
+        var splinterGlobalBudgetMicrosPerTick: Long = 45_000L,
+        var splinterOpsPerSlice: Int = 10_000,
+        var splinterSliceBudgetMicros: Long = 45_000L,
+        var splinterMaxSlicesPerTick: Int = 8,
+        var splinterMaxRecordScansPerTick: Int = 512,
+        var splinterEmergencySliceMillis: Long = 100L,
+        var splinterMaxTotalWorkUnits: Long = 1_000_000L,
+        var splinterMaxTotalOps: Long? = null,
+        var splinterDebugSliceTelemetry: Boolean = false,
+        var splinterLargeListChunkSize: Int = 4096,
+        var splinterLargeForeachChunkExecutionSize: Int = 4096,
+        var splinterSafeInlineForeachRemainingCap: Int = 4096,
+        @Deprecated("Legacy key, ignored for scheduling")
+        var splinterExternalizedForEachFrameInnerStepsPerEvaluate: Int = 1,
+        var splinterPerformancePreset: String? = null,
+        var splinterAdvanced: SplinterAdvancedRawConfig? = null,
+        var splinterWriteAdvancedConfig: Boolean = DEFAULT_SPLINTER_WRITE_ADVANCED_CONFIG
     )
+
+    private data class SplinterAdvancedRawConfig(
+        var enabled: Boolean = false,
+        var globalBudgetMicrosPerTick: Long = 45_000L,
+        var opsPerSlice: Int = 10_000,
+        var sliceBudgetMicros: Long = 45_000L,
+        var maxSlicesPerTick: Int = 8,
+        var maxRecordScansPerTick: Int = 512,
+        var emergencySliceMillis: Long = 100L,
+        var maxTotalWorkUnits: Long = 1_000_000L,
+        var largeListChunkSize: Int = 4096,
+        var largeForeachChunkExecutionSize: Int = 4096,
+        var safeInlineForeachRemainingCap: Int = 4096,
+        var debugSliceTelemetry: Boolean = false
+    ) {
+        companion object {
+            fun from(config: SplinterAdvancedConfig): SplinterAdvancedRawConfig {
+                return SplinterAdvancedRawConfig(
+                    enabled = config.enabled,
+                    globalBudgetMicrosPerTick = config.globalBudgetMicrosPerTick,
+                    opsPerSlice = config.opsPerSlice,
+                    sliceBudgetMicros = config.sliceBudgetMicros,
+                    maxSlicesPerTick = config.maxSlicesPerTick,
+                    maxRecordScansPerTick = config.maxRecordScansPerTick,
+                    emergencySliceMillis = config.emergencySliceMillis,
+                    maxTotalWorkUnits = config.maxTotalWorkUnits,
+                    largeListChunkSize = config.largeListChunkSize,
+                    largeForeachChunkExecutionSize = config.largeForeachChunkExecutionSize,
+                    safeInlineForeachRemainingCap = config.safeInlineForeachRemainingCap,
+                    debugSliceTelemetry = config.debugSliceTelemetry
+                )
+            }
+        }
+    }
+
+    private data class WritableConfig(
+        val menuOpenLoopWindowMs: Long,
+        val menuOpenLoopTriggerCount: Int,
+        val intentRelayMaxRangeBlocks: Int,
+        val intentRelayCooldownTicks: Int,
+        val intentRelayStepTriggerEnabled: Boolean,
+        val portalLiveViewEnabled: Boolean,
+        val portalLiveViewCols: Int,
+        val portalLiveViewRows: Int,
+        val portalLiveViewDistanceBlocks: Int,
+        val menuDispatchRefillPerSecond: Double,
+        val menuDispatchBurstTokens: Double,
+        val menuDispatchViolationDecayMs: Long,
+        val menuDispatchBaseCooldownMs: Long,
+        val menuDispatchMaxCooldownMs: Long,
+        val splinterCasterEnabled: Boolean,
+        val splinterMaxActivePerOwner: Int,
+        val splinterPerformancePreset: String,
+        val splinterUseExternalizedForEachFrame: Boolean,
+        val splinterAdvanced: WritableSplinterAdvancedConfig,
+        val splinterWriteAdvancedConfig: Boolean? = null
+    )
+
+    private data class WritableSplinterAdvancedConfig(
+        val enabled: Boolean,
+        val globalBudgetMicrosPerTick: Long? = null,
+        val opsPerSlice: Int? = null,
+        val sliceBudgetMicros: Long? = null,
+        val maxSlicesPerTick: Int? = null,
+        val maxRecordScansPerTick: Int? = null,
+        val emergencySliceMillis: Long? = null,
+        val maxTotalWorkUnits: Long? = null,
+        val largeListChunkSize: Int? = null,
+        val largeForeachChunkExecutionSize: Int? = null,
+        val safeInlineForeachRemainingCap: Int? = null,
+        val debugSliceTelemetry: Boolean? = null
+    ) {
+        companion object {
+            fun from(advanced: SplinterAdvancedConfig): WritableSplinterAdvancedConfig {
+                return WritableSplinterAdvancedConfig(
+                    enabled = advanced.enabled,
+                    globalBudgetMicrosPerTick = advanced.globalBudgetMicrosPerTick,
+                    opsPerSlice = advanced.opsPerSlice,
+                    sliceBudgetMicros = advanced.sliceBudgetMicros,
+                    maxSlicesPerTick = advanced.maxSlicesPerTick,
+                    maxRecordScansPerTick = advanced.maxRecordScansPerTick,
+                    emergencySliceMillis = advanced.emergencySliceMillis,
+                    maxTotalWorkUnits = advanced.maxTotalWorkUnits,
+                    largeListChunkSize = advanced.largeListChunkSize,
+                    largeForeachChunkExecutionSize = advanced.largeForeachChunkExecutionSize,
+                    safeInlineForeachRemainingCap = advanced.safeInlineForeachRemainingCap,
+                    debugSliceTelemetry = advanced.debugSliceTelemetry
+                )
+            }
+        }
+    }
 }

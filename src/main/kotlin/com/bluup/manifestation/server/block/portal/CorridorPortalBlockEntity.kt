@@ -157,13 +157,16 @@ class CorridorPortalBlockEntity(
 
     fun renderEnvelope(partialTick: Float): Float {
         val world = level ?: return 1.0f
-        val now = world.gameTime.toDouble() + partialTick.toDouble()
+        return renderEnvelopeAt(world.gameTime.toDouble() + partialTick.toDouble())
+    }
+
+    fun renderEnvelopeAt(animationTicks: Double): Float {
         val openAnimTicks = if (permanentFrameMode) PERMANENT_OPEN_ANIM_TICKS else OPEN_ANIM_TICKS
 
         val open = if (openedAtGameTime <= 0L) {
             1.0f
         } else {
-            smoothstep(progress(now, openedAtGameTime, openAnimTicks))
+            smoothstep(progress(animationTicks, openedAtGameTime, openAnimTicks))
         }
 
         val replacementClosing = permanentFrameMode && replacementCollapseMode && collapseStartedAtGameTime >= 0L
@@ -172,7 +175,7 @@ class CorridorPortalBlockEntity(
         } else if (collapseStartedAtGameTime < 0L) {
             1.0f
         } else {
-            1.0f - smoothstep(progress(now, collapseStartedAtGameTime, CLOSE_ANIM_TICKS))
+            1.0f - smoothstep(progress(animationTicks, collapseStartedAtGameTime, CLOSE_ANIM_TICKS))
         }
 
         return (open * close).coerceIn(0.0f, 1.0f)
@@ -180,13 +183,16 @@ class CorridorPortalBlockEntity(
 
     fun collapseProgress(partialTick: Float): Float {
         val world = level ?: return 0.0f
+        return collapseProgressAt(world.gameTime.toDouble() + partialTick.toDouble())
+    }
+
+    fun collapseProgressAt(animationTicks: Double): Float {
         val start = collapseStartedAtGameTime
         if (start < 0L) {
             return 0.0f
         }
 
-        val now = world.gameTime.toDouble() + partialTick.toDouble()
-        return progress(now, start, CLOSE_ANIM_TICKS)
+        return progress(animationTicks, start, CLOSE_ANIM_TICKS)
     }
 
     fun getOpenedAtGameTime(): Long = openedAtGameTime

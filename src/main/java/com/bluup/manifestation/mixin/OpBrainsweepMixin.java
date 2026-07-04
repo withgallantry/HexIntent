@@ -44,7 +44,6 @@ public abstract class OpBrainsweepMixin {
 
         var world = env.getWorld();
 
-        // Store Villager
         if (!(args.get(1) instanceof Vec3Iota vaultIota)) {
             return;
         }
@@ -100,7 +99,6 @@ public abstract class OpBrainsweepMixin {
             }
         }
 
-        // Flay from Vault
         if (!(args.get(0) instanceof Vec3Iota sourceVaultIota) || !(args.get(1) instanceof Vec3Iota targetIota)) {
             return;
         }

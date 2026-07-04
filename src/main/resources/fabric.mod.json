@@ -9,6 +9,7 @@
   ],
   "contact": {},
   "license": "MIT",
+  "icon": "assets/manifestation/icon.png",
   "entrypoints": {
     "main": [
       {

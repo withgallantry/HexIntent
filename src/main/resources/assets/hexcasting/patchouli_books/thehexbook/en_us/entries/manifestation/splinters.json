@@ -39,11 +39,27 @@
     },
     {
       "type": "hexcasting:pattern",
+      "op_id": "manifestation:saturns_gambit",
+      "anchor": "manifestation:saturns_gambit",
+      "input": "pattern",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.saturns_gambit"
+    },
+    {
+      "type": "hexcasting:pattern",
       "op_id": "manifestation:get_splinter_location",
       "anchor": "manifestation:get_splinter_location",
       "input": "",
       "output": "vec",
       "text": "hexcasting.page.manifestation.splinters.get_splinter_location"
+    },
+    {
+      "type": "hexcasting:pattern",
+      "op_id": "manifestation:destroy_current_splinter",
+      "anchor": "manifestation:destroy_current_splinter",
+      "input": "",
+      "output": "none",
+      "text": "hexcasting.page.manifestation.splinters.destroy_current_splinter"
     },
     {
       "type": "hexcasting:pattern",

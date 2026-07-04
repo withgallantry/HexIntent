@@ -30,6 +30,15 @@ public final class SplinterVisuals {
     private static final int INTERP_TICKS_SHORT_HOP = 2;
     private static final int INTERP_TICKS_LONG_HOP = 1;
     private static final float INTERP_LOOKAHEAD_PARTIAL = 0.65f;
+    private static final double TICKS_PER_NANO = 20.0 / 1_000_000_000.0;
+    private static final double MAX_CLIENT_TICK_LEAD = 8.0;
+    private static final double SERVER_RESYNC_THRESHOLD = 2.5;
+
+    private static String clockDimensionId;
+    private static double clockAnchorTicks;
+    private static long clockAnchorNanos;
+    private static double clockLastSeenServerTicks;
+    private static double clockLastResolvedTicks;
 
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(
@@ -48,7 +57,7 @@ public final class SplinterVisuals {
                 }
 
                 client.execute(() -> {
-                    long now = client.level != null ? client.level.getGameTime() : 0L;
+                    double now = resolveAnimationTicks(client, 0.0f);
                     Map<UUID, SplinterVisualState> previous = new HashMap<>(ACTIVE);
                     Map<UUID, SplinterVisualState> next = new HashMap<>();
                     java.util.Set<UUID> consumedPrevious = new java.util.HashSet<>();
@@ -62,11 +71,11 @@ public final class SplinterVisuals {
                         }
 
                         Vec3 renderPos;
-                        long interpStartTick = now;
+                        double interpStartTick = now;
                         int interpTicks = 0;
                         if (matched != null) {
                             consumedPrevious.add(matched.id);
-                            Vec3 priorPos = matched.renderPosition(now, INTERP_LOOKAHEAD_PARTIAL);
+                            Vec3 priorPos = matched.renderPosition(now + INTERP_LOOKAHEAD_PARTIAL);
                             double hopSq = priorPos.distanceToSqr(incoming.position);
                             if (hopSq > 1.0e-8) {
                                 renderPos = priorPos;
@@ -109,7 +118,8 @@ public final class SplinterVisuals {
         String dimensionId = mc.level.dimension().location().toString();
         Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
         MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(new BufferBuilder(4096));
-        long gameTime = mc.level.getGameTime();
+        float frameTime = mc.getFrameTime();
+        double animationTicks = resolveAnimationTicks(mc, frameTime);
 
         try {
             Iterator<SplinterVisualState> it = ACTIVE.values().iterator();
@@ -119,17 +129,16 @@ public final class SplinterVisuals {
                     continue;
                 }
 
-                Vec3 renderPos = splinter.renderPosition(gameTime, mc.getFrameTime());
+                Vec3 renderPos = splinter.renderPosition(animationTicks);
 
                 if (mc.player.position().distanceToSqr(renderPos) > 96.0 * 96.0) {
                     continue;
                 }
 
-                float urgency = Mth.clamp((splinter.castAtGameTime - gameTime) / 40.0f, 0.0f, 1.0f);
-                float pulse = 0.72f + (0.28f * Mth.sin((gameTime + mc.getFrameTime()) * 0.20f));
+                float urgency = Mth.clamp((float) ((splinter.castAtGameTime - animationTicks) / 40.0), 0.0f, 1.0f);
+                float pulse = 0.72f + (0.28f * Mth.sin((float) (animationTicks * 0.20f)));
                 float alpha = (0.55f + 0.45f * pulse) * (0.7f + 0.3f * urgency);
-
-                // Keep the marker centered on the actual splinter cast position.
+                
                 Vec3 top = renderPos.add(0.0, 0.30, 0.0);
                 Vec3 mid = renderPos;
                 Vec3 base = renderPos.add(0.0, -0.24, 0.0);
@@ -138,11 +147,10 @@ public final class SplinterVisuals {
                 drawGlyph(mc, poseStack, buffers, "◇", mid, camera, (int) (alpha * 180.0f), 0x52c8ff, 1.35f);
                 drawGlyph(mc, poseStack, buffers, "◆", base, camera, (int) (alpha * 160.0f), 0x2f8fdb, 0.85f);
 
-                // A tiny rune ring nods to Greater Sentinel visuals while keeping this clearly smaller.
                 for (int i = 0; i < RING_RUNES.length; i++) {
-                    double angle = ((Math.PI * 2.0) / RING_RUNES.length) * i + (gameTime * 0.03);
+                    double angle = ((Math.PI * 2.0) / RING_RUNES.length) * i + (animationTicks * 0.03);
                     Vec3 runePos = renderPos
-                        .add(Math.cos(angle) * 0.28, Math.sin((gameTime + i * 3) * 0.09) * 0.02, Math.sin(angle) * 0.28);
+                        .add(Math.cos(angle) * 0.28, Math.sin((animationTicks + i * 3) * 0.09) * 0.02, Math.sin(angle) * 0.28);
                     drawGlyph(mc, poseStack, buffers, RING_RUNES[i], runePos, camera, (int) (alpha * 110.0f), 0x6ee6ff, 0.55f);
                 }
             }
@@ -200,7 +208,7 @@ public final class SplinterVisuals {
         Map<UUID, SplinterVisualState> previous,
         java.util.Set<UUID> consumedPrevious,
         SplinterVisual incoming,
-        long now
+        double now
     ) {
         SplinterVisualState best = null;
         double bestSq = MAX_MATCH_HOP_SQ;
@@ -213,7 +221,7 @@ public final class SplinterVisuals {
                 continue;
             }
 
-            Vec3 candidatePos = candidate.renderPosition(now, 0.0f);
+            Vec3 candidatePos = candidate.renderPosition(now);
             double sq = candidatePos.distanceToSqr(incoming.position);
             if (sq <= bestSq) {
                 bestSq = sq;
@@ -231,6 +239,41 @@ public final class SplinterVisuals {
         return INTERP_TICKS_LONG_HOP;
     }
 
+    private static double resolveAnimationTicks(Minecraft mc, float partialTick) {
+        if (mc.level == null) {
+            return mc.player != null ? mc.player.tickCount + (double) partialTick : 0.0;
+        }
+
+        double serverTicks = mc.level.getGameTime() + (double) partialTick;
+        String dimensionId = mc.level.dimension().location().toString();
+        long nowNanos = System.nanoTime();
+
+        boolean dimensionChanged = clockDimensionId == null || !clockDimensionId.equals(dimensionId);
+        boolean serverRolledBack = serverTicks + 1.0 < clockLastSeenServerTicks;
+        if (dimensionChanged || serverRolledBack) {
+            clockDimensionId = dimensionId;
+            clockAnchorTicks = serverTicks;
+            clockAnchorNanos = nowNanos;
+            clockLastSeenServerTicks = serverTicks;
+            clockLastResolvedTicks = serverTicks;
+            return serverTicks;
+        }
+
+        double elapsedTicks = Math.max(0.0, (nowNanos - clockAnchorNanos) * TICKS_PER_NANO);
+        double predictedTicks = clockAnchorTicks + elapsedTicks;
+        double clampedLeadTicks = Math.min(predictedTicks, serverTicks + MAX_CLIENT_TICK_LEAD);
+        double resolvedTicks = Math.max(clampedLeadTicks, clockLastResolvedTicks);
+        if (serverTicks > resolvedTicks + SERVER_RESYNC_THRESHOLD) {
+            resolvedTicks = serverTicks;
+            clockAnchorTicks = serverTicks;
+            clockAnchorNanos = nowNanos;
+        }
+
+        clockLastSeenServerTicks = serverTicks;
+        clockLastResolvedTicks = resolvedTicks;
+        return resolvedTicks;
+    }
+
     private record SplinterVisual(UUID id, String dimensionId, Vec3 position, long castAtGameTime) {
     }
 
@@ -239,11 +282,11 @@ public final class SplinterVisuals {
         private final String dimensionId;
         private final Vec3 from;
         private final Vec3 to;
-        private final long startTick;
+        private final double startTick;
         private final int interpTicks;
         private final long castAtGameTime;
 
-        private SplinterVisualState(UUID id, String dimensionId, Vec3 from, Vec3 to, long startTick, int interpTicks, long castAtGameTime) {
+        private SplinterVisualState(UUID id, String dimensionId, Vec3 from, Vec3 to, double startTick, int interpTicks, long castAtGameTime) {
             this.id = id;
             this.dimensionId = dimensionId;
             this.from = from;
@@ -253,11 +296,11 @@ public final class SplinterVisuals {
             this.castAtGameTime = castAtGameTime;
         }
 
-        private Vec3 renderPosition(long gameTime, float partialTick) {
+        private Vec3 renderPosition(double gameTicks) {
             if (interpTicks <= 0) {
                 return to;
             }
-            float elapsed = (float) (gameTime - startTick) + partialTick;
+            float elapsed = (float) (gameTicks - startTick);
             float linear = Mth.clamp(elapsed / (float) interpTicks, 0.0f, 1.0f);
             float t = linear * linear * (3.0f - 2.0f * linear);
             return new Vec3(

@@ -14,6 +14,7 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughMedia
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
+import com.bluup.manifestation.server.splinter.SplinterCastEnv
 import com.bluup.manifestation.server.splinter.SplinterRuntime
 import net.minecraft.server.level.ServerPlayer
 
@@ -81,11 +82,41 @@ object OpManifestSplinter : Action {
         }
 
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
+
+        if (env is SplinterCastEnv) {
+            val mediaCost = try {
+                SplinterRuntime.requestPostCompletionRenew(env, caster, summonPos, delayTicks, image)
+            } catch (e: IllegalStateException) {
+                if (e.message == "anchored_relocation") {
+                    throw MishapInvalidIota.ofType(posIota, 2, "vector equal to splinter anchor")
+                }
+                throw e
+            }
+
+            if (mediaCost > 0L && env.extractMedia(mediaCost, true) > 0) {
+                throw MishapNotEnoughMedia(mediaCost)
+            }
+
+            val image2 = image.withUsedOp().copy(stack = stack)
+            val sideEffects = if (mediaCost > 0L) {
+                listOf(OperatorSideEffect.ConsumeMedia(mediaCost))
+            } else {
+                listOf()
+            }
+
+            return OperationResult(
+                image2,
+                sideEffects,
+                continuation,
+                HexEvalSounds.NORMAL_EXECUTE
+            )
+        }
+
         val summonResult = try {
             SplinterRuntime.prepareSummon(env, caster, summonPos, delayTicks, payload, image)
         } catch (e: IllegalArgumentException) {
             if (e.message == "payload_too_large") {
-                throw MishapInvalidIota.ofType(payloadIota, 0, "list up to ${SplinterRuntime.MAX_PAYLOAD_IOTAS} iotas")
+                throw MishapInvalidIota.ofType(payloadIota, 0, "list up to 4024 iotas")
             }
             throw e
         } catch (e: IllegalStateException) {
@@ -120,4 +151,5 @@ object OpManifestSplinter : Action {
             HexEvalSounds.NORMAL_EXECUTE
         )
     }
+
 }

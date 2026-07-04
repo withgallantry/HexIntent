@@ -13,6 +13,8 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapNotEnoughArgs
 import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import com.bluup.manifestation.common.equation.EquationParticleConfig
 import com.bluup.manifestation.common.equation.EquationParticleGenerator
+import com.bluup.manifestation.Manifestation
+import com.bluup.manifestation.server.ManifestationConfig
 import com.bluup.manifestation.server.ManifestationServer
 import com.bluup.manifestation.server.iota.EquationParticleIota
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
@@ -37,7 +39,19 @@ object OpEquationHexCloud : Action {
         continuation: SpellContinuation
     ): OperationResult {
         val stack = image.stack.toMutableList()
+        val debugTelemetry = ManifestationConfig.splinterDebugSliceTelemetry()
+        if (debugTelemetry) {
+            Manifestation.LOGGER.warn(
+                "Equation cloud op entered: env={}, stackSize={}, topTypes={}",
+                env::class.java.simpleName,
+                stack.size,
+                stack.takeLast(4).map { it::class.java.simpleName }
+            )
+        }
         if (stack.size < 3) {
+            if (debugTelemetry) {
+                Manifestation.LOGGER.warn("Equation cloud op failed: not enough args (need 3, got {})", stack.size)
+            }
             throw MishapNotEnoughArgs(3, stack.size)
         }
 
@@ -46,7 +60,15 @@ object OpEquationHexCloud : Action {
         val anchorOrOffsetIota = stack.removeAt(stack.lastIndex)
 
         val cloudId = (idIota as? DoubleIota)?.let { Math.round(it.double) }
-            ?: throw MishapInvalidIota.ofType(idIota, 0, "number")
+            ?: run {
+                if (debugTelemetry) {
+                    Manifestation.LOGGER.warn(
+                        "Equation cloud op failed: id iota type mismatch (got {})",
+                        idIota::class.java.simpleName
+                    )
+                }
+                throw MishapInvalidIota.ofType(idIota, 0, "number")
+            }
 
         val follow = when (anchorOrOffsetIota) {
             is EntityIota -> {
@@ -76,13 +98,29 @@ object OpEquationHexCloud : Action {
                 FollowBinding(anchorOrOffsetIota.vec3, null, null)
             }
 
-            else -> throw MishapInvalidIota.ofType(anchorOrOffsetIota, 2, "vector or entity")
+            else -> {
+                if (debugTelemetry) {
+                    Manifestation.LOGGER.warn(
+                        "Equation cloud op failed: anchor iota type mismatch (got {})",
+                        anchorOrOffsetIota::class.java.simpleName
+                    )
+                }
+                throw MishapInvalidIota.ofType(anchorOrOffsetIota, 2, "vector or entity")
+            }
         }
         val origin = follow.origin
         env.assertVecInRange(origin)
 
         val equation = equationIota as? EquationParticleIota
-            ?: throw MishapInvalidIota.ofType(equationIota, 1, "equation particle")
+            ?: run {
+                if (debugTelemetry) {
+                    Manifestation.LOGGER.warn(
+                        "Equation cloud op failed: equation iota type mismatch (got {})",
+                        equationIota::class.java.simpleName
+                    )
+                }
+                throw MishapInvalidIota.ofType(equationIota, 1, "equation particle")
+            }
 
         val config = EquationParticleConfig(
             equation.xExpr,
@@ -110,10 +148,41 @@ object OpEquationHexCloud : Action {
         ).normalized()
         val evalCost = EquationParticleGenerator.estimateEvalCost(config)
         if (evalCost > ManifestationServer.MAX_EQUATION_EVAL_BUDGET_SERVER) {
+            if (debugTelemetry) {
+                Manifestation.LOGGER.warn(
+                    "Equation cloud op failed: eval budget exceeded (cost={}, budget={})",
+                    evalCost,
+                    ManifestationServer.MAX_EQUATION_EVAL_BUDGET_SERVER
+                )
+            }
             throw MishapInvalidIota.ofType(equationIota, 1, "equation particle under server evaluation budget")
         }
 
+        if (debugTelemetry) {
+            Manifestation.LOGGER.warn(
+                "Equation cloud op entered: env={}, castingEntity={}, stackSize={}, topTypes={}",
+                env::class.java.simpleName,
+                env.castingEntity?.javaClass?.simpleName ?: "null",
+                stack.size,
+                stack.takeLast(4).map { it::class.java.simpleName }
+            )
+        }
+
         val caster = env.castingEntity as? ServerPlayer ?: throw MishapRequiresCasterWill()
+        if (debugTelemetry) {
+            Manifestation.LOGGER.warn(
+                "Equation cloud executed: caster={}, dim={}, id={}, origin=({}, {}, {}), points={}, usesTime={}, followEntityId={}",
+                caster.name.string,
+                caster.serverLevel().dimension().location(),
+                cloudId,
+                origin.x,
+                origin.y,
+                origin.z,
+                equation.pointCount,
+                EquationParticleGenerator.usesTime(config),
+                follow.entity?.id
+            )
+        }
         ManifestationServer.sendEquationCloudTo(
             caster,
             origin,

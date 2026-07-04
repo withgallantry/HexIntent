@@ -1,9 +1,11 @@
 package com.bluup.manifestation.client;
 
+import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.common.ManifestationNetworking;
 import com.bluup.manifestation.common.equation.EquationParticleConfig;
 import com.bluup.manifestation.common.equation.EquationParticleGenerator;
 import com.bluup.manifestation.client.ManifestationClientLimits;
+import com.bluup.manifestation.server.ManifestationConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -28,6 +30,8 @@ import java.util.UUID;
 
 public final class EquationCloudVisuals {
     private static final Map<CloudKey, CloudState> ACTIVE = new HashMap<>();
+    private static long lastReceiveLogMillis;
+    private static long lastZeroSampleWarnTick = Long.MIN_VALUE;
 
     private static final double ORIGIN_EPSILON_SQ = 1.0e-6;
     private static final int DEFAULT_DURATION_TICKS = 100;
@@ -73,6 +77,20 @@ public final class EquationCloudVisuals {
                     CloudKey key = new CloudKey(sourceId, id);
                     CloudState state = ACTIVE.computeIfAbsent(key, ignored -> new CloudState());
                     state.applyUpdate(dimensionId, origin, config, animationPreset, animationSpeed, durationTicks, resolvedFollowEntityId, resolvedFollowOffset, now);
+
+                    long wallNow = System.currentTimeMillis();
+                    if (ManifestationConfig.INSTANCE.splinterDebugSliceTelemetry() && wallNow - lastReceiveLogMillis >= 1500L) {
+                        lastReceiveLogMillis = wallNow;
+                        Manifestation.LOGGER.warn(
+                            "Equation cloud packet received: dim={}, source={}, id={}, points={}, followEntity={}, activeClouds={}",
+                            dimensionId,
+                            sourceId,
+                            id,
+                            config.pointCount(),
+                            resolvedFollowEntityId,
+                            ACTIVE.size()
+                        );
+                    }
                 });
             }
         );
@@ -122,12 +140,18 @@ public final class EquationCloudVisuals {
                 double dist = origin.distanceTo(camera);
                 List<EquationParticleGenerator.GeneratedPoint> points = state.points;
                 if (state.timeDependent && state.config != null) {
-                    points = EquationParticleGenerator.generate(
-                        state.config,
-                        ManifestationClientLimits.MAX_EQUATION_POINTS_RENDER,
-                        ManifestationClientLimits.MAX_EQUATION_EVAL_BUDGET_RENDER,
-                        animTime
-                    );
+                    try {
+                        points = EquationParticleGenerator.generate(
+                            state.config,
+                            ManifestationClientLimits.MAX_EQUATION_POINTS_RENDER,
+                            ManifestationClientLimits.MAX_EQUATION_EVAL_BUDGET_RENDER,
+                            state.equationTime(animTime)
+                        );
+                        state.points = points;
+                    } catch (IllegalArgumentException ignored) {
+                        // Not sure if this is a good idea but thought it could be why the points would sometimes vanish
+                        points = state.points;
+                    }
                 }
 
                 if (points.isEmpty()) {
@@ -141,6 +165,7 @@ public final class EquationCloudVisuals {
                 String animationPreset = state.animationPreset;
                 float animationSpeed = (float) Math.max(0.1, state.animationSpeed);
                 float scaledTime = animTime * animationSpeed;
+                int drawnCount = 0;
 
                 float bobOffset = Mth.sin(scaledTime * 0.09f) * 0.08f;
                 float pulseScale = 1.0f + (0.18f * Mth.sin(scaledTime * 0.12f));
@@ -225,6 +250,41 @@ public final class EquationCloudVisuals {
 
                     addBillboardQuad(sparkBuffer, mat, cameraRotation, x, y, z, size * GLOW_SCALE, r, g, b, glowAlpha);
                     addBillboardQuad(sparkBuffer, mat, cameraRotation, x, y, z, size, r, g, b, coreAlpha);
+                    drawnCount++;
+                }
+
+                if (drawnCount == 0 && !points.isEmpty()) {
+                    EquationParticleGenerator.GeneratedPoint fallbackPoint = points.get(0);
+                    Vec3 p = origin.add(fallbackPoint.offset());
+                    Vec3 c = fallbackPoint.color();
+                    float r = Mth.clamp((float) c.x, 0.0f, 1.0f);
+                    float g = Mth.clamp((float) c.y, 0.0f, 1.0f);
+                    float b = Mth.clamp((float) c.z, 0.0f, 1.0f);
+                    float fallbackAlpha = Math.max(0.35f, alpha);
+                    addBillboardQuad(
+                        sparkBuffer,
+                        mat,
+                        cameraRotation,
+                        (float) p.x,
+                        (float) p.y,
+                        (float) p.z,
+                        baseSize,
+                        r,
+                        g,
+                        b,
+                        fallbackAlpha
+                    );
+
+                    if (now - lastZeroSampleWarnTick >= 40L) {
+                        lastZeroSampleWarnTick = now;
+                        Manifestation.LOGGER.warn(
+                            "Equation cloud rendered via fallback point: dim={}, step={}, points={}, dist={}",
+                            state.dimensionId,
+                            step,
+                            points.size(),
+                            dist
+                        );
+                    }
                 }
             }
         } finally {
@@ -479,6 +539,11 @@ public final class EquationCloudVisuals {
                 Mth.lerp(alpha, fromOrigin.y, toOrigin.y),
                 Mth.lerp(alpha, fromOrigin.z, toOrigin.z)
             );
+        }
+
+        private double equationTime(float animTime) {
+            // Keep equation time local to this cloud so expressions don't jump on large world-time values.
+            return Math.max(0.0, animTime - (float) spawnTick);
         }
 
         private static long fingerprint(EquationParticleConfig config) {

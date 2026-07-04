@@ -8,7 +8,7 @@
     {
       "type": "patchouli:spotlight",
       "item": "manifestation:equation_synth",
-      "title": "Equation Synthesizer",
+      "title": "hexcasting.entry.manifestation_equation_synth",
       "text": "hexcasting.page.manifestation.equation_synth.overview"
     },
     {

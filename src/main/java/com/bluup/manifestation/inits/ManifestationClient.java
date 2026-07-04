@@ -2,6 +2,7 @@ package com.bluup.manifestation.client;
 
 import com.bluup.manifestation.Manifestation;
 import com.bluup.manifestation.client.menu.ui.MenuScreen;
+import com.bluup.manifestation.client.hud.StaffBatteryHudOverlay;
 import com.bluup.manifestation.client.render.CorridorPortalBlockEntityRenderer;
 import com.bluup.manifestation.client.render.EquationSynthBlockEntityRenderer;
 import com.bluup.manifestation.client.render.IntentRelayBlockEntityRenderer;
@@ -26,14 +27,6 @@ import net.minecraft.world.InteractionHand;
  * Client entrypoint. Runs on every client, both connected-to-dedicated-server
  * and singleplayer.
  *
- * <p>Sole responsibility: subscribe to the Manifestation S2C packet. When one
- * arrives, read the {@link MenuPayload}, ensure no menu is already open (the
- * "one active menu" rule), mark the new one active, and swap the screen to
- * a fresh {@link MenuScreen}.
- *
- * <p>The packet includes the casting hand used when the menu was created.
- * Reusing that hand on click keeps dispatch bound to the same staff-cast
- * session image instead of accidentally crossing hands.
  */
 public final class ManifestationClient implements ClientModInitializer {
 
@@ -75,8 +68,10 @@ public final class ManifestationClient implements ClientModInitializer {
         MindVaultLensOverlay.register();
         IntentShifterRuneEffects.register();
         SplinterVisuals.register();
+        HexTrailVisuals.register();
         EquationCloudVisuals.register();
         SpellCircleVisuals.register();
+        StaffBatteryHudOverlay.register();
 
         ItemTooltipCallback.EVENT.register((stack, context, lines) -> {
             if (stack.isEmpty() || stack.is(ManifestationItems.MEMORY_CRYSTAL)) {
@@ -126,6 +121,12 @@ public final class ManifestationClient implements ClientModInitializer {
             Manifestation.LOGGER.debug(
                     "Manifestation: menu arrived during close-suppression window; dropping.");
             return;
+        }
+
+        if (state.isActive() && !(mc.screen instanceof MenuScreen)) {
+            Manifestation.LOGGER.debug(
+                    "Manifestation: clearing stale active menu state with no menu screen present.");
+            state.clear();
         }
 
         if (state.isActive()) {
