@@ -3,10 +3,10 @@ package com.bluup.manifestation.server.action
 import at.petrak.hexcasting.api.casting.castables.ConstMediaAction
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.iota.Iota
+import at.petrak.hexcasting.api.casting.iota.NullIota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import com.bluup.manifestation.server.data.ServerMemoryStorage
 import com.bluup.manifestation.server.iota.MemoryIota
-import com.bluup.manifestation.server.mishap.MishapMemoryIdNotOnCrystal
 import com.bluup.manifestation.server.mishap.MishapRequiresCasterWill
 import net.minecraft.server.level.ServerLevel
 
@@ -21,8 +21,6 @@ object OpReplayMemory : ConstMediaAction {
         val storage = ServerMemoryStorage.get(world.server)
 
         val stored = storage.retrieve(memoryIota.id, world)
-            ?: throw MishapMemoryIdNotOnCrystal()
-
-        return listOf(stored)
+        return listOf(stored ?: NullIota())
     }
 }
