@@ -21,7 +21,7 @@ public abstract class ItemInHandRendererStaffRechargeMixin {
             target = "Lnet/minecraft/world/item/ItemStack;matches(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z"
         )
     )
-    private static boolean manifestation$ignoreRechargeOnlyStaffNbtForSwapAnim(ItemStack previous, ItemStack current) {
+    private boolean manifestation$ignoreRechargeOnlyStaffNbtForSwapAnim(ItemStack previous, ItemStack current) {
         if (ItemStack.matches(previous, current)) {
             return true;
         }
