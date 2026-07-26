@@ -44,6 +44,7 @@ class SplinterStateStore : SavedData() {
         var overBudgetCount: Int = 0,
         var ambitRadius: Double = SplinterCastEnv.SPLINTER_AMBIT_RADIUS,
         var allowRenew: Boolean = true,
+        var includeCasterRange: Boolean = false,
         var lastObservedStackSize: Int? = null,
         var lastObservedContinuationSize: Int? = null,
         var pendingRenewPosition: Vec3? = null,
@@ -311,6 +312,7 @@ class SplinterStateStore : SavedData() {
                 KotlinNbtCompat.putInt(out, "over_budget_count", record.overBudgetCount)
                 KotlinNbtCompat.putDouble(out, "ambit_radius", record.ambitRadius)
                 KotlinNbtCompat.putBoolean(out, "allow_renew", record.allowRenew)
+                KotlinNbtCompat.putBoolean(out, "include_caster_range", record.includeCasterRange)
                 if (record.lastObservedStackSize != null) {
                     KotlinNbtCompat.putInt(out, "last_observed_stack_size", record.lastObservedStackSize!!)
                 }
@@ -472,6 +474,11 @@ class SplinterStateStore : SavedData() {
                 } else {
                     true
                 }
+                val includeCasterRange = if (KotlinNbtCompat.contains(t, "include_caster_range", Tag.TAG_BYTE.toInt())) {
+                    KotlinNbtCompat.getBoolean(t, "include_caster_range")
+                } else {
+                    false
+                }
                 val lastObservedStackSize = if (KotlinNbtCompat.contains(t, "last_observed_stack_size", Tag.TAG_INT.toInt())) {
                     KotlinNbtCompat.getInt(t, "last_observed_stack_size")
                 } else {
@@ -527,6 +534,7 @@ class SplinterStateStore : SavedData() {
                     overBudgetCount = overBudgetCount,
                     ambitRadius = ambitRadius,
                     allowRenew = allowRenew,
+                    includeCasterRange = includeCasterRange,
                     lastObservedStackSize = lastObservedStackSize,
                     lastObservedContinuationSize = lastObservedContinuationSize,
                     pendingRenewPosition = pendingRenewPosition,

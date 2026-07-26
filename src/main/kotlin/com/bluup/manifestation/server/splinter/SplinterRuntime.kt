@@ -725,10 +725,18 @@ object SplinterRuntime {
                 record.position,
                 record.id,
                 BlockPos.containing(record.circleImpetusPos!!.x, record.circleImpetusPos!!.y, record.circleImpetusPos!!.z),
-                record.ambitRadius
+                record.ambitRadius,
+                record.includeCasterRange
             )
         } else {
-            SplinterCastEnv(owner, record.castingHand, record.position, record.id, record.ambitRadius)
+            SplinterCastEnv(
+                owner,
+                record.castingHand,
+                record.position,
+                record.id,
+                record.ambitRadius,
+                record.includeCasterRange
+            )
         }
 
         val startingImage: CastingImage
@@ -1335,6 +1343,7 @@ object SplinterRuntime {
             overBudgetCount = 0,
             ambitRadius = source.ambitRadius,
             allowRenew = source.allowRenew,
+            includeCasterRange = source.includeCasterRange,
             lastObservedStackSize = null,
             lastObservedContinuationSize = null,
             pendingRenewPosition = null,
@@ -1543,6 +1552,9 @@ object SplinterRuntime {
         val impetusPos = BlockPos.containing(impetusVec.x, impetusVec.y, impetusVec.z)
         val bs = level.getBlockState(impetusPos)
         val impetus = level.getBlockEntity(impetusPos) as? BlockEntityAbstractImpetus
+        if (impetus?.executionState == null) {
+            return
+        }
         ICircleComponent.sfx(impetusPos, bs, level, impetus, false)
     }
 

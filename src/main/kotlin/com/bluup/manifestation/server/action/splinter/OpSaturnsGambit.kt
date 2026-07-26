@@ -2,6 +2,7 @@ package com.bluup.manifestation.server.action
 
 import at.petrak.hexcasting.api.casting.castables.Action
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
+import at.petrak.hexcasting.api.casting.eval.env.PlayerBasedCastEnv
 import at.petrak.hexcasting.api.casting.eval.OperationResult
 import at.petrak.hexcasting.api.casting.eval.sideeffects.OperatorSideEffect
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
@@ -22,8 +23,6 @@ import net.minecraft.server.level.ServerPlayer
  *   pattern list
  */
 object OpSaturnsGambit : Action {
-    private const val SATURN_AMBIT_RADIUS = 32.0
-
     override fun operate(
         env: CastingEnvironment,
         image: CastingImage,
@@ -65,8 +64,11 @@ object OpSaturnsGambit : Action {
             }
             throw e
         }
-        summonResult.record.ambitRadius = SATURN_AMBIT_RADIUS.coerceAtLeast(SplinterCastEnv.SPLINTER_AMBIT_RADIUS)
+        val playerEnv = env as? PlayerBasedCastEnv ?: throw MishapRequiresCasterWill()
+        summonResult.record.ambitRadius = playerEnv.ambitRadius
+            .coerceAtLeast(SplinterCastEnv.SPLINTER_AMBIT_RADIUS)
         summonResult.record.allowRenew = false
+        summonResult.record.includeCasterRange = true
 
         if (summonResult.mediaCost > 0L && env.extractMedia(summonResult.mediaCost, true) > 0) {
             throw MishapNotEnoughMedia(summonResult.mediaCost)

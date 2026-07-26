@@ -19,7 +19,8 @@ open class SplinterCastEnv(
     private val hand: InteractionHand,
     val splinterOrigin: Vec3,
     val sourceSplinterId: UUID,
-    private val ambitRadius: Double = SPLINTER_AMBIT_RADIUS
+    private val ambitRadius: Double = SPLINTER_AMBIT_RADIUS,
+    private val includeCasterRange: Boolean = false
 ) : PlayerBasedCastEnv(caster, hand) {
 
     override fun getMishapEnvironment(): MishapEnvironment = NoopMishapEnvironment(world, caster)
@@ -39,8 +40,14 @@ open class SplinterCastEnv(
 
     override fun getPigment(): FrozenPigment = IXplatAbstractions.INSTANCE.getPigment(caster)
 
-    override fun isVecInRangeEnvironment(vec: Vec3): Boolean =
-        vec.distanceToSqr(splinterOrigin) <= (ambitRadius * ambitRadius) + RANGE_EPSILON
+    override fun isVecInRangeEnvironment(vec: Vec3): Boolean {
+        val inLocalAmbit = vec.distanceToSqr(splinterOrigin) <= (ambitRadius * ambitRadius) + RANGE_EPSILON
+        if (inLocalAmbit) {
+            return true
+        }
+
+        return includeCasterRange && super.isVecInRangeEnvironment(vec)
+    }
 
     override fun mishapSprayPos(): Vec3 = splinterOrigin
 
@@ -71,8 +78,9 @@ class CircleSplinterCastEnv(
     splinterOrigin: Vec3,
     sourceSplinterId: UUID,
     private val impetusPos: BlockPos,
-    ambitRadius: Double = SPLINTER_AMBIT_RADIUS
-) : SplinterCastEnv(caster, hand, splinterOrigin, sourceSplinterId, ambitRadius) {
+    ambitRadius: Double = SPLINTER_AMBIT_RADIUS,
+    includeCasterRange: Boolean = false
+) : SplinterCastEnv(caster, hand, splinterOrigin, sourceSplinterId, ambitRadius, includeCasterRange) {
     override fun sendMishapMsgToPlayer(mishap: OperatorSideEffect.DoMishap) {
         val msg = mishap.mishap.errorMessageWithName(this, mishap.errorCtx) ?: return
         val center = Vec3.atCenterOf(impetusPos)
