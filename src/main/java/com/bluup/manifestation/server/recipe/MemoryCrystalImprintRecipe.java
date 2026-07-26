@@ -7,6 +7,7 @@ import com.bluup.manifestation.server.CharmItemInterop;
 import com.bluup.manifestation.server.item.ManifestationItems;
 import com.bluup.manifestation.server.item.MemoryCrystalData;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
@@ -81,8 +82,12 @@ public class MemoryCrystalImprintRecipe extends CustomRecipe {
         ItemStack output = target.copy();
         output.setCount(1);
 
-        MemoryCrystalData.ensureMemoryId(memoryCrystal);
-        MemoryCrystalData.copyMemoryData(memoryCrystal, output);
+        String memoryId = MemoryCrystalData.getMemoryId(memoryCrystal);
+        if (memoryId != null) {
+            CompoundTag root = new CompoundTag();
+            root.putString(MemoryCrystalData.TAG_MEMORY_ID, memoryId);
+            output.getOrCreateTag().put(MemoryCrystalData.TAG_MEMORY_ROOT, root);
+        }
 
         return output;
     }
@@ -94,7 +99,7 @@ public class MemoryCrystalImprintRecipe extends CustomRecipe {
 
     @Override
     public RecipeSerializer<?> getSerializer() {
-        return ManifestationRecipes.MEMORY_CRYSTAL_IMPRINT;
+        return com.bluup.manifestation.server.recipe.ManifestationRecipes.MEMORY_CRYSTAL_IMPRINT;
     }
 
     private static boolean isCastableTarget(ItemStack stack) {
