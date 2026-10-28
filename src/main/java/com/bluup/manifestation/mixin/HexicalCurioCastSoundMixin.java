@@ -24,9 +24,6 @@ import java.util.List;
         FluteCurio.class,
         HandbellCurio.class
     },
-    targets = {
-        "miyucomics.hexical.features.curios.curios.StaffCurio"
-    },
     remap = false
 )
 public abstract class HexicalCurioCastSoundMixin {
